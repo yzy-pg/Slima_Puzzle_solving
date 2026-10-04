@@ -1,42 +1,41 @@
+// URP 版：放置虚影（纯色半透明）
 Shader "BlockMap/GhostUnlit"
 {
     Properties
     {
         _Color ("Color", Color) = (0.55, 0.85, 1, 0.35)
     }
-
     SubShader
     {
-        Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Transparent" "Queue"="Transparent" "IgnoreProjector"="True" }
         Cull Off
-        Lighting Off
         ZWrite Off
         Blend SrcAlpha OneMinusSrcAlpha
-
         Pass
         {
-            CGPROGRAM
+            Name "GhostUnlit"
+            Tags { "LightMode"="UniversalForward" }
+            HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #include "UnityCG.cginc"
-
-            fixed4 _Color;
-
-            struct appdata { float4 vertex : POSITION; };
-            struct v2f { float4 pos : SV_POSITION; };
-
-            v2f vert (appdata v)
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            struct Attributes { float4 positionOS : POSITION; };
+            struct Varyings   { float4 positionCS : SV_POSITION; };
+            CBUFFER_START(UnityPerMaterial)
+                half4 _Color;
+            CBUFFER_END
+            Varyings vert (Attributes v)
             {
-                v2f o;
-                o.pos = UnityObjectToClipPos(v.vertex);
+                Varyings o;
+                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
                 return o;
             }
-
-            fixed4 frag (v2f i) : SV_Target
+            half4 frag (Varyings i) : SV_Target
             {
-                return _Color;      // 纯色半透明：作为"将要放置"的虚影
+                return _Color;
             }
-            ENDCG
+            ENDHLSL
         }
     }
+    Fallback "Universal Render Pipeline/Unlit"
 }
