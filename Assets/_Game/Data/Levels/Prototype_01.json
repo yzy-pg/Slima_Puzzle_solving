@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "levelId": "prototype_01",
+  "displayName": "原型关卡 01",
+  "width": 16,
+  "height": 16,
+  "rules": {
+    "_说明": "胜利条件：0 到达终点，1 激活全部接收器，2 两者都满足。其余数值为 -1 时继承全局配置。布尔覆盖：-1 继承、0 否、1 是。",
+    "winCondition": 0,
+    "initialGel": -1,
+    "maxGel": -1,
+    "baseMoveCost": -1,
+    "environmentDamage": -1,
+    "splitThreshold": -1,
+    "buttonDurationSteps": -1,
+    "transferAmount": -1,
+    "maxSlimes": -1,
+    "capGelAtMax": -1,
+    "anySlimeZeroFails": -1
+  },
+  "cells": [
+    {"x":0,"z":0,"terrain":1},{"x":1,"z":0,"terrain":1},{"x":2,"z":0,"terrain":1},{"x":3,"z":0,"terrain":1},{"x":4,"z":0,"terrain":1},{"x":5,"z":0,"terrain":1},{"x":6,"z":0,"terrain":1},{"x":7,"z":0,"terrain":1},{"x":8,"z":0,"terrain":1},{"x":9,"z":0,"terrain":1},{"x":10,"z":0,"terrain":1},{"x":11,"z":0,"terrain":1},{"x":12,"z":0,"terrain":1},{"x":13,"z":0,"terrain":1},{"x":14,"z":0,"terrain":1},{"x":15,"z":0,"terrain":1},
+    {"x":0,"z":15,"terrain":1},{"x":1,"z":15,"terrain":1},{"x":2,"z":15,"terrain":1},{"x":3,"z":15,"terrain":1},{"x":4,"z":15,"terrain":1},{"x":5,"z":15,"terrain":1},{"x":6,"z":15,"terrain":1},{"x":7,"z":15,"terrain":1},{"x":8,"z":15,"terrain":1},{"x":9,"z":15,"terrain":1},{"x":10,"z":15,"terrain":1},{"x":11,"z":15,"terrain":1},{"x":12,"z":15,"terrain":1},{"x":13,"z":15,"terrain":1},{"x":14,"z":15,"terrain":1},{"x":15,"z":15,"terrain":1},
+    {"x":0,"z":1,"terrain":1},{"x":15,"z":1,"terrain":1},{"x":0,"z":2,"terrain":1},{"x":15,"z":2,"terrain":1},{"x":0,"z":3,"terrain":1},{"x":15,"z":3,"terrain":1},{"x":0,"z":4,"terrain":1},{"x":15,"z":4,"terrain":1},{"x":0,"z":5,"terrain":1},{"x":15,"z":5,"terrain":1},{"x":0,"z":6,"terrain":1},{"x":15,"z":6,"terrain":1},{"x":0,"z":7,"terrain":1},{"x":15,"z":7,"terrain":1},{"x":0,"z":8,"terrain":1},{"x":15,"z":8,"terrain":1},{"x":0,"z":9,"terrain":1},{"x":15,"z":9,"terrain":1},{"x":0,"z":10,"terrain":1},{"x":15,"z":10,"terrain":1},{"x":0,"z":11,"terrain":1},{"x":15,"z":11,"terrain":1},{"x":0,"z":12,"terrain":1},{"x":15,"z":12,"terrain":1},{"x":0,"z":13,"terrain":1},{"x":15,"z":13,"terrain":1},{"x":0,"z":14,"terrain":1},{"x":15,"z":14,"terrain":1},
+    {"x":6,"z":8,"terrain":2},{"x":7,"z":8,"terrain":2},{"x":8,"z":8,"terrain":2},
+    {"x":9,"z":10,"terrain":3},{"x":10,"z":10,"terrain":3},{"x":11,"z":10,"terrain":3},
+    {"x":4,"z":12,"terrain":4},{"x":5,"z":12,"terrain":4},{"x":6,"z":12,"terrain":4}
+  ],
+  "entities": [
+    {"instanceId":"spawn","type":0,"x":1,"z":1,"direction":0,"recipe":0,"linkId":"","value":0},
+    {"instanceId":"paint_red","type":1,"x":3,"z":2,"direction":0,"recipe":1,"linkId":"","value":0},
+    {"instanceId":"paint_yellow","type":1,"x":5,"z":2,"direction":0,"recipe":2,"linkId":"","value":0},
+    {"instanceId":"paint_blue","type":1,"x":7,"z":2,"direction":0,"recipe":4,"linkId":"","value":0},
+    {"instanceId":"splitter","type":2,"x":5,"z":5,"direction":0,"recipe":0,"linkId":"","value":0},
+    {"instanceId":"plate","type":5,"x":9,"z":4,"direction":0,"recipe":0,"linkId":"door_a","value":45},
+    {"instanceId":"door_a","type":8,"x":11,"z":4,"direction":0,"recipe":0,"linkId":"door_a","value":0},
+    {"instanceId":"button","type":6,"x":9,"z":6,"direction":0,"recipe":0,"linkId":"door_b","value":0},
+    {"instanceId":"door_b","type":8,"x":11,"z":6,"direction":0,"recipe":0,"linkId":"door_b","value":0},
+    {"instanceId":"lever","type":7,"x":9,"z":8,"direction":0,"recipe":0,"linkId":"door_c","value":0},
+    {"instanceId":"door_c","type":8,"x":11,"z":8,"direction":0,"recipe":0,"linkId":"door_c","value":0},
+    {"instanceId":"gel_potion","type":9,"x":3,"z":10,"direction":0,"recipe":0,"linkId":"","value":0},
+    {"instanceId":"gel_pill","type":10,"x":4,"z":10,"direction":0,"recipe":0,"linkId":"","value":0},
+    {"instanceId":"transfer","type":11,"x":7,"z":6,"direction":0,"recipe":0,"linkId":"","value":0},
+    {"instanceId":"emitter","type":3,"x":1,"z":13,"direction":1,"recipe":1,"linkId":"","value":0},
+    {"instanceId":"receiver_red","type":4,"x":14,"z":13,"direction":0,"recipe":1,"linkId":"","value":0},
+    {"instanceId":"exit","type":14,"x":14,"z":14,"direction":0,"recipe":0,"linkId":"","value":0}
+  ]
+}
