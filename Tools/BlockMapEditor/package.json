@@ -1,0 +1,12 @@
+{
+  "name": "com.gamejam.slima-blockmap-editor",
+  "version": "1.0.0",
+  "displayName": "Slima 3D BlockMap Editor",
+  "description": "三维方块地图编辑器：格子系统、自动包边图集（机壳式）、朝向、模型索引、交互道具、发光方块、多地图管理。URP。",
+  "unity": "2022.3",
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "14.0.12"
+  },
+  "keywords": [ "level", "editor", "voxel", "blockmap", "tool" ],
+  "author": { "name": "Slima Team" }
+}
