@@ -1,0 +1,251 @@
+{
+    "chunkSize": 16,
+    "blocks": [
+        {
+            "x": 123,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 88,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 149,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 146,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 147,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 148,
+            "id": "Lab_WallBrick1"
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 145,
+            "id": "Lab_WallBrick1"
+        }
+    ]
+}
