@@ -30,7 +30,7 @@ namespace BlockMap
             return s;
         }
 
-        [MenuItem("Tools/BlockMap/② 读取存档并在当前场景搭建（持久化）")]
+        [MenuItem("Tools/Slima/地图编辑器/② 把地图烘成场景（持久化）", false, 200)]
         public static void BuildFromDialog()
         {
             // 默认打开 Play 模式「保存」写到的存档目录（真正的数据在那儿）；也可以自己导航到工程内的 Levels
@@ -92,6 +92,7 @@ namespace BlockMap
                 var renderer = temp.AddComponent<BlockChunkRenderer>();
                 renderer.blockSize = 1f;
                 renderer.skipInteractiveBlocks = true;      // ★ 交互道具不烘进静态几何
+                renderer.generateColliders = true;          // ★ 烘出来的地形要能站人：每个 chunk 一个 MeshCollider
                 renderer.RebuildAll();
 
                 // 统计被跳过的交互道具：它们仍留在 json / BlockWorld 的数据里，

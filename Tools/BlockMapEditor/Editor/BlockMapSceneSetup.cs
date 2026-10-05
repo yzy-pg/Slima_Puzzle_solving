@@ -18,7 +18,7 @@ namespace BlockMap
     {
         public const string ScenePath = "Assets/Scenes/BlockMapEditor.unity";
 
-        [MenuItem("Tools/BlockMap/创建地图编辑场景")]
+        [MenuItem("Tools/Slima/地图编辑器/① 创建地图编辑场景", false, 100)]
         public static void CreateEditorScene()
         {
             // 先给机会保存当前场景，再开新的编辑场景（避免未保存的改动丢失）
@@ -92,7 +92,7 @@ namespace BlockMap
 
         public const string LevelsDir = "Assets/BlockMapEditor/Levels";
 
-        [MenuItem("Tools/BlockMap/导出当前关卡到 Assets/BlockMapEditor/Levels")]
+        [MenuItem("Tools/Slima/地图编辑器/导出地图 json 到工程（Git）", false, 400)]
         public static void ExportLevel()
         {
             var world = Object.FindObjectOfType<BlockWorld>();
@@ -105,7 +105,7 @@ namespace BlockMap
                     "原因：编辑模式下的场景本身没有方块数据 —— Play 里的编辑结果不会自动写回场景。\n\n" +
                     "正确顺序：\n" +
                     "  ① Play → 面板「保存」/F5 → 退出 Play\n" +
-                    "  ② 菜单「② 读取存档并在当前场景搭建（持久化）」把存档搭进场景\n" +
+                    "  ② 菜单「② 把地图烘成场景（持久化）」把存档搭进场景\n" +
                     "  ③ 这时就能导出 / 直接 Ctrl+S 保存场景了", "好");
                 return;
             }
@@ -120,7 +120,7 @@ namespace BlockMap
             EditorUtility.DisplayDialog("BlockMap", "关卡已导出：\n" + path + "\n\n可以直接提交到 Git 给队友。", "好");
         }
 
-        [MenuItem("Tools/BlockMap/从关卡文件导入…")]
+        [MenuItem("Tools/Slima/地图编辑器/从工程导入地图 json", false, 410)]
         public static void ImportLevel()
         {
             string path = EditorUtility.OpenFilePanel("选择关卡 json", LevelsDir, "json");

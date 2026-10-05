@@ -56,6 +56,7 @@ namespace BlockMap
         public void Rebuild()
         {
             if (_world == null) _world = GetComponent<BlockWorld>();
+            _world.RestoreIfNeeded();      // 场景里存的是可序列化镜像，先恢复成运行时世界
             Clear();
 
             Transform parent = container != null ? container : transform;

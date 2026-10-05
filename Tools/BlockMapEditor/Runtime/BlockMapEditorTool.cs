@@ -78,6 +78,13 @@ namespace BlockMap
         public bool showDebugBounds = true;
         bool _showPanel = true;
 
+        /// <summary>
+        /// 面板上「新地图名字」输入框的内容，故意和 slotName（当前正在编辑的那张）分开。
+        /// 以前两者是同一个变量 —— 于是"改个名字再点保存"会把当前地图另存成新名字，看起来就是
+        /// 「新建 = 复制现有地图」。现在新建只能通过「新建」按钮，且一定是空地图。
+        /// </summary>
+        string _slotNameInput = "";
+
         public bool IsEditing => editorMode;
 
         /// <summary>鼠标当前指向的格子 —— 供 BlockMapGuides 显示放置虚影。</summary>
@@ -86,10 +93,31 @@ namespace BlockMap
 
         void Awake()
         {
+            Active = this;
             _world = GetComponent<BlockWorld>();
             _renderer = GetComponent<BlockChunkRenderer>();
             if (_renderer == null) _renderer = gameObject.AddComponent<BlockChunkRenderer>();
             _cam = FindCamera();
+            _slotNameInput = slotName;
+        }
+
+        void OnDestroy()
+        {
+            if (Active == this) Active = null;
+        }
+
+        /// <summary>场景里的地图编辑器实例。正交相机用它判断「鼠标是不是停在面板上」——
+        /// 否则在面板上滚滚轮会连场景一起缩放、拖拽会转动相机。</summary>
+        public static BlockMapEditorTool Active { get; private set; }
+
+        /// <summary>鼠标是否停在编辑器面板上。GUI 坐标原点在左上，鼠标坐标在左下 → Y 要翻转。</summary>
+        public bool IsPointerOverPanel()
+        {
+            if (!editorMode) return false;
+            var guiMouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            if (_showPanel) return panelRect.Contains(guiMouse);
+            // 面板收起时只剩左上角一个小小的「显示面板」按钮，别让相机抢它的点击/滚轮
+            return new Rect(panelRect.x, panelRect.y, 96f, 30f).Contains(guiMouse);
         }
 
         OrthoOrbitCamera FindCamera()
@@ -201,12 +229,19 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
 
             // 高度锁：把落点强行夹到指定层
             if (lockHeight) cell = new Vector3Int(cell.x, lockedY, cell.z);
-            // ★ 带模型的物件（门/箱子/家具…）当作"放在方块上方的物品"：
+
+            // ★ 判重必须用「抬升之前」的格子。
+            //   逻辑物件（门 / 机关 / 起点 / 终点）会自动往上找空位再放；如果拿抬升后的格子判重，
+            //   按住鼠标（拖动）时每一帧都会发现"上一格被自己占了"→ 继续往上叠一个，
+            //   一直叠到 lift 上限为止 —— 表现就是"点一下，原地 1 个 + 顶上又冒出 3 个"。
+            Vector3Int strokeCell = cell;
+
+            // ★ 带模型的物件（门/箱子/家具…）与「交互 / 标记方块」当作"放在方块上方的物品"：
             //   落点已经有方块时自动往上找空位再放，避免把地板/墙面顶掉（顶掉后那格会露空洞）。
             if (!_planeErase && !lockHeight && !_hitIsProp)
             {
                 var selDef = BlockLibrary.Get(_selected);
-                if (selDef != null && selDef.previewPrefab != null)
+                if (IsSingleCellProp(selDef))
                 {
                     int lift = 0;
                     while (lift < 4 && _world.GetIndex(cell) >= 0)
@@ -219,18 +254,40 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             }
 
             HasCursor = _world.InBounds(cell);         // 超出世界范围只更新虚影，不落块
-            CursorCell = cell;
+            CursorCell = cell;                         // 虚影画在"真正会落下的那一格"
             if (!HasCursor) return;
 
-            if (cell == _lastCell) return;          // 同一格不重复刷
-            _lastCell = cell;
-            Brush(cell, _planeErase ? -1 : _selected);
+            if (strokeCell == _lastCell) return;       // 同一列在这一笔里只落一次（与抬升无关）
+            _lastCell = strokeCell;
+            // ★ 逻辑物件（门 / 机关 / 起点 / 终点…）无视笔刷大小，永远只作用一格 ——
+            //   否则 3³ / 5³ 笔刷点一下就会刷出一整片起点终点。
+            if (!_planeErase && brushSize > 1 && IsSingleCellProp(BlockLibrary.Get(_selected)) && _warnedBrushSize != brushSize)
+            {
+                _warnedBrushSize = brushSize;
+                Toast("逻辑物件（门 / 机关 / 起点 / 终点）只刷一格，笔刷体积对它无效");
+            }
+
+            Brush(cell, _planeErase ? -1 : _selected, _planeErase ? brushSize : BrushSizeFor(_selected));
             if (!_planeErase) _world.SetDir(cell, brushDir);    // 朝向写在落点格（3³/5³ 笔刷的邻格用默认朝向）
         }
 
-        void Brush(Vector3Int center, int index)
+        int _warnedBrushSize;
+
+        /// <summary>逻辑物件（门 / 机关 / 起点 / 终点…）：占一格、且要放在方块上方而不是顶掉它。</summary>
+        static bool IsSingleCellProp(BlockDefinition def)
         {
-            int n = Mathf.Max(1, brushSize);
+            return def != null && (def.interactive || def.previewPrefab != null);
+        }
+
+        /// <summary>逻辑物件强制单格笔刷；普通地形方块照笔刷大小走。</summary>
+        int BrushSizeFor(int index)
+        {
+            return IsSingleCellProp(BlockLibrary.Get(index)) ? 1 : brushSize;
+        }
+
+        void Brush(Vector3Int center, int index, int size)
+        {
+            int n = Mathf.Max(1, size);
             int lo = -(n / 2);
             bool changed = false;
             for (int x = 0; x < n; x++)
@@ -393,37 +450,49 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             if (string.IsNullOrEmpty(name) || name == slotName) return;
             Save();                 // 切换前自动保存当前地图
             slotName = name;
+            _slotNameInput = name;
             Load();
         }
 
         // ---------------- 地图管理（下拉里的三个按钮）----------------
 
+        /// <summary>
+        /// 新建一张空地图：从面板上的「新地图名字」取名，先把当前这张存好，再清空画布。
+        /// ⚠️ 绝不能把当前地图的内容带过去 —— 这里显式调 NewMap()（内部 _world.Clear()）。
+        /// </summary>
         void MapNew()
         {
-            string name = string.IsNullOrEmpty(slotName) ? "map01" : slotName.Trim();
+            string name = (_slotNameInput ?? "").Trim();
+            if (name.Length == 0) { Toast("先在上面「新地图名字」里填个名字"); return; }
+            if (name == slotName) { Toast($"「{name}」就是当前地图 —— 换个名字才是新建"); return; }
             if (File.Exists(Path.Combine(MapsDir, name + ".json")))
             {
-                Toast($"「{name}」已存在 —— 换个名字再点新建");
+                Toast($"「{name}」已存在 —— 换个名字，或从地图列表里点它切换过去");
                 return;
             }
-            Save();                 // 先把当前这张存好
-            slotName = name;
-            NewMap();               // 清空画布，开始画新地图
-            Toast($"已新建地图「{name}」：画完记得点「保存」");
+
+            Save();                 // 先把当前这张存好（存的是旧槽名）
+            slotName = name;        // 切到新槽
+            _slotNameInput = name;
+            NewMap();               // 清空画布 = 全新空地图
+            Toast($"已新建空地图「{name}」：画完记得点「保存」");
         }
 
         void MapRename()
         {
-            string name = string.IsNullOrEmpty(slotName) ? "" : slotName.Trim();
-            if (name.Length == 0) { Toast("槽名不能为空"); return; }
+            string name = (_slotNameInput ?? "").Trim();
+            if (name.Length == 0) { Toast("先在上面填个新名字"); return; }
             string oldPath = Path.Combine(MapsDir, slotName + ".json");
             if (!File.Exists(oldPath)) { Toast("当前地图还没保存过，先点「保存」"); return; }
             if (name == slotName) { Toast("名字没变"); return; }
             string newPath = Path.Combine(MapsDir, name + ".json");
             if (File.Exists(newPath)) { Toast($"「{name}」已存在"); return; }
+
+            Save();                 // 把最新内容写进旧文件，再改名
             File.Move(oldPath, newPath);
             string oldName = slotName;
             slotName = name;
+            _slotNameInput = name;
             Toast($"已重命名：{oldName} → {name}");
         }
 
@@ -601,14 +670,15 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("新建")) NewMap();
+            if (GUILayout.Button("清空画布")) NewMap();
             if (GUILayout.Button("保存")) Save();
             if (GUILayout.Button("读取")) Load();
             GUILayout.EndHorizontal();
 
             // ---- 地图列表（多地图：一个编辑器里可以管多张地图，每张 = 一个 json）----
-            GUILayout.Label("地图槽名（改名字 = 新建一张）");
-            slotName = GUILayout.TextField(slotName ?? "map01");
+            GUILayout.Label($"当前编辑：<b>{slotName}</b>（「保存」存的就是这张）", new GUIStyle(GUI.skin.label) { richText = true });
+            GUILayout.Label("新地图名字（填好点下面「新建」才生效）");
+            _slotNameInput = GUILayout.TextField(_slotNameInput ?? "");
 
             string[] slots = GetMapSlots();
             if (slots.Length > 0)

@@ -77,6 +77,10 @@ namespace BlockMap
             Busy = false;
             if (!InputEnabled) return;
 
+            // ★ 鼠标停在编辑器面板上时，滚轮/拖拽/平移全部不吃 —— 否则在面板上滚动会连场景一起缩放
+            BlockMapEditorTool tool = BlockMapEditorTool.Active;
+            if (tool != null && tool.IsPointerOverPanel()) return;
+
             // 旋转（固定机位模式下禁止旋转）
             if (!fixedPosition && Input.GetMouseButtonDown(1)) _lastMouse = Input.mousePosition;
             if (!fixedPosition && Input.GetMouseButton(1))

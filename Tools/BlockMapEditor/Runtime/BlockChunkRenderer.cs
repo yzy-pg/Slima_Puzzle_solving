@@ -99,16 +99,16 @@ namespace BlockMap
 
         /// <summary>
         /// 渲染判定专用："视觉上算不算实心"。
-        /// 带模型的物件（门/箱子/家具…）**不算**实心 —— 否则会把邻居的面剔掉、
+        /// 带模型的物件（门/箱子/家具…）与「交互/标记方块」**都不算**实心 —— 否则会把邻居的面剔掉、
         /// 也会让邻居的包边认定"这边有邻居"，结果门下方/周围的地板看起来是透明的空洞。
-        /// 注意：只用于渲染；BlockWorld.IsSolid 仍然认为它是实心，所以射线照样能点到它。
+        /// 注意：只用于渲染；BlockWorld.IsSolid 仍然认为它有数据，所以射线照样能点到它。
         /// </summary>
         bool VisuallySolid(Vector3Int p)
         {
             if (_world == null || !_world.IsSolid(p)) return false;
             var d = BlockLibrary.Get(_world.GetIndex(p));
             if (d == null) return false;
-            return d.previewPrefab == null;
+            return !d.interactive && d.previewPrefab == null;
         }
         public void RebuildAll()
         {

@@ -9,7 +9,7 @@ namespace BlockMap
     /// 连续的同种方块按 chunk 归组 —— 每个 chunk 生成一个 GameObject/Mesh，所以"同种连续方块"
     /// 既可以看成一片（同一个 chunk 网格），也可以看成分块（多个 chunk 对象），两种理解都成立。
     /// </summary>
-    public class BlockWorld : MonoBehaviour
+    public class BlockWorld : MonoBehaviour, ISerializationCallbackReceiver
     {
         [Tooltip("chunk 边长（方块数）。16 = 一个 Mesh 最多覆盖 16³ 格")]
         public int chunkSize = 16;
@@ -23,6 +23,78 @@ namespace BlockMap
 
         readonly Dictionary<Vector3Int, int> _blocks = new Dictionary<Vector3Int, int>();
         readonly HashSet<Vector3Int> _dirty = new HashSet<Vector3Int>();
+
+        /// <summary>
+        /// 场景持久化用的镜像。Unity 不能序列化 Dictionary，所以方块数据必须另存一份可序列化副本，
+        /// 否则烘好的场景一重新加载就变成"空世界"——起点/终点、特殊模型、光源会全部找不到。
+        /// 存的是方块 **id**（不是索引），这样方块库以后新增方块也不会错位。
+        /// </summary>
+        [SerializeField, HideInInspector] List<SaveEntry> _serializedBlocks = new List<SaveEntry>();
+
+        void Awake() { RestoreIfNeeded(); }
+
+        public void OnBeforeSerialize()
+        {
+            // ★ 编辑器里没有运行时数据（非 ExecuteInEditMode 的脚本在编辑模式下不跑 Awake），
+            //   这时绝对不能清掉已持久化的镜像 —— 否则任何一次场景序列化
+            //   （进 Play、Ctrl+S、脚本域重载）都会把场景里的方块数据抹掉，
+            //   表现就是"第一次能跑，第二次报没有起点/终点"。
+            if (_blocks.Count == 0) return;
+
+            _serializedBlocks.Clear();
+            foreach (var kv in _blocks)
+            {
+                var def = BlockLibrary.Get(kv.Value);
+                if (def == null) continue;
+                _serializedBlocks.Add(new SaveEntry
+                {
+                    x = kv.Key.x,
+                    y = kv.Key.y,
+                    z = kv.Key.z,
+                    r = GetDir(kv.Key),
+                    id = def.id
+                });
+            }
+        }
+
+        public void OnAfterDeserialize()
+        {
+            // 反序列化可能发生在非主线程，这里绝对不能碰 Resources / BlockLibrary。
+            // 真正的恢复推迟到 RestoreIfNeeded()（Awake、编辑器工具、游戏根都会调它）。
+        }
+
+        /// <summary>把序列化镜像恢复成运行时数据。幂等，可以随便调。</summary>
+        public void RestoreIfNeeded()
+        {
+            if (_blocks.Count > 0) return;
+            if (_serializedBlocks == null || _serializedBlocks.Count == 0) return;
+
+            _blocks.Clear();
+            _dir.Clear();
+
+            int restored = 0;
+            for (int i = 0; i < _serializedBlocks.Count; i++)
+            {
+                SaveEntry entry = _serializedBlocks[i];
+                if (entry == null || string.IsNullOrEmpty(entry.id)) continue;
+
+                int index = BlockLibrary.IndexOf(entry.id);
+                if (index < 0)
+                {
+                    Debug.LogWarning($"[BlockMap] 场景里的方块「{entry.id}」在方块库里找不到，已跳过");
+                    continue;
+                }
+
+                var pos = new Vector3Int(entry.x, entry.y, entry.z);
+                _blocks[pos] = index;
+                if (entry.r != 0) SetDir(pos, entry.r);
+                restored++;
+            }
+
+            Debug.Log($"[BlockMap] 已从场景恢复 {restored} 个方块（含朝向）", this);
+            foreach (var c in AllChunks()) MarkDirty(c);
+            MarkDirty(Vector3Int.zero);
+        }
 
         /// <summary>某 chunk 变脏（需要重建网格）时触发。</summary>
         public event Action<Vector3Int> ChunkDirty;
@@ -87,6 +159,7 @@ namespace BlockMap
             _blocks.Clear();
             _undo.Clear();
             _redo.Clear();
+            _serializedBlocks.Clear();      // 显式清空 = 持久化数据一起清（FromJson 紧接着会重新填上）
         }
 
         // ---------------- 撤销 / 重做（以"一次按下-松开"为一个笔画） ----------------
@@ -209,9 +282,15 @@ namespace BlockMap
         {
             var data = JsonUtility.FromJson<SaveData>(json);
             if (data == null) return;
+            if (data.blocks == null) data.blocks = new List<SaveEntry>();
             Clear();
             _blocks.Clear();
             if (data.chunkSize > 0) chunkSize = data.chunkSize;
+
+            // 同步持久化镜像：烘好的场景保存时会把这份数据一起写进场景
+            _serializedBlocks.Clear();
+            _serializedBlocks.AddRange(data.blocks);
+
             foreach (var e in data.blocks)
             {
                 int idx = BlockLibrary.IndexOf(e.id);

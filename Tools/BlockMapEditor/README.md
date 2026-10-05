@@ -7,8 +7,8 @@
 
 ## 一、三步上手
 
-1. 把整个 **`BlockMapEditor/`** 文件夹拷进 Unity 工程的 `Assets/` 下
-2. 菜单 **`Tools / BlockMap / ① 创建地图编辑场景`**
+1. 本工具已作为 **UPM 本地包**放在 `Tools/BlockMapEditor/`，由 `Packages/manifest.json` 的 `file:` 依赖引入（不用再往 `Assets/` 里拷）
+2. 菜单 **`Tools / Slima / 地图编辑器 / ① 创建地图编辑场景`**
 3. **Play** → 左侧面板开始刷地图
 
 | 操作 | 按键 |
@@ -58,10 +58,40 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 
 ## 四、出成品（持久化）
 
-菜单 **`Tools / BlockMap / ② 读取存档并在当前场景搭建（持久化）`**：
+菜单 **`Tools / Slima / 地图编辑器 / ② 把地图烘成场景（持久化）`**：
 
 - 在**干净场景**里 → 烘成真实 GameObject（每个 chunk 一个 MeshFilter+MeshRenderer），材质与图集落成 `Assets/BlockMapEditor/Built/` 下的工程资产 → **保存场景后永久存在**
 - 在**带编辑器的场景**里 → 只把数据灌进 `BlockWorld`（可继续编辑），不烘静态几何
+- **方块数据会一起存进场景**（`BlockWorld` 把数据按 id 镜像持久化）——重开工程后起点 / 终点、特殊模型、光源都还在。
+  ⚠️ 用旧版本烘的场景没有这份数据，**必须重新跑一次 ②**
+- 烘出来的几何**自带碰撞体**（每个 chunk 一个 MeshCollider）——角色要站在地形上，这一项必须有
+
+---
+
+**① 在地图里刷起点 / 终点**（开箱即用，不需要先跑任何生成菜单）：
+
+- 方块列表里已经有 `Spawn`（青色 `S` 面板）和 `Exit`（橙色 `E` 面板）两种方块 —— 由 `Resources/Spawn|Exit/` 下的 panel + frame 贴图自动注册，**像门一样直接刷**
+- 这两个 id 登记为「玩法标记」（`BlockLibrary.MarkerBlockIds`）：`interactive = true` → **烘焙静态几何时会跳过**，不会变成挡路的立方体
+- 在编辑器里它们是**半透明**的（`BlockRenderMode.Transparent`，alpha 0.45）：看得见位置，又不会挡住地形；邻居也不会因为"这边有方块"而把面剔出空洞
+- 刷在**地面之上那一层**（例如地板在 `y=0`，标记刷在 `y=1`），别把地板方块顶掉（真的顶掉了游戏根会在屏幕上提示）
+- 按 `R` 转朝向 ＝ 角色出生朝向
+- 想让标记 / 角色更好看：自己做个 Prefab 挂上去即可 —— 标记认 `Resources/BlockModels/<id>.prefab`，角色在 `BlockMapGameRoot.playerPrefab` 上指定（留空就用灰盒）
+
+**② 烘场景**：菜单 **`Tools / Slima / 地图编辑器 / ② 把地图烘成场景（持久化）`**
+- 得到真实几何 + **碰撞体**（每个 chunk 一个 MeshCollider）+ 方块数据（按 id 持久化进场景，重开工程不丢）
+
+**③ 加游戏根**：菜单 **`Tools / Slima / 地图编辑器 / ③ 把当前场景变成可玩关卡`**
+- 在 `BlockWorld` 所在物体上挂 `BlockMapGameRoot`：读起点 / 终点 → 在起点实例化角色 → 架好固定角度正交相机 → 走到终点格即通关
+- 起点 / 终点在游戏里的可见标记由游戏根现场生成（若该方块已有 `previewPrefab` 则不重复生成）
+- 会顺便检查「标记有没有」「碰撞体有没有」「数据有没有」，缺什么直接写在对话框里
+
+**地图文件（可选）**：`导出地图 json 到工程（Git）` / `从工程导入地图 json`
+- Play 里「保存」写的是 `AppData/…/Maps`，不在工程里；这两个菜单把 json 存进 `Assets/BlockMapEditor/Levels/` 便于提交给队友
+
+**操作**：
+- **WASD / 方向键**：朝世界的 4 个正方向跳一格。**位移固定 1 格、朝向固定 90° 档位**，没有自由旋转、没有摇杆角度
+- **能不能过去由物理碰撞决定**：撞墙走不满一格就退回原格（所以地形必须有碰撞体）
+- **R**：回到起点
 
 ---
 

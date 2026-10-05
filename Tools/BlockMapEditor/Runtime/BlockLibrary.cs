@@ -12,6 +12,24 @@ namespace BlockMap
     {
         public const string ResourceFolder = "BlockDefinitions";
 
+        /// <summary>
+        /// 玩法标记方块：在地图编辑器里像门一样当特殊方块刷，但它们是"标记"不是地形 ——
+        ///   · 烘焙静态几何时会被跳过（不会变成挡路的立方体）
+        ///   · 运行时由 BlockMapGameRoot 读格位：起点放角色、终点当通关判定，并画一个可见标记
+        /// 想让它们有真实外观：把 Resources/BlockModels/&lt;id&gt;.prefab 放进去即可（会自动接上并优先使用）。
+        /// </summary>
+        public static readonly string[] MarkerBlockIds = { "Spawn", "Exit" };
+
+        public static bool IsMarkerBlock(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            for (int i = 0; i < MarkerBlockIds.Length; i++)
+            {
+                if (MarkerBlockIds[i] == id) return true;
+            }
+            return false;
+        }
+
         static List<BlockDefinition> _blocks;
         static Dictionary<string, BlockDefinition> _byId;
 
@@ -126,6 +144,13 @@ namespace BlockMap
                 def.panelTexture = panel;
                 def.frameTexture = frame;
                 def.simpleTexture = simple;
+                if (IsMarkerBlock(tid))
+                {
+                    // 起点 / 终点：是「标记」而不是地形
+                    def.interactive = true;                        // 烘焙静态几何时跳过；运行时由 BlockMapGameRoot 读格位
+                    def.renderMode = BlockRenderMode.Transparent;   // 半透明：编辑时看得见位置，又不会挡住地形
+                    def.tint = new Color(1f, 1f, 1f, 0.45f);
+                }
                 _blocks.Add(def);
                 _byId[def.id] = def;
             }

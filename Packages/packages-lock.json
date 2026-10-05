@@ -1,10 +1,12 @@
 {
   "dependencies": {
-    "com.gamejam.slima-level-editor": {
-      "version": "file:../Tools/SlimaLevelEditor",
+    "com.gamejam.slima-blockmap-editor": {
+      "version": "file:../Tools/BlockMapEditor",
       "depth": 0,
       "source": "local",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.render-pipelines.universal": "14.0.12"
+      }
     },
     "com.unity.burst": {
       "version": "1.8.21",
