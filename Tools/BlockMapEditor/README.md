@@ -15,6 +15,9 @@
 |---|---|
 | 放置 / 擦除 | **左键** / **Shift+左键**（或勾选面板的「橡皮擦」后左键）|
 | 换方块 | `[` `]`（或点面板方块库）|
+| 放置朝向 | 面板「左转 / 右转」或按 `R`；发射器顶部箭头指向实际出光方向 |
+| 旋转已放机关 | 鼠标指向机关后按 `Shift+R`，原地顺时针旋转90度 |
+| 关联机关与门 | 按 `L` 或点右上角「机关关联」；左键加入当前组，`Shift+左键` 解除，`Esc` 退出 |
 | 笔刷大小 | `-` `=`（1³ / 3³ / 5³）|
 | 撤销 / 重做 | `Ctrl+Z` / `Ctrl+Y`（一次"按下-松开"= 一步）|
 | 高度锁 | 面板勾选后只在指定层编辑（笔刷也压成单层）|
@@ -89,13 +92,71 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 - Play 里「保存」写的是 `AppData/…/Maps`，不在工程里；这两个菜单把 json 存进 `Assets/BlockMapEditor/Levels/` 便于提交给队友
 
 **操作**：
-- **WASD / 方向键**：朝世界的 4 个正方向跳一格。**位移固定 1 格、朝向固定 90° 档位**，没有自由旋转、没有摇杆角度
-- **能不能过去由物理碰撞决定**：撞墙走不满一格就退回原格（所以地形必须有碰撞体）
-- **R**：回到起点
+- **WASD / 方向键**：按固定四方向移动一格；蓝色固态史莱姆会持续滑行
+- **E**：红色破坏面前一个可破坏物；蓝色切换光学模式；气态恢复固态
+- **F**：使用所在格的分割机，或操作相邻拉杆
+- **Tab**：两只史莱姆之间切换控制
+- **R**：完整重置关卡
+- 通行、机关和光线均按格子数据判定；碰撞体只负责画面和后续物理表现
 
 ---
 
-## 五、发版保护
+## 五、玩法机关与配置
+
+### 5.1 配置位置
+
+| 文件 | 用途 |
+|---|---|
+| `Resources/BlockMap/GameplaySettings.json` | 移动时间、跳跃高度、气态高度、蓝色滑行上限、光程、光束宽度、门动画与发射器方向箭头 |
+| `Resources/BlockMap/GameplayCatalog.json` | 方块 id、机关类型、旧地图默认频道、颜色、模式、重量阈值、灰盒颜色与形状 |
+
+JSON 内的 `_comment` 为中文说明字段。修改后重新进入 Play 生效。
+
+### 5.2 地编可用 id
+
+| 功能 | id |
+|---|---|
+| 门 | `Door`、`Door_B` |
+| 压力板 | `Lab_PressurePlate`（小）、`PressurePlateLarge_A`（大）、`PressurePlateSmall_B`（小）|
+| 拉杆 | `Lab_Lever`、`Lever_B` |
+| 分割机 | `Splitter` |
+| 高温 / 低温 / 伤害地板 | `Lab_Heater_01` / `Lab_Heater_02` / `DamageFloor` |
+| 可破坏物 | `Breakable` |
+| 白 / 红 / 蓝光发射器（可推动） | `Lab_Laser_01` / `Lab_Laser_02` / `Lab_Laser_03` |
+| 白 / 红 / 蓝光发射器（固定） | `EmitterWhiteWall` / `EmitterRedWall` / `EmitterBlueWall` |
+| 白光持续 / 永久接收器 | `Lab_Laser_04` / `Lab_Laser_05` |
+| 红 / 蓝 / 紫光接收器 | `ReceiverRed_A` / `ReceiverBlue_A` / `ReceiverPurple_A` |
+
+### 5.3 机关关联流程
+
+1. 放置压力板、拉杆或光接收器，再放置需要控制的门。
+2. 按 `L` 或点击右上角「机关关联」。
+3. 点击一个机关：自动建立 `G001`；继续点击任意数量的门或机关，将它们加入同组。
+4. 需要另一套关联时点击「新建组」；需要修改旧组时在列表中选择该组。
+5. `Shift+左键` 解除鼠标所指物件的关联；相同组号与颜色表示已连接。
+6. 保存地图。每个物件的 `linkId` 随地图 JSON 和烘焙场景保存。
+
+同组多个机关采用“任意一个启动即开门”；同组可控制任意数量的门。地图一旦使用实例关联，未关联物件不会误触发其他门。旧地图没有 `linkId` 时继续读取 `GameplayCatalog.json` 的 `channel`。
+发射器朝向取地编中的方块朝向。
+原型发射器顶部使用高亮箭头显示方向：白光白箭头、红光红箭头、蓝光蓝箭头。美术模型能清楚表达方向后，可把 `showEmitterDirectionIndicator` 改为 `false`。
+
+### 5.4 关卡制作检查
+
+1. 地板放在 `y=0`；起点、终点、地板机关和角色活动格放在 `y=1`。
+2. 每格最多放一个机关；机关下方保留地板。
+3. 至少放一个 `Spawn` 和一个 `Exit`。
+4. 按菜单 ② 烘焙，再按菜单 ③ 转为可玩关卡。
+5. Play 测试移动、能力、分裂/融合、门和光路；R 检查能否完整还原。
+
+### 5.5 接入美术
+
+- 使用现有 id 制作 `Resources/BlockModels/<id>.prefab`，逻辑与关卡数据无需修改。
+- Prefab 原点放在格心；朝向正面使用本地 `+Z`；占地保持一格。
+- 新机关先在 `GameplayCatalog.json` 增加条目；需要新规则时新增独立脚本，不把规则写进地编输入脚本。
+
+---
+
+## 六、发版保护
 
 `BlockMapBootstrap` 上的 **`Editor Only In Development Build`**（默认 ☑）：
 
@@ -106,7 +167,7 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 
 ---
 
-## 六、兼容性
+## 七、兼容性
 
 | 项 | 要求 |
 |---|---|
@@ -117,7 +178,7 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 
 ---
 
-## 七、特殊效果方块（半透明 / 动画 / 双面 / 发光 / 特殊模型）
+## 八、特殊效果方块（半透明 / 动画 / 双面 / 发光 / 特殊模型）
 
 ⚠️ 约定命名的自动方块（`<id>_panel/_frame/_simple`）**只能是普通不透明**。
 要用下面这些效果，请用 `Create → BlockMap → Block Definition` 建 **`.asset` 定义**，在 Inspector 里配置。
@@ -141,7 +202,7 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 
 ---
 
-## 八、排错表
+## 九、排错表
 
 | 现象 | 原因 / 处理 |
 |---|---|
@@ -154,15 +215,20 @@ Assets/<任意路径>/Resources/<id>/<id>_simple.png    ← 单图方块（不�
 
 ---
 
-## 九、文件清单
+## 十、文件清单
 
 ```
 BlockMapEditor/
-├─ Runtime/   BlockWorld / BlockChunkRenderer / BlockDefinition / BlockLibrary
-│             AutoTileAtlas / OrthoOrbitCamera / BlockMapGuides
-│             BlockMapEditorTool / BlockMapBootstrap
+├─ Runtime/   地图数据、渲染、编辑运行时
+│  ├─ BlockMapLinkEditorTool.cs  机关实例关联面板与标记
+│  └─ Gameplay/
+│     ├─ Core/     类型、规则、全局配置
+│     ├─ Player/   史莱姆状态、格子移动、队伍、分裂融合
+│     ├─ World/    机关、实例关联规则、信号、灰盒表现
+│     ├─ Optics/   光线追踪与接收器
+│     └─ UI/       原型局内 HUD
 ├─ Editor/    BlockMapSceneSetup（① 建编辑场景）
 │             BlockMapLevelBuilder（② 读存档烘场景）
-└─ Resources/ BlockMap/BlockUnlit.shader + GhostUnlit.shader
-              Lab_WallBrick1/  ← 示例方块素材（可删，换成你自己的）
+├─ Tests/     核心玩法规则的 EditMode 测试
+└─ Resources/ BlockMap/GameplaySettings.json + GameplayCatalog.json
 ```

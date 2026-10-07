@@ -22,6 +22,7 @@ namespace BlockMap
             p.x < maxSize.x && p.y < maxSize.y && p.z < maxSize.z;
 
         readonly Dictionary<Vector3Int, int> _blocks = new Dictionary<Vector3Int, int>();
+        readonly Dictionary<Vector3Int, string> _linkIds = new Dictionary<Vector3Int, string>();
         readonly HashSet<Vector3Int> _dirty = new HashSet<Vector3Int>();
 
         /// <summary>
@@ -52,6 +53,7 @@ namespace BlockMap
                     y = kv.Key.y,
                     z = kv.Key.z,
                     r = GetDir(kv.Key),
+                    linkId = GetLinkId(kv.Key),
                     id = def.id
                 });
             }
@@ -71,6 +73,7 @@ namespace BlockMap
 
             _blocks.Clear();
             _dir.Clear();
+            _linkIds.Clear();
 
             int restored = 0;
             for (int i = 0; i < _serializedBlocks.Count; i++)
@@ -88,6 +91,7 @@ namespace BlockMap
                 var pos = new Vector3Int(entry.x, entry.y, entry.z);
                 _blocks[pos] = index;
                 if (entry.r != 0) SetDir(pos, entry.r);
+                SetLinkIdRaw(pos, entry.linkId);
                 restored++;
             }
 
@@ -99,7 +103,13 @@ namespace BlockMap
         /// <summary>某 chunk 变脏（需要重建网格）时触发。</summary>
         public event Action<Vector3Int> ChunkDirty;
 
+        /// <summary>方块、朝向或运行时位置发生变化时触发，玩法层据此刷新机关与光线。</summary>
+        public event Action Changed;
+
+        public int Version { get; private set; }
+
         public int Count => _blocks.Count;
+        public bool HasLinkIds => _linkIds.Count > 0;
 
         public static Vector3Int ChunkOf(Vector3Int p, int size) => new Vector3Int(
             FloorDiv(p.x, size), FloorDiv(p.y, size), FloorDiv(p.z, size));
@@ -114,6 +124,25 @@ namespace BlockMap
 
         public IEnumerable<KeyValuePair<Vector3Int, int>> Blocks => _blocks;
 
+        public string GetLinkId(Vector3Int pos) =>
+            _linkIds.TryGetValue(pos, out string linkId) ? linkId : string.Empty;
+
+        /// <summary>设置单个机关实例的关联组。空字符串表示解除关联。</summary>
+        public bool SetLinkId(Vector3Int pos, string linkId)
+        {
+            if (!_blocks.ContainsKey(pos)) return false;
+
+            string normalized = NormalizeLinkId(linkId);
+            string before = GetLinkId(pos);
+            if (string.Equals(before, normalized, StringComparison.Ordinal)) return false;
+
+            int index = GetIndex(pos);
+            RecordEdit(pos, index, index, before, normalized);
+            SetLinkIdRaw(pos, normalized);
+            NotifyChanged();
+            return true;
+        }
+
         /// <summary>放置 / 替换方块，并把受影响的 chunk 标脏。</summary>
         // ---------------- 朝向（0=+Z 前 / 1=+X 右 / 2=-Z 后 / 3=-X 左，顺时针）----------------
 
@@ -126,8 +155,12 @@ namespace BlockMap
         public void SetDir(Vector3Int pos, int dir)
         {
             if (!InBounds(pos)) return;
-            if (dir <= 0) _dir.Remove(pos);
-            else _dir[pos] = (byte)(dir & 3);
+            int normalized = dir & 3;
+            int before = GetDir(pos);
+            if (before == normalized) return;
+            if (normalized == 0) _dir.Remove(pos);
+            else _dir[pos] = (byte)normalized;
+            NotifyChanged();
         }
 
         public void Set(Vector3Int pos, int index)
@@ -136,9 +169,12 @@ namespace BlockMap
             if (!InBounds(pos)) return;                        // 超出 256x36x256 直接忽略
             int before = GetIndex(pos);
             if (before == index) return;
-            RecordEdit(pos, before, index);
+            string beforeLink = GetLinkId(pos);
+            RecordEdit(pos, before, index, beforeLink, string.Empty);
             _blocks[pos] = index;
+            _linkIds.Remove(pos);
             MarkNeighborhoodDirty(pos);
+            NotifyChanged();
         }
 
         public void Remove(Vector3Int pos)
@@ -146,25 +182,56 @@ namespace BlockMap
             if (!InBounds(pos)) return;
             int before = GetIndex(pos);
             if (before < 0) return;
-            RecordEdit(pos, before, -1);
+            RecordEdit(pos, before, -1, GetLinkId(pos), string.Empty);
             _blocks.Remove(pos);
             _dir.Remove(pos);                                  // 删方块时一起清掉朝向
+            _linkIds.Remove(pos);
             MarkNeighborhoodDirty(pos);
+            NotifyChanged();
+        }
+
+        /// <summary>移动一个方块并保留朝向。用于可推动机关；目标格必须为空。</summary>
+        public bool Move(Vector3Int from, Vector3Int to)
+        {
+            if (!InBounds(from) || !InBounds(to) || from == to) return false;
+            if (!_blocks.TryGetValue(from, out int index) || _blocks.ContainsKey(to)) return false;
+
+            int dir = GetDir(from);
+            string linkId = GetLinkId(from);
+            _blocks.Remove(from);
+            _dir.Remove(from);
+            _linkIds.Remove(from);
+            _blocks[to] = index;
+            if (dir != 0) _dir[to] = (byte)dir;
+            SetLinkIdRaw(to, linkId);
+            MarkNeighborhoodDirty(from);
+            MarkNeighborhoodDirty(to);
+            NotifyChanged();
+            return true;
         }
 
         public void Clear()
         {
             foreach (var chunk in AllChunks()) MarkDirty(chunk);
             _dir.Clear();
+            _linkIds.Clear();
             _blocks.Clear();
             _undo.Clear();
             _redo.Clear();
             _serializedBlocks.Clear();      // 显式清空 = 持久化数据一起清（FromJson 紧接着会重新填上）
+            NotifyChanged();
         }
 
         // ---------------- 撤销 / 重做（以"一次按下-松开"为一个笔画） ----------------
 
-        public struct Edit { public Vector3Int pos; public int before; public int after; }
+        public struct Edit
+        {
+            public Vector3Int pos;
+            public int before;
+            public int after;
+            public string beforeLink;
+            public string afterLink;
+        }
 
         readonly List<List<Edit>> _undo = new List<List<Edit>>();
         readonly List<List<Edit>> _redo = new List<List<Edit>>();
@@ -189,10 +256,17 @@ namespace BlockMap
             _pendingStroke = null;
         }
 
-        void RecordEdit(Vector3Int pos, int before, int after)
+        void RecordEdit(Vector3Int pos, int before, int after, string beforeLink, string afterLink)
         {
             if (_pendingStroke == null) return;                 // 不在笔画里（读档/程序生成）就不记录
-            _pendingStroke.Add(new Edit { pos = pos, before = before, after = after });
+            _pendingStroke.Add(new Edit
+            {
+                pos = pos,
+                before = before,
+                after = after,
+                beforeLink = beforeLink,
+                afterLink = afterLink
+            });
         }
 
         public void Undo()
@@ -200,7 +274,8 @@ namespace BlockMap
             if (_undo.Count == 0) return;
             var stroke = _undo[_undo.Count - 1];
             _undo.RemoveAt(_undo.Count - 1);
-            for (int i = stroke.Count - 1; i >= 0; i--) ApplyRaw(stroke[i].pos, stroke[i].before);
+            for (int i = stroke.Count - 1; i >= 0; i--)
+                ApplyRaw(stroke[i].pos, stroke[i].before, stroke[i].beforeLink);
             _redo.Add(stroke);
         }
 
@@ -209,15 +284,25 @@ namespace BlockMap
             if (_redo.Count == 0) return;
             var stroke = _redo[_redo.Count - 1];
             _redo.RemoveAt(_redo.Count - 1);
-            foreach (var e in stroke) ApplyRaw(e.pos, e.after);
+            foreach (var e in stroke) ApplyRaw(e.pos, e.after, e.afterLink);
             _undo.Add(stroke);
         }
 
-        void ApplyRaw(Vector3Int pos, int index)
+        void ApplyRaw(Vector3Int pos, int index, string linkId)
         {
-            if (index < 0) _blocks.Remove(pos);
-            else _blocks[pos] = index;
+            if (index < 0)
+            {
+                _blocks.Remove(pos);
+                _dir.Remove(pos);
+                _linkIds.Remove(pos);
+            }
+            else
+            {
+                _blocks[pos] = index;
+                SetLinkIdRaw(pos, linkId);
+            }
             MarkNeighborhoodDirty(pos);                          // 脏 chunk 由渲染器下一帧重建
+            NotifyChanged();
         }
 
         public IEnumerable<KeyValuePair<Vector3Int, int>> BlocksInChunk(Vector3Int chunk)
@@ -263,7 +348,12 @@ namespace BlockMap
 
         // ---------------- 存档 ----------------
 
-        [Serializable] public class SaveEntry { public int x, y, z, r; public string id; }
+        [Serializable] public class SaveEntry
+        {
+            public int x, y, z, r;
+            public string id;
+            public string linkId;
+        }
         [Serializable] public class SaveData { public int chunkSize = 16; public List<SaveEntry> blocks = new List<SaveEntry>(); }
 
         public string ToJson()
@@ -273,7 +363,15 @@ namespace BlockMap
             {
                 var def = BlockLibrary.Get(kv.Value);
                 if (def == null) continue;
-                data.blocks.Add(new SaveEntry { x = kv.Key.x, y = kv.Key.y, z = kv.Key.z, r = GetDir(kv.Key), id = def.id });
+                data.blocks.Add(new SaveEntry
+                {
+                    x = kv.Key.x,
+                    y = kv.Key.y,
+                    z = kv.Key.z,
+                    r = GetDir(kv.Key),
+                    id = def.id,
+                    linkId = GetLinkId(kv.Key)
+                });
             }
             return JsonUtility.ToJson(data, true);
         }
@@ -285,6 +383,7 @@ namespace BlockMap
             if (data.blocks == null) data.blocks = new List<SaveEntry>();
             Clear();
             _blocks.Clear();
+            _linkIds.Clear();
             if (data.chunkSize > 0) chunkSize = data.chunkSize;
 
             // 同步持久化镜像：烘好的场景保存时会把这份数据一起写进场景
@@ -302,9 +401,27 @@ namespace BlockMap
                 var p = new Vector3Int(e.x, e.y, e.z);
                 _blocks[p] = idx;
                 if (e.r != 0) SetDir(p, e.r);          // 老存档没有 r → 0，自动兼容
+                SetLinkIdRaw(p, e.linkId);             // 老存档没有 linkId → 空，自动兼容
             }
             foreach (var c in AllChunks()) MarkDirty(c);
             MarkDirty(Vector3Int.zero);
+            NotifyChanged();
+        }
+
+        void NotifyChanged()
+        {
+            Version++;
+            Changed?.Invoke();
+        }
+
+        static string NormalizeLinkId(string linkId) =>
+            string.IsNullOrWhiteSpace(linkId) ? string.Empty : linkId.Trim();
+
+        void SetLinkIdRaw(Vector3Int pos, string linkId)
+        {
+            string normalized = NormalizeLinkId(linkId);
+            if (normalized.Length == 0) _linkIds.Remove(pos);
+            else _linkIds[pos] = normalized;
         }
     }
 }

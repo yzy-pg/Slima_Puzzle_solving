@@ -33,6 +33,9 @@ namespace BlockMap
             var tool = GetComponent<BlockMapEditorTool>();
             if (tool == null) tool = gameObject.AddComponent<BlockMapEditorTool>();
 
+            var linkEditor = GetComponent<BlockMapLinkEditorTool>();
+            if (linkEditor == null) linkEditor = gameObject.AddComponent<BlockMapLinkEditorTool>();
+
             OrthoOrbitCamera orbit = null;
             if (Camera.main != null) orbit = Camera.main.GetComponent<OrthoOrbitCamera>();
             if (orbit == null)
@@ -58,6 +61,7 @@ namespace BlockMap
                 if (guides != null) guides.enabled = false;      // 关掉网格与放置虚影
                 tool.SetEditorMode(false);                       // 退出编辑模式（同时把相机输入交回游戏）
                 tool.enabled = false;                            // 面板、鼠标、快捷键全部失效
+                linkEditor.enabled = false;
                 Debug.Log("[BlockMap] 正式包：地图编辑器已自动关闭（玩家只会看到场景内容）");
             }
             else

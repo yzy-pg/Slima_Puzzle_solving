@@ -91,7 +91,7 @@ namespace BlockMap
         /// <summary>当前是否开着</summary>
         public bool IsOpen => _open;
 
-        void SetOpen(bool open)
+        public void SetOpen(bool open)
         {
             _open = open;
         }

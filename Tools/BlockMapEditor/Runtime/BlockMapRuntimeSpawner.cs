@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BlockMap.Gameplay;
 using UnityEngine;
 
 namespace BlockMap
@@ -30,7 +31,7 @@ namespace BlockMap
 
         readonly List<GameObject> _spawned = new List<GameObject>();
         BlockWorld _world;
-        int _lastCount = -1;
+        int _lastVersion = -1;
         float _nextRebuild;
 
         void Awake()
@@ -47,7 +48,7 @@ namespace BlockMap
         void LateUpdate()
         {
             if (_world == null) return;
-            if (_world.Count == _lastCount) return;                 // 数量没变就不用管
+            if (_world.Version == _lastVersion) return;             // 数量、类型、朝向都没变就不用管
             if (Time.realtimeSinceStartup < _nextRebuild) return;    // 节流
             Rebuild();
         }
@@ -61,11 +62,34 @@ namespace BlockMap
 
             Transform parent = container != null ? container : transform;
             int lights = 0;
+            bool gameplayOwnsViews = GetComponent<BlockMapGameRoot>() != null ||
+                                     GetComponent<BlockGameplayController>() != null;
 
             foreach (var kv in _world.Blocks)
             {
                 var def = BlockLibrary.Get(kv.Value);
                 if (def == null) continue;
+
+                GameplayBlockProfile profile = BlockGameplayCatalog.Get(def.id);
+                if (profile != null)
+                {
+                    // 可玩关卡由玩法控制器生成；纯地编场景也要生成同一套预览，
+                    // 否则光源的朝向箭头只在正式关卡中出现，策划编辑时仍然看不见。
+                    if (!gameplayOwnsViews)
+                    {
+                        GameplayBlockView view = GameplayPrototypeFactory.Create(
+                            def,
+                            profile,
+                            kv.Key,
+                            _world.GetDir(kv.Key),
+                            parent);
+                        GameObject preview = view.gameObject;
+                        if (preview.GetComponent<BlockMapSpawned>() == null)
+                            preview.AddComponent<BlockMapSpawned>();
+                        _spawned.Add(preview);
+                    }
+                    continue;
+                }
 
                 Vector3 center = (Vector3)kv.Key + Vector3.one * 0.5f;
 
@@ -101,7 +125,7 @@ namespace BlockMap
                 }
             }
 
-            _lastCount = _world.Count;
+            _lastVersion = _world.Version;
             _nextRebuild = Time.realtimeSinceStartup + Mathf.Max(0f, rebuildInterval);
         }
 

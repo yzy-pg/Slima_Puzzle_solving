@@ -1,0 +1,14 @@
+{
+  "_comment": "全局玩法数值。修改后重新进入 Play 生效。emitterIndicator 控制原型发射器顶部的方向箭头；美术模型能清楚表达方向后可关闭。",
+  "stepDuration": 0.16,
+  "hopHeight": 0.14,
+  "gasVisualHeight": 1.0,
+  "blueSlideLimit": 64,
+  "beamRange": 64,
+  "beamWidth": 0.08,
+  "doorAnimationDuration": 0.35,
+  "showEmitterDirectionIndicator": true,
+  "emitterIndicatorHeight": 1.05,
+  "emitterIndicatorLength": 0.70,
+  "emitterIndicatorWidth": 0.10
+}

@@ -49,6 +49,7 @@ namespace BlockMap
         BlockWorld _world;
         BlockChunkRenderer _renderer;
         OrthoOrbitCamera _cam;
+        BlockMapLinkEditorTool _linkEditor;
         int _selected;
         // 拖拽时锁定一个平面：按下左键那一刻记录命中的面，拖动只在那个平面上铺格。
         // 否则每放一块，鼠标下的命中面就变了，会连锁长成刺球（之前截图里那团就是）。
@@ -98,6 +99,7 @@ namespace BlockMap
             _renderer = GetComponent<BlockChunkRenderer>();
             if (_renderer == null) _renderer = gameObject.AddComponent<BlockChunkRenderer>();
             _cam = FindCamera();
+            _linkEditor = GetComponent<BlockMapLinkEditorTool>();
             _slotNameInput = slotName;
         }
 
@@ -115,6 +117,7 @@ namespace BlockMap
         {
             if (!editorMode) return false;
             var guiMouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            if (_linkEditor != null && _linkEditor.IsPointerOverPanel(guiMouse)) return true;
             if (_showPanel) return panelRect.Contains(guiMouse);
             // 面板收起时只剩左上角一个小小的「显示面板」按钮，别让相机抢它的点击/滚轮
             return new Rect(panelRect.x, panelRect.y, 96f, 30f).Contains(guiMouse);
@@ -148,14 +151,19 @@ namespace BlockMap
             if (Input.GetKeyDown(KeyCode.Equals)) brushSize = Mathf.Min(5, brushSize + 2);
             if (Input.GetKeyDown(KeyCode.R))
             {
-                brushDir = (brushDir + 1) & 3;
-                Toast($"刷子朝向：{DirNames[brushDir]}");
+                bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                if (!shift || !TryRotateHoveredProp())
+                {
+                    brushDir = (brushDir + 1) & 3;
+                    Toast($"刷子朝向：{DirNames[brushDir]}");
+                }
             }
             bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
             if (ctrl && Input.GetKeyDown(KeyCode.Z)) _world.Undo();
             if (ctrl && Input.GetKeyDown(KeyCode.Y)) _world.Redo();
             if (Input.GetKeyDown(KeyCode.F5)) Save();
             if (Input.GetKeyDown(KeyCode.F9)) Load();
+            if (_linkEditor != null && _linkEditor.LinkMode) return;
 
             if (_cam == null) return;
             // 相机拖拽中（右键旋转 / 中键平移 / Alt+左键平移）不落方块。
@@ -272,6 +280,43 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
         }
 
         int _warnedBrushSize;
+
+        /// <summary>Shift+R：旋转鼠标指向的单格机关，不需要擦除后重新摆放。</summary>
+        bool TryRotateHoveredProp()
+        {
+            if (_cam == null) return false;
+            Vector2 guiMouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            if (panelRect.Contains(guiMouse)) return false;
+
+            Camera camera = _cam.GetComponent<Camera>();
+            if (camera == null) return false;
+            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+            if (!RaycastVoxel(ray, out Vector3Int cell, out _)) return false;
+
+            BlockDefinition definition = BlockLibrary.Get(_world.GetIndex(cell));
+            if (!IsSingleCellProp(definition)) return false;
+
+            int direction = (_world.GetDir(cell) + 1) & 3;
+            _world.SetDir(cell, direction);
+            brushDir = direction;
+            Toast($"已旋转 {definition.displayName}：{DirNames[direction]}");
+            return true;
+        }
+
+        /// <summary>供关联编辑器获取鼠标所指的已放置物件，不暴露体素步进细节。</summary>
+        public bool TryGetHoveredOccupiedCell(out Vector3Int cell)
+        {
+            cell = Vector3Int.zero;
+            EnsureRefs();
+            if (!editorMode || _cam == null || IsPointerOverPanel()) return false;
+
+            Camera camera = _cam.GetComponent<Camera>();
+            if (camera == null) return false;
+            return RaycastVoxel(camera.ScreenPointToRay(Input.mousePosition), out cell, out _) &&
+                   _world.IsSolid(cell);
+        }
+
+        public void ShowMessage(string message) => Toast(message);
 
         /// <summary>逻辑物件（门 / 机关 / 起点 / 终点…）：占一格、且要放在方块上方而不是顶掉它。</summary>
         static bool IsSingleCellProp(BlockDefinition def)
@@ -402,6 +447,7 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
         {
             if (_world == null) _world = GetComponent<BlockWorld>();
             if (_renderer == null) _renderer = GetComponent<BlockChunkRenderer>();
+            if (_linkEditor == null) _linkEditor = GetComponent<BlockMapLinkEditorTool>();
             if (_cam == null) _cam = FindCamera();
         }
 
@@ -652,6 +698,21 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             }
             if (_showBlockList) GUILayout.EndScrollView();
 
+            // ---- 放置朝向：不仅靠快捷键 Toast，面板中始终可见 ----
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"放置朝向：{DirNames[brushDir]}", GUILayout.Width(126));
+            if (GUILayout.Button("左转", GUILayout.Width(54)))
+            {
+                brushDir = (brushDir + 3) & 3;
+                Toast($"刷子朝向：{DirNames[brushDir]}");
+            }
+            if (GUILayout.Button("右转 (R)", GUILayout.Width(78)))
+            {
+                brushDir = (brushDir + 1) & 3;
+                Toast($"刷子朝向：{DirNames[brushDir]}");
+            }
+            GUILayout.EndHorizontal();
+
             // ---- 高度锁 ----
             GUILayout.BeginHorizontal();
             lockHeight = GUILayout.Toggle(lockHeight, " 高度锁", GUILayout.Width(76));
@@ -715,7 +776,7 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             if (!_showPanel && GUILayout.Button("显示面板", GUILayout.Width(80))) _showPanel = true;
 
             GUI.Label(new Rect(8, Screen.height - 26, Screen.width - 16, 20),
-                "左键放置 / Shift+左键删除 / [ ] 换方块 / - = 笔刷 / 右键旋转 / 滚轮缩放 / Alt+左键平移 / 1~4 视角 / P 像素完美 / F5 保存 / F9 读取");
+                "左键放置 / Shift+左键删除 / R 转刷子 / Shift+R 转机关 / L 机关关联 / [ ] 换方块 / 右键转相机 / 滚轮缩放 / F5 保存 / F9 读取");
             if (Time.realtimeSinceStartup < _toastUntil)
                 GUI.Label(new Rect(8, Screen.height - 48, Screen.width - 16, 20), _toast);
         }

@@ -1,18 +1,12 @@
 using System.Collections.Generic;
+using BlockMap.Gameplay;
 using UnityEngine;
 
 namespace BlockMap
 {
     /// <summary>
-    /// 把「地图编辑器烘出来的场景」变成可玩关卡的游戏根。
-    ///
-    /// 它只做四件事：
-    ///   ① 读同一物体上的 BlockWorld，找出你在地图里刷的「起点 / 终点」标记方块；
-    ///   ② 在起点实例化角色（朝向取该标记方块的朝向，也就是编辑器里按 R 转出来的方向）；
-    ///   ③ 架好固定角度的 3/4 正交相机（跟不跟角色可配）；
-    ///   ④ 角色走到终点格就算通关，按 R 重来。
-    ///
-    /// 地形不加任何东西 —— 碰撞完全来自菜单 ② 烘出来的几何体，所以角色是真在模型上跑。
+    /// 可玩关卡的组合入口：读取起终点、组装玩法模块、管理相机与关卡重置。
+    /// 移动、玩家状态、机关、光学和 HUD 分别由 Gameplay 子目录中的组件负责。
     /// </summary>
     [RequireComponent(typeof(BlockWorld))]
     public class BlockMapGameRoot : MonoBehaviour
@@ -41,7 +35,6 @@ namespace BlockMap
         public Vector3 cameraOffset = new Vector3(0f, 18f, -16f);
 
         BlockWorld _world;
-        BlockMapGridWalker _walker;
         Camera _camera;
         Vector3Int _spawnCell;
         Vector3Int _spawnStandCell;
@@ -56,42 +49,130 @@ namespace BlockMap
         int _spawnTotal;
         int _exitTotal;
 
+        BlockGameplayController _gameplay;
+        SlimePartyController _party;
+        string _initialWorldJson;
+
+        public SlimePartyController Party => _party;
+        public bool Won => _won;
+        public string Hint => _hint;
+        public int SpawnTotal => _spawnTotal;
+        public int ExitTotal => _exitTotal;
+
         void Start()
         {
             _world = GetComponent<BlockWorld>();
-            _world.RestoreIfNeeded();      // 场景里存的是可序列化镜像，先恢复成运行时世界
+            _world.RestoreIfNeeded();
+            _initialWorldJson = _world.ToJson();
+            ReadLevelMarkers();
 
+            _gameplay = GetComponent<BlockGameplayController>();
+            if (_gameplay == null) _gameplay = gameObject.AddComponent<BlockGameplayController>();
+            _gameplay.Initialize(_world);
+
+            if (_hasSpawn)
+            {
+                _party = GetComponent<SlimePartyController>();
+                if (_party == null) _party = gameObject.AddComponent<SlimePartyController>();
+                _party.Initialize(_gameplay, playerPrefab, _spawnStandCell, _spawnFacing, cellSize, cameraYaw);
+                _party.RestartRequested += RestartLevel;
+                _party.ExitReached += CompleteLevel;
+                _gameplay.BindParty(_party);
+            }
+
+            ConfigureGameplayCamera();
+            CreateMarkerVisuals();
+
+            BlockMapGameplayHud hud = GetComponent<BlockMapGameplayHud>();
+            if (hud == null) hud = gameObject.AddComponent<BlockMapGameplayHud>();
+            hud.Initialize(this, _party);
+        }
+
+        void Update()
+        {
+            RefreshHint();
+        }
+
+        void LateUpdate()
+        {
+            if (_camera == null) return;
+            SlimeActor active = _party != null ? _party.ActiveActor : null;
+            Vector3 target = cameraFollowsPlayer && active != null ? active.transform.position : LevelCenter();
+            _camera.transform.position = target + CameraOffsetWorld();
+            _camera.transform.LookAt(target);
+        }
+
+        void OnDestroy()
+        {
+            if (_party == null) return;
+            _party.RestartRequested -= RestartLevel;
+            _party.ExitReached -= CompleteLevel;
+        }
+
+        void ReadLevelMarkers()
+        {
             _hasSpawn = TryFindMarker(spawnBlockId, out _spawnCell);
             _hasExit = TryFindMarker(exitBlockId, out _exitCell);
             _spawnFacing = _hasSpawn ? _world.GetDir(_spawnCell) : 0;
             _spawnStandCell = _hasSpawn
                 ? new Vector3Int(_spawnCell.x, ResolveStandingY(_spawnCell), _spawnCell.z)
                 : _spawnCell;
-
-            // 画错地方 / 笔刷太大时会留下好几个标记 —— 逐个报坐标，方便用「擦除」清掉
             _spawnTotal = CollectMarkers(spawnBlockId, _spawnCells);
             _exitTotal = CollectMarkers(exitBlockId, _exitCells);
+
             if (_spawnTotal > 1)
-            {
-                Debug.LogWarning($"[BlockMap] 地图里有 {_spawnTotal} 个起点标记，只会用最低最靠前的 {_spawnCell}；" +
-                                 $"其余在：{FormatCells(_spawnCells)}", this);
-            }
+                Debug.LogWarning($"[BlockMap] 起点共 {_spawnTotal} 个，仅使用 {_spawnCell}。其余：{FormatCells(_spawnCells)}", this);
             if (_exitTotal > 1)
-            {
-                Debug.LogWarning($"[BlockMap] 地图里有 {_exitTotal} 个终点标记，只会用最低最靠前的 {_exitCell}；" +
-                                 $"其余在：{FormatCells(_exitCells)}", this);
-            }
+                Debug.LogWarning($"[BlockMap] 终点共 {_exitTotal} 个，仅使用 {_exitCell}。其余：{FormatCells(_exitCells)}", this);
+            if (!_hasSpawn) Debug.LogError($"[BlockMap] 地图里没有「{spawnBlockId}」标记", this);
+            if (!_hasExit) Debug.LogError($"[BlockMap] 地图里没有「{exitBlockId}」标记", this);
+        }
 
-            if (!_hasSpawn) Debug.LogError($"[BlockMap] 地图里没有「{spawnBlockId}」标记方块，请在 3D 编辑器里刷一个起点", this);
-            if (!_hasExit) Debug.LogError($"[BlockMap] 地图里没有「{exitBlockId}」标记方块，请在 3D 编辑器里刷一个终点", this);
-            if (_hasSpawn && _hasExit && _spawnCell == _exitCell)
-            {
-                Debug.LogWarning("[BlockMap] 起点和终点是同一格", this);
-            }
+        void RestartLevel()
+        {
+            if (_world == null || string.IsNullOrEmpty(_initialWorldJson)) return;
+            _world.FromJson(_initialWorldJson);
+            _gameplay?.ResetState();
+            _party?.RestartParty();
+            _won = false;
+        }
 
-            if (_hasSpawn) SpawnPlayer();
-            ConfigureCamera();
-            CreateMarkerVisuals();
+        void CompleteLevel()
+        {
+            if (!_hasExit) return;
+            _won = true;
+            foreach (SlimeActor actor in _party.Actors)
+                if (actor != null) actor.SetControlled(false);
+        }
+
+        void ConfigureGameplayCamera()
+        {
+            Camera camera = Camera.main;
+            if (camera == null)
+            {
+                var cameraObject = new GameObject("Main Camera");
+                cameraObject.tag = "MainCamera";
+                camera = cameraObject.AddComponent<Camera>();
+                cameraObject.AddComponent<AudioListener>();
+            }
+            camera.orthographic = true;
+            camera.orthographicSize = cameraSize;
+            camera.nearClipPlane = 0.1f;
+            camera.farClipPlane = 400f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.055f, 0.08f, 0.12f);
+            _camera = camera;
+        }
+
+        void RefreshHint()
+        {
+            if (_world == null || _world.Count == 0)
+                _hint = "场景没有方块数据，请重新烘焙关卡";
+            else if (!_hasSpawn) _hint = $"缺少起点：{spawnBlockId}";
+            else if (!_hasExit) _hint = $"缺少终点：{exitBlockId}";
+            else if (!IsBakedSolid(new Vector3Int(_spawnCell.x, _spawnStandCell.y - 1, _spawnCell.z)))
+                _hint = "起点下方没有地板；请把起点刷在地板上一层";
+            else _hint = null;
         }
 
         /// <summary>
@@ -159,14 +240,6 @@ namespace BlockMap
                 material.SetColor("_EmissionColor", color * 0.6f);   // 略微自发光，暗场景里也看得见
             }
             return material;
-        }
-
-        void LateUpdate()
-        {
-            if (_camera == null) return;
-            Vector3 target = cameraFollowsPlayer && _walker != null ? _walker.transform.position : LevelCenter();
-            _camera.transform.position = target + CameraOffsetWorld();
-            _camera.transform.LookAt(target);
         }
 
         /// <summary>把编辑时看地图的方向搬到运行时：cameraYaw 绕世界 Y 轴旋转机位。</summary>
@@ -243,150 +316,11 @@ namespace BlockMap
             return def != null && !def.interactive && def.previewPrefab == null;
         }
 
-        void SpawnPlayer()
-        {
-            GameObject prefab = playerPrefab != null ? playerPrefab : Resources.Load<GameObject>("Player/BlockMapPlayer");
-            GameObject instance = prefab != null ? Instantiate(prefab) : CreateFallbackPlayer();
-
-            instance.name = "Player";
-            _walker = instance.GetComponent<BlockMapGridWalker>();
-            if (_walker == null) _walker = instance.AddComponent<BlockMapGridWalker>();
-            _walker.cellSize = cellSize;
-            _walker.viewYaw = cameraYaw;
-
-            var controller = instance.GetComponent<CharacterController>();
-            if (controller == null)
-            {
-                controller = instance.AddComponent<CharacterController>();
-                controller.height = 1f;
-                controller.radius = 0.35f;
-                controller.center = new Vector3(0f, 0.5f, 0f);
-            }
-
-            _walker.Teleport(_spawnStandCell, _spawnFacing);
-            instance.transform.position += Vector3.up * 0.05f;     // 抬高一点，避免开局卡进地面
-
-            _walker.Stepped += OnStepped;
-            _won = false;
-        }
-
-        /// <summary>没给 Prefab 时兜底：一个能看出朝向的灰盒滑块</summary>
-        static GameObject CreateFallbackPlayer()
-        {
-            var root = new GameObject("BlockMapPlayer");
-
-            var body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            body.name = "Visual";
-            body.transform.SetParent(root.transform, false);
-            body.transform.localPosition = new Vector3(0f, 0.42f, 0f);
-            body.transform.localScale = new Vector3(0.7f, 0.62f, 0.7f);
-            Object.Destroy(body.GetComponent<Collider>());
-            Paint(body, new Color(0.3f, 0.9f, 0.72f));
-
-            var nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            nose.name = "Facing";
-            nose.transform.SetParent(body.transform, false);
-            nose.transform.localPosition = new Vector3(0f, 0f, 0.5f);
-            nose.transform.localScale = new Vector3(0.25f, 0.2f, 0.25f);
-            Object.Destroy(nose.GetComponent<Collider>());
-            Paint(nose, new Color(0.05f, 0.12f, 0.16f));
-
-            var controller = root.AddComponent<CharacterController>();
-            controller.height = 1f;
-            controller.radius = 0.35f;
-            controller.center = new Vector3(0f, 0.5f, 0f);
-            root.AddComponent<BlockMapGridWalker>().cellSize = 1f;
-            return root;
-        }
-
-        static void Paint(GameObject go, Color color)
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null) shader = Shader.Find("Standard");
-            var renderer = go.GetComponent<MeshRenderer>();
-            if (renderer != null) renderer.sharedMaterial = new Material(shader) { color = color };
-        }
-
-        void ConfigureCamera()
-        {
-            Camera camera = Camera.main;
-            if (camera == null)
-            {
-                var cameraObject = new GameObject("Main Camera");
-                cameraObject.tag = "MainCamera";
-                camera = cameraObject.AddComponent<Camera>();
-                cameraObject.AddComponent<AudioListener>();
-            }
-
-            camera.orthographic = true;
-            camera.orthographicSize = cameraSize;
-            camera.nearClipPlane = 0.1f;
-            camera.farClipPlane = 400f;
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.055f, 0.08f, 0.12f);
-
-            Vector3 target = cameraFollowsPlayer && _walker != null ? _walker.transform.position : LevelCenter();
-            camera.transform.position = target + CameraOffsetWorld();
-            camera.transform.LookAt(target);
-            _camera = camera;
-        }
-
         Vector3 LevelCenter()
         {
             var size = _world != null ? _world.maxSize : new Vector3Int(16, 1, 16);
             return new Vector3(size.x * 0.5f, 0f, size.z * 0.5f);
         }
 
-        void OnStepped(Vector3Int cell)
-        {
-            if (_hasExit && cell == _exitCell) _won = true;
-        }
-
-        void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.R) && _hasSpawn && _walker != null)
-            {
-                _walker.Teleport(_spawnStandCell, _spawnFacing);
-                _won = false;
-            }
-
-            if (_world == null || _world.Count == 0)
-            {
-                _hint = "这个场景里没有方块数据（多半是旧版本烘的场景）：请重新跑一次菜单 ② 烘场景，再跑 ⑦";
-            }
-            else if (!_hasSpawn) _hint = $"地图里没有起点标记：请在地图编辑器里刷一个「{spawnBlockId}」方块";
-            else if (!_hasExit) _hint = $"地图里没有终点标记：请在地图编辑器里刷一个「{exitBlockId}」方块";
-            else if (!IsBakedSolid(new Vector3Int(_spawnCell.x, _spawnStandCell.y - 1, _spawnCell.z)))
-            {
-                _hint = "起点下面没有地板：标记方块把地板顶掉了，请把起点刷在「地板之上那一层」";
-            }
-            else _hint = null;
-        }
-
-        void OnGUI()
-        {
-            if (!string.IsNullOrEmpty(_hint))
-            {
-                GUI.Box(new Rect(Screen.width * 0.5f - 260f, 20f, 520f, 48f), GUIContent.none);
-                GUI.Label(new Rect(Screen.width * 0.5f - 245f, 34f, 500f, 24f), _hint);
-                return;
-            }
-
-            GUI.Box(new Rect(16f, 16f, 260f, 76f), GUIContent.none);
-            GUI.Label(new Rect(30f, 26f, 240f, 24f), "WASD / 方向键：跳一格");
-            GUI.Label(new Rect(30f, 50f, 240f, 24f), "R：回到起点");
-
-            if (_spawnTotal > 1 || _exitTotal > 1)
-            {
-                GUI.Box(new Rect(16f, 96f, 340f, 26f), GUIContent.none);
-                GUI.Label(new Rect(26f, 101f, 330f, 22f), $"起点 ×{_spawnTotal}，终点 ×{_exitTotal}：只生效第一个，多余的请擦除");
-            }
-
-            if (!_won) return;
-
-            var style = new GUIStyle(GUI.skin.box) { fontSize = 28, alignment = TextAnchor.MiddleCenter };
-            GUI.Box(new Rect(Screen.width * 0.5f - 220f, Screen.height * 0.5f - 64f, 440f, 128f),
-                    "到达终点，关卡完成\n按 R 重新开始", style);
-        }
     }
 }

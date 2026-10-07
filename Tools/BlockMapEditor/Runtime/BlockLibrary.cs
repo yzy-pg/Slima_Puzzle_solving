@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BlockMap.Gameplay;
 using UnityEngine;
 
 namespace BlockMap
@@ -193,6 +194,10 @@ namespace BlockMap
                 _blocks.Add(md);
                 _byId[md.id] = md;
             }
+
+            // 玩法配置只描述“这个 id 做什么”。已有美术定义会被补上玩法属性；
+            // 没有美术的玩法块会得到一个运行时灰盒定义，策划仍可直接在地编里使用。
+            BlockGameplayCatalog.AddDefinitions(_blocks, _byId);
 
             // 先按"是否交互道具"分组，再按 id 排 —— 编辑器面板里两类方块不会混在一起
             _blocks.Sort((a, b) =>
