@@ -39,9 +39,10 @@ Material:
     - _LightWrap: 1
     - _NoiseStrength: 1
     - _NoiseSurfaceLock: 1
-    - _NoiseWorldSize: 0.05
+    - _NoiseWorldSize: 0.913
     - _OutlineNoise: 0
     - _OutlineWidth: 1
+    - _PixelBlock: 2
     - _PixelSize: 4
     - _PixelSnap: 0
     m_Colors:

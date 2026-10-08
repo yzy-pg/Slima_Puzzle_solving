@@ -29,7 +29,8 @@ Shader "Slima/Toon (Cel + Pixel)"
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
         _NoiseStrength ("光影｜阶梯过渡噪声强度（0 = 纯阶梯，0.35 = 像素颗粒过渡）", Range(0, 1)) = 0.35
-        _PixelBlock ("光影｜噪声块大小（屏幕像素，建议和全屏 Pixel Size 一致）", Range(1, 16)) = 2
+        _NoiseWorldSize ("光影｜噪声格大小（世界单位，0.02 ≈ 2 屏幕像素）", Range(0.002, 0.5)) = 0.02
+        _NoiseMaskInvert ("光影｜噪声遮罩反转（0 = 只有受光处有颗粒，1 = 反过来）", Range(0, 1)) = 0
 
         _PixelSnap ("像素化｜顶点像素吸附（0 = 关；会和全屏像素化叠加，建议只开一层）", Range(0, 16)) = 0
 
@@ -77,7 +78,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _LightWrap;
                 half   _PixelSnap;
                 half   _NoiseStrength;
-                half   _PixelBlock;
+                half   _NoiseWorldSize;
+                half   _NoiseMaskInvert;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -192,7 +194,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _LightWrap;
                 half   _PixelSnap;
                 half   _NoiseStrength;
-                half   _PixelBlock;
+                half   _NoiseWorldSize;
+                half   _NoiseMaskInvert;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -266,11 +269,11 @@ Shader "Slima/Toon (Cel + Pixel)"
 
             half4 ToonFragment(Varyings input) : SV_Target
             {
-                // ★ 阶梯过渡噪声：**屏幕空间 + 按像素块量化**（和最后那步全屏像素化同一套网格）。
-                //   之前那版用"世界坐标量化"会在轴对齐的方块上形成重复花纹（看起来非常怪），已废弃；
-                //   屏幕块内噪声取常数 → 是"像素颗粒"而不是渐变，也不会随模型缩放/移动改变图案。
-                float2 screenPixel = input.screenPos.xy / max(input.screenPos.w, 1e-5) * _ScreenParams.xy;
-                float noise = Hash21(floor(screenPixel / max(1.0, _PixelBlock)));
+                // ★ 阶梯过渡噪声：**锁在世界（表面）上** —— 相机移动时图案跟着物体走，不会"跟着镜头滑动"。
+                //   格大小默认 0.02 世界单位（约 2 个屏幕像素），远小于一个方块且非整数倍 →
+                //   不会和方块网格对齐，因此不会出现"每个方块图案都一样"的重复花纹（那是上一版的坑）。
+                float3 wp = input.positionWS / max(0.0001, _NoiseWorldSize);
+                float noise = Hash21(floor(wp.xz) + floor(wp.y) * 0.37);
                 float dither = (noise - 0.5) * _NoiseStrength;
 
                 // ③ 五段阶梯
@@ -291,12 +294,12 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 
-                // 抖动幅度 = 一段的宽度 × 强度 × **受光程度**
-                // ★ 噪声遮罩：主光的阴影/距离衰减当作遮罩 —— 阴影里、光照不到的暗处不加颗粒，
-                //   只有真正被这盏光照到的地方才有像素颗粒过渡。
+                // 抖动幅度 = 一段的宽度 × 强度 × **受光遮罩**
                 float steps = max(2.0, _Bands);
                 half mainAtten = saturate(mainLight.shadowAttenuation * mainLight.distanceAttenuation);
-                dither *= mainAtten;
+                // 遮罩：atten = 1 表示"被这盏光照到"。默认"照到才有颗粒"，可按需反转
+                half noiseMask = lerp(mainAtten, 1.0 - mainAtten, _NoiseMaskInvert);
+                dither *= noiseMask;
                 dither /= steps;
                 half lit = saturate(wrapped + dither);
 
@@ -324,8 +327,9 @@ Shader "Slima/Toon (Cel + Pixel)"
                     half nlExtra = dot(normalWS, extra.direction);
                     half wrappedExtra = saturate((nlExtra + _LightWrap) / (1.0 + _LightWrap));
 
-                    // ★ 每盏额外光用自己的衰减当噪声遮罩：只有这盏光照到处才有颗粒
-                    half ditherExtra = (noise - 0.5) * _NoiseStrength * attenExtra / steps;
+                    // ★ 每盏额外光用自己的衰减当噪声遮罩（atten=1 表示这盏光照到这里）
+                    half extraMask = lerp(attenExtra, 1.0 - attenExtra, _NoiseMaskInvert);
+                    half ditherExtra = (noise - 0.5) * _NoiseStrength * extraMask / steps;
                     half litExtra = saturate(wrappedExtra + ditherExtra);
                     half bandExtra = min(floor(litExtra * steps), steps - 1.0) / (steps - 1.0);
 

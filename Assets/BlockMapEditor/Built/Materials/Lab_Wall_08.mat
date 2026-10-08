@@ -42,6 +42,7 @@ Material:
     - _NoiseWorldSize: 0.5
     - _OutlineNoise: 0
     - _OutlineWidth: 2
+    - _PixelBlock: 2
     - _PixelSize: 4
     - _PixelSnap: 0
     m_Colors:
