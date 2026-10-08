@@ -15,11 +15,9 @@ namespace BlockMap.Tools
     [AddComponentMenu("BlockMap Tools/烘焙发光体（矩形渐变，像素格）")]
     public class BlockMapBakedLightArea : MonoBehaviour
     {
-        [Tooltip("矩形范围：X = 宽（格），Y = 深（格）。以本物体的 XZ 位置为中心")]
-        public Vector2 size = new Vector2(12f, 12f);
-
-        [Tooltip("高度范围（格）：只烤这个高度区间内的方块。默认只烤一层")]
-        public Vector2Int heightRange = new Vector2Int(0, 0);
+        [Tooltip("矩形范围 = 本物体 Transform 的 X/Y 缩放（用 Scale 工具拖即可）；射出长度 = Z 缩放")]
+        [Header("范围（看 Transform 的 Scale，不用改这里）")]
+        public Vector2 baseSizeHint = new Vector2(12f, 12f);
 
         [Tooltip("颜色渐变：左端 = 范围边缘，右端 = 范围中心。\n" +
                  "它的**明度**决定该处的点亮强度（像素格密度）；颜色请配合下面生成的 _Lit 色系使用")]
@@ -50,27 +48,21 @@ namespace BlockMap.Tools
             return g;
         }
 
-        /// <summary>某点(相对中心，格)的归一化"亮度" 0~1。</summary>
-        public float Evaluate(Vector2 offsetCells, int cellX, int cellZ)
+        /// <summary>发光面尺寸（用 Transform 缩放表达）。</summary>
+        public Vector2 RectSize => new Vector2(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
+
+        /// <summary>射出长度（沿本地 +Z）。</summary>
+        public float BeamLength => Mathf.Abs(transform.lossyScale.z);
+
+        /// <summary>某点在"发光面"上的归一化亮度 0~1（面内坐标，单位 = 格）。</summary>
+        public float EvaluateFace(Vector2 faceCells)
         {
-            float w = Mathf.Max(1f, size.x) * 0.5f;
-            float d = Mathf.Max(1f, size.y) * 0.5f;
+            Vector2 half = RectSize * 0.5f;
+            float ex = 1f - Mathf.Clamp01(Mathf.Abs(faceCells.x) / Mathf.Max(0.5f, half.x));
+            float ey = 1f - Mathf.Clamp01(Mathf.Abs(faceCells.y) / Mathf.Max(0.5f, half.y));
+            float t = Mathf.Min(ex, ey);                       // 面边缘 0，面中心 1
 
-            float t;
-            if (rectangularFalloff)
-            {
-                // 到矩形边的归一化距离：边缘 0，中心 1
-                float ex = 1f - Mathf.Clamp01(Mathf.Abs(offsetCells.x) / w);
-                float ez = 1f - Mathf.Clamp01(Mathf.Abs(offsetCells.y) / d);
-                t = Mathf.Min(ex, ez);
-            }
-            else
-            {
-                float r = Mathf.Sqrt(offsetCells.x * offsetCells.x + offsetCells.y * offsetCells.y);
-                t = 1f - Mathf.Clamp01(r / Mathf.Max(w, d));
-            }
-
-            float lum = brightness.Evaluate(t).grayscale;   // 用渐变的明度当强度
+            float lum = brightness.Evaluate(t).grayscale;
             return Mathf.Clamp01(lum * intensity);
         }
 
@@ -92,26 +84,39 @@ namespace BlockMap.Tools
         };
 
         // ------------------------------------------------------------------
-        // 场景里可见：**只画一个矩形线框**（不画格子预览、不画立柱，避免看着像两个矩形）
+        // 场景里可见：**一个面 + 一束直线光**（面光），用物体自身坐标画 → 跟随旋转和缩放
         // ------------------------------------------------------------------
         void OnDrawGizmos()
         {
-            float w = Mathf.Max(1f, size.x);
-            float d = Mathf.Max(1f, size.y);
-            float y = (heightRange.x + heightRange.y) * 0.5f + 0.5f;
-            Vector3 basePos = transform.position;
-            Vector3 center = new Vector3(basePos.x, basePos.y + y, basePos.z);
+            float len = Mathf.Max(0.1f, BeamLength);
+            float w = Mathf.Max(0.1f, RectSize.x);
+            float h = Mathf.Max(0.1f, RectSize.y);
 
-            Gizmos.color = new Color(1f, 0.82f, 0.35f, 0.95f);
-            Gizmos.DrawWireCube(center, new Vector3(w, 0.05f, d));
+            Matrix4x4 old = Gizmos.matrix;
+            Gizmos.matrix = transform.localToWorldMatrix;      // ★ 用本地坐标 → 自动跟随旋转 / 缩放
+
+            // 光束体积（矩形面沿 +Z 直射出去的"盒子"）
+            Gizmos.color = new Color(1f, 0.82f, 0.35f, 0.85f);
+            Gizmos.DrawWireCube(new Vector3(0f, 0f, len * 0.5f), new Vector3(w, h, len));
+
+            // 发光面（亮一点，一眼看出"从哪面射出去"）
+            Gizmos.color = new Color(1f, 0.92f, 0.6f, 0.95f);
+            Gizmos.DrawWireCube(Vector3.zero, new Vector3(w, h, 0.02f));
+
+            // 中心射线（方向指示）
+            Gizmos.color = new Color(1f, 0.65f, 0.2f, 0.95f);
+            Gizmos.DrawLine(Vector3.zero, new Vector3(0f, 0f, len));
+
+            Gizmos.matrix = old;
         }
 
         void OnValidate()
         {
-            size.x = Mathf.Max(1f, size.x);
-            size.y = Mathf.Max(1f, size.y);
             ditherBlock = Mathf.Max(1, ditherBlock);
-            if (heightRange.y < heightRange.x) heightRange.y = heightRange.x;
+            if (transform.lossyScale == Vector3.zero)
+            {
+                transform.localScale = new Vector3(baseSizeHint.x, baseSizeHint.y, 8f);
+            }
         }
     }
 }

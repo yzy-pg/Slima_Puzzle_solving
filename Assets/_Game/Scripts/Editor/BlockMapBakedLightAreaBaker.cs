@@ -72,26 +72,29 @@ namespace BlockMap.EditorTools
 
             foreach (BlockMapBakedLightArea area in areas)
             {
-                Vector3 c = world.transform.InverseTransformPoint(area.transform.position);
-                Vector2 centerXZ = new Vector2(c.x, c.z);
-                int halfW = Mathf.CeilToInt(area.size.x * 0.5f);
-                int halfD = Mathf.CeilToInt(area.size.y * 0.5f);
+                Matrix4x4 m = area.transform.localToWorldMatrix;
+                Vector2 rect = area.RectSize;
+                int halfX = Mathf.Max(0, Mathf.RoundToInt(rect.x * 0.5f));
+                int halfY = Mathf.Max(0, Mathf.RoundToInt(rect.y * 0.5f));
+                int beamLen = Mathf.Max(1, Mathf.RoundToInt(area.BeamLength));
 
-                int cx = Mathf.RoundToInt(c.x);
-                int cz = Mathf.RoundToInt(c.z);
-
-                for (int dx = -halfW; dx <= halfW; dx++)
+                // 面光：从发光面（本地 X/Y 网格）沿本地 +Z 直线射出，逐格提亮
+                for (int lx = -halfX; lx <= halfX; lx++)
                 {
-                    for (int dz = -halfD; dz <= halfD; dz++)
+                    for (int ly = -halfY; ly <= halfY; ly++)
                     {
-                        int x = cx + dx, z = cz + dz;
-                        var offset = new Vector2(x - centerXZ.x, z - centerXZ.y);
-                        float level = area.Evaluate(offset, x, z);
-                        if (!area.ShouldLight(x, z, level)) continue;
+                        float level = area.EvaluateFace(new Vector2(lx, ly));
 
-                        for (int y = area.heightRange.x; y <= area.heightRange.y; y++)
+                        for (int lz = 0; lz <= beamLen; lz++)
                         {
-                            var cell = new Vector3Int(x, y, z);
+                            // 抖动格坐标用"面内 + 光程"组合，保证像素格连续
+                            int ditherX = lx, ditherZ = ly * 131 + lz;
+                            if (!area.ShouldLight(ditherX, ditherZ, level)) continue;
+
+                            Vector3 worldPos = m.MultiplyPoint3x4(new Vector3(lx + 0.5f, ly + 0.5f, lz + 0.5f));
+                            var cell = new Vector3Int(Mathf.RoundToInt(worldPos.x),
+                                                      Mathf.RoundToInt(worldPos.y),
+                                                      Mathf.RoundToInt(worldPos.z));
                             if (!world.InBounds(cell)) continue;
 
                             int index = world.GetIndex(cell);
@@ -99,10 +102,10 @@ namespace BlockMap.EditorTools
 
                             BlockDefinition def = BlockLibrary.Get(index);
                             if (def == null) continue;
-                            if (def.id.EndsWith(area.litSuffix)) { already++; continue; }   // 已是提亮版
+                            if (def.id.EndsWith(area.litSuffix)) { already++; continue; }
 
                             int litIndex = BlockLibrary.IndexOf(def.id + area.litSuffix);
-                            if (litIndex < 0) { skippedNoVariant++; continue; }              // 还没生成 _Lit
+                            if (litIndex < 0) { skippedNoVariant++; continue; }
 
                             world.Set(cell, litIndex);
                             touched.Add(cell);
