@@ -126,6 +126,15 @@ Shader "Slima/Toon Outline Post"
                 return SAMPLE_TEXTURE2D_X(_SlimaMask, sampler_SlimaMask, uv).r;
             }
 
+            // 不参与像素化的物件遮罩：1 = 该像素保持清晰，0 = 正常像素化
+            TEXTURE2D_X(_SlimaCrispMask);
+            SAMPLER(sampler_SlimaCrispMask);
+
+            float SampleCrisp(float2 uv)
+            {
+                return SAMPLE_TEXTURE2D_X(_SlimaCrispMask, sampler_SlimaCrispMask, uv).r;
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 // 源 UV（处理 render scale / 偏移）
@@ -136,7 +145,17 @@ Shader "Slima/Toon Outline Post"
                 float2 pixelUV = (floor(sourceUV * virtualRes) + 0.5) / virtualRes;
                 float2 sampledUV = lerp(sourceUV, pixelUV, _PixelateAmount);
 
-                float3 color = SampleSceneColor(sampledUV);
+                // ---- 不参与像素化的物件（特殊物件）：这些像素改用原始 UV 取色 → 保持清晰 ----
+                float crisp = SampleCrisp(sourceUV);
+
+                // 调试 4：品红 = 该物件不参与像素化（用来确认"谁被排除了"）
+                if (_DebugMode > 3.5)
+                {
+                    return half4(crisp, crisp * 0.2, crisp, 1);
+                }
+
+                float2 colorUV = (crisp > 0.5) ? sourceUV : sampledUV;
+                float3 color = SampleSceneColor(colorUV);
 
                 // ---- 调试 1：直接看原始深度缓冲 ----
                 //   深度纹理没绑上时这里是纯黑（raw = 0 = 远平面）；

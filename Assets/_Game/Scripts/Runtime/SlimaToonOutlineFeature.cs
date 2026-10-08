@@ -101,21 +101,32 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("颜色描边阈值（0.01~1，仅 依据 = 颜色 时有效）。越小线越多、越粗。")]
             [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
 
+            [Header("不参与像素化的物件（特殊物件保持清晰）")]
+            [Tooltip("勾上后：名字匹配下面过滤器的物件保持清晰、不被像素化 —— 起点/出口这类小物件用")]
+            public bool crispSpecials = true;
+
+            [Tooltip("名字过滤器（多个用 | 分隔）。默认覆盖起点/出口/主角")]
+            public string crispNameFilter = "Spawn|Exit|Player|Slime";
+
             [Header("调试")]
             [Tooltip("0 = 正常。\n" +
                      "1 = 原始深度缓冲（全黑 = 深度纹理没绑上）。\n" +
-                     "2 = 边缘/遮罩可视化（遮罩模式下：白 = 该组物体）。\n" +
-                     "3 = 线性眼深度灰度图（白 = 近）。")]
-            [Range(0, 3)] public int debugMode = 0;
+                     "2 = 描边分组可视化（每组一个颜色）。\n" +
+                     "3 = 线性眼深度灰度图（白 = 近）。\n" +
+                     "4 = 特殊物件专属：品红 = 这些物件不参与像素化（保持清晰）。")]
+            [Range(0, 4)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
 
         Material _material;
         Material _maskMaterial;
-        PixelOutlinePass _pass;                       // 0/1 依据时用的合成 pass
+        Material _crispMaskMaterial;                  // 白色遮罩 = 不参与像素化的物件
+        PixelOutlinePass _pass;
         readonly List<MaskPass> _maskPasses = new List<MaskPass>();
         readonly List<PixelOutlinePass> _compositePasses = new List<PixelOutlinePass>();
+        MaskPass _crispMaskPass;
+        MaskGroup _crispGroup;
         bool _loggedOnce;
         MeshRenderer[] _meshRenderers;
         int _rescanCountdown;
@@ -136,6 +147,8 @@ namespace SlimaPuzzle.Rendering
         static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
         static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
         static readonly int MaskTextureId = Shader.PropertyToID("_SlimaMask");
+        static readonly int CrispMaskTextureId = Shader.PropertyToID("_SlimaCrispMask");
+        static readonly int MaskColorId = Shader.PropertyToID("_MaskColor");
         static readonly int DebugTintId = Shader.PropertyToID("_DebugTint");
 
         public override void Create()
@@ -167,6 +180,21 @@ namespace SlimaPuzzle.Rendering
             {
                 RefreshRenderers();
 
+                // ★ 先画"不参与像素化"的遮罩（特殊物件保持清晰），再画各组的描边遮罩
+                if (settings.crispSpecials && !string.IsNullOrEmpty(settings.crispNameFilter))
+                {
+                    if (_crispGroup == null) _crispGroup = new MaskGroup();
+                    _crispGroup.name = "清晰（不参与像素化）";
+                    _crispGroup.nameContains = settings.crispNameFilter;
+                    _crispGroup.materialContains = "";
+                    _crispGroup.layerMask = 0;
+
+                    if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
+                    _crispMaskPass.renderPassEvent = settings.passEvent;
+                    _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers, CrispMaskTextureId);
+                    renderer.EnqueuePass(_crispMaskPass);
+                }
+
                 int groupIndex = 0;
                 foreach (MaskGroup group in settings.maskGroups)
                 {
@@ -175,7 +203,7 @@ namespace SlimaPuzzle.Rendering
                     EnsurePassSlot(groupIndex);
 
                     _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
-                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers);
+                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers, MaskTextureId);
                     renderer.EnqueuePass(_maskPasses[groupIndex]);
 
                     _compositePasses[groupIndex].renderPassEvent = settings.passEvent;
@@ -270,7 +298,12 @@ namespace SlimaPuzzle.Rendering
             {
                 if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
                 if (settings.maskShader == null) return false;
+
                 _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
+                _maskMaterial.SetColor(MaskColorId, Color.black);      // 黑 = 这一组的物体
+
+                _crispMaskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
+                _crispMaskMaterial.SetColor(MaskColorId, Color.white); // 白 = 不被像素化
             }
 
             return _material != null;
@@ -280,9 +313,12 @@ namespace SlimaPuzzle.Rendering
         {
             CoreUtils.Destroy(_material);
             CoreUtils.Destroy(_maskMaterial);
+            CoreUtils.Destroy(_crispMaskMaterial);
             _material = null;
             _maskMaterial = null;
+            _crispMaskMaterial = null;
             _pass?.Dispose();
+            _crispMaskPass?.Dispose();
             foreach (MaskPass pass in _maskPasses) pass.Dispose();
             foreach (PixelOutlinePass pass in _compositePasses) pass.Dispose();
         }
@@ -295,13 +331,15 @@ namespace SlimaPuzzle.Rendering
             Material _material;
             MaskGroup _group;
             MeshRenderer[] _renderers;
+            int _globalTextureId = 0;
             RTHandle _mask;
 
-            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers)
+            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers, int globalTextureId)
             {
                 _material = material;
                 _group = group;
                 _renderers = renderers;
+                _globalTextureId = globalTextureId;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -338,7 +376,7 @@ namespace SlimaPuzzle.Rendering
                         }
                     }
 
-                    cmd.SetGlobalTexture(MaskTextureId, _mask);
+                    cmd.SetGlobalTexture(_globalTextureId, _mask);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
@@ -430,7 +468,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 3));
+                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 4));
                 _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
                 _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));

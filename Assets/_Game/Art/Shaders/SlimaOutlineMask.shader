@@ -7,6 +7,11 @@
 
 Shader "Slima/Outline Mask"
 {
+    Properties
+    {
+        _MaskColor ("遮罩颜色（由脚本设置）", Color) = (0, 0, 0, 1)
+    }
+
     SubShader
     {
         Tags
@@ -30,6 +35,10 @@ Shader "Slima/Outline Mask"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+            CBUFFER_START(UnityPerMaterial)
+                half4 _MaskColor;
+            CBUFFER_END
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -47,10 +56,11 @@ Shader "Slima/Outline Mask"
                 return output;
             }
 
-            // 黑 = 物体（会被描边），白 = 背景（描边画在它上面）
+            // 遮罩颜色由 Feature 指定：
+            //   黑 = 描边分组（会被描边）；白 = 不参与像素化的物件（保持清晰）
             half4 MaskFragment(Varyings input) : SV_Target
             {
-                return half4(0, 0, 0, 1);
+                return _MaskColor;
             }
             ENDHLSL
         }
