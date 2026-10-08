@@ -136,11 +136,21 @@ namespace BlockMap.Tools
                 light = go.AddComponent<Light>();
             }
 
-            light.type = LightType.Point;
+            // ★ 有方向的"面光"：Spot 放在发光面上，朝向 = 发光体的发射方向（本地 +Z）。
+            //   改方向只需要旋转发光体本身；锥角按矩形尺寸/长度换算，接近"直射出去的一个柱"。
+            Vector2 rect = RectSize;
+            float len = Mathf.Max(1f, BeamLength);
+            float halfDiag = Mathf.Max(rect.x, rect.y) * 0.5f;
+            float coneDeg = 2f * Mathf.Atan2(halfDiag, len) * Mathf.Rad2Deg;
+
+            light.type = LightType.Spot;
             light.color = brightness.Evaluate(1f);          // 用渐变最亮那一端的颜色
             light.intensity = previewIntensity;
-            light.range = Mathf.Max(1f, BeamLength);        // 范围 = 发射长度
-            light.transform.localPosition = Vector3.zero;   // 灯就在发光体中心
+            light.range = len;                              // 范围 = 发射长度
+            light.spotAngle = Mathf.Clamp(coneDeg, 1f, 179f);
+            light.innerSpotAngle = Mathf.Clamp(coneDeg * 0.5f, 0.5f, 178f);
+            light.transform.localPosition = Vector3.zero;
+            light.transform.localRotation = Quaternion.identity;   // ★ 指向发射方向（本地 +Z）
             light.shadows = LightShadows.None;
             light.enabled = true;
         }
