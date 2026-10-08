@@ -84,8 +84,21 @@ Docs/
 - `Assets/Scenes/113233.unity` 是用**旧版本**烘的（场景里没有持久化方块数据）→ 重跑一次菜单 ② ，或直接删掉它。
 - 角色默认是**灰盒史莱姆**（`BlockMapGameRoot.playerPrefab` 可以换成你的模型）；门、机关等特殊方块同理，给它们做 Prefab 即可。
 - 相机默认**跟随角色、正交 8**；想对齐地图编辑器里的视角方向，用 `cameraYaw` 取 0/90/180/270。
-- 暂无 UI / 音效 / 特效 / 关卡选择流程。
+- 玩法层（机关 / 信号 / 史莱姆队伍 / 关卡 HUD）在 `Tools/BlockMapEditor/Runtime/Gameplay/`，说明见 `Tools/BlockMapEditor/README.md`。
+- 音效 / 特效 / 关卡选择流程还没做。
 
-## 七、开发日志
+## 七、风格化渲染（三渲二）
+
+一套卡通风格 shader：**像素化 + 黑色描边 + 五段阶梯光影（段间用像素化噪声过渡）**，完整用法与参数说明见 [`Docs/三渲二风格化shader.md`](Docs/三渲二风格化shader.md)。
+
+| 文件 | 作用 |
+|---|---|
+| `Assets/_Game/Art/Shaders/SlimaToon.shader` | 物体卡通材质：五段阶梯光影 + 像素噪声过渡 + 顶点像素吸附 + 可选反转壳描边 |
+| `Assets/_Game/Art/Shaders/SlimaToonOutlinePost.shader` | 全屏：像素化 + 深度 Sobel 黑描边 |
+| `Assets/_Game/Scripts/Runtime/SlimaToonOutlineFeature.cs` | 上面那个全屏 shader 的 URP Renderer Feature（挂到 Renderer 上即生效） |
+
+> ⚠️ **方块地形请用全屏描边，别用物体 shader 的反转壳描边** —— chunk 是"每个面顶点独立"的合并网格，反转壳会在每个方块棱上裂开。
+
+## 八、开发日志
 
 决策、踩过的坑与验证记录都在 [`Docs/开发日志.md`](Docs/开发日志.md)。
