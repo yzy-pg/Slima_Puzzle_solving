@@ -130,6 +130,7 @@ namespace SlimaPuzzle.Rendering
         MaskPass _crispMaskPass;
         MaskGroup _crispGroup;
         bool _loggedOnce;
+        bool _passesRanOnce;
         MeshRenderer[] _meshRenderers;
         int _rescanCountdown;
 
@@ -207,6 +208,13 @@ namespace SlimaPuzzle.Rendering
 
                     EnsurePassSlot(groupIndex);
 
+                    // 该组一个子网格都没画出来（过滤条件没匹配上）→ 跳过遮罩与合成，省两次全屏 pass
+                    if (_maskPasses[groupIndex].LastDrawCount == 0 && _passesRanOnce)
+                    {
+                        groupIndex++;
+                        continue;
+                    }
+
                     _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
                     _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers,
                                                   MaskTextureId, Color.white);   // 白底 + 黑物件
@@ -218,6 +226,7 @@ namespace SlimaPuzzle.Rendering
 
                     groupIndex++;
                 }
+                _passesRanOnce = true;
                 return;
             }
 
@@ -314,6 +323,7 @@ namespace SlimaPuzzle.Rendering
             var report = new System.Text.StringBuilder();
             report.Append("[Slima] 遮罩匹配报告：\n");
 
+            int index = 0;
             foreach (MaskGroup group in EnumerateGroups())
             {
                 int hit = 0;
@@ -321,7 +331,9 @@ namespace SlimaPuzzle.Rendering
                 {
                     foreach (MeshRenderer meshRenderer in _meshRenderers)
                     {
+                        if (meshRenderer == null) continue;      // 运行时被销毁的对象：Unity 的假 null
                         Material[] materials = meshRenderer.sharedMaterials;
+                        if (materials == null) continue;
                         for (int submesh = 0; submesh < materials.Length; submesh++)
                         {
                             if (MaskPass.Matches(group, meshRenderer.gameObject, materials[submesh])) hit++;
@@ -330,7 +342,9 @@ namespace SlimaPuzzle.Rendering
                 }
 
                 report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}'" +
-                              $"｜Layer{(group.layerMask.value != 0 ? "有" : "无")} → 命中 {hit} 个子网格\n");
+                              $"｜Layer{(group.layerMask.value != 0 ? "有" : "无")} → 命中 {hit} 个子网格" +
+                              $"｜上一帧实际画出 {(_maskPasses.Count > index ? _maskPasses[index].LastDrawCount : 0)} 个\n");
+                index++;
             }
 
             var names = new HashSet<string>();
@@ -338,7 +352,9 @@ namespace SlimaPuzzle.Rendering
             {
                 foreach (MeshRenderer meshRenderer in _meshRenderers)
                 {
+                    if (meshRenderer == null) continue;
                     Material[] materials = meshRenderer.sharedMaterials;
+                    if (materials == null) continue;
                     for (int submesh = 0; submesh < materials.Length; submesh++)
                         if (materials[submesh] != null) names.Add(materials[submesh].name);
                 }
@@ -445,6 +461,9 @@ namespace SlimaPuzzle.Rendering
             Color _clearColor = Color.white;
             RTHandle _mask;
 
+            /// <summary>上一帧实际画进遮罩的子网格数量（0 = 这一组空，合成时会被跳过）</summary>
+            public int LastDrawCount { get; private set; }
+
             public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers,
                               int globalTextureId, Color clearColor)
             {
@@ -474,6 +493,7 @@ namespace SlimaPuzzle.Rendering
                     // 白底黑块 = 描边分组；黑底白块 = 不参与像素化的物件（靠 _clearColor + _MaskColor 决定）
                     CoreUtils.SetRenderTarget(cmd, _mask, ClearFlag.Color | ClearFlag.Depth, _clearColor);
 
+                    int drawn = 0;
                     if (_renderers != null)
                     {
                         foreach (MeshRenderer meshRenderer in _renderers)
@@ -481,13 +501,16 @@ namespace SlimaPuzzle.Rendering
                             if (meshRenderer == null) continue;
 
                             Material[] materials = meshRenderer.sharedMaterials;
+                            if (materials == null) continue;
                             for (int submesh = 0; submesh < materials.Length; submesh++)
                             {
                                 if (!Matches(_group, meshRenderer.gameObject, materials[submesh])) continue;
                                 cmd.DrawRenderer(meshRenderer, _material, submesh, 0);
+                                drawn++;
                             }
                         }
                     }
+                    LastDrawCount = drawn;
 
                     cmd.SetGlobalTexture(_globalTextureId, _mask);
                 }

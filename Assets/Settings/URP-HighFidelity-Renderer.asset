@@ -68,7 +68,7 @@ MonoBehaviour:
     colorThreshold: 0.2
     crispSpecials: 1
     crispNameFilter: Spawn|Exit|Player|Slime
-    debugMode: 2
+    debugMode: 6
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
   m_ObjectHideFlags: 0
