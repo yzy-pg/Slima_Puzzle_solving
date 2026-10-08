@@ -52,6 +52,35 @@ namespace SlimaPuzzle.Rendering
         PixelOutlinePass _pass;
         bool _loggedOnce;
 
+        // 用来分辨"你改的 Feature 是不是当前生效的那个"（在没生效的 Renderer 上调，这里不会打日志）
+        float _lastThickness = -1f;
+        float _lastPixelSize = -1f;
+        float _lastDepth = -1f;
+        float _lastPixelate = -1f;
+
+        /// <summary>
+        /// 参数变化时打一条日志。如果你拖了滑块却没看到这条日志，说明你编辑的不是当前生效的 Renderer。
+        /// </summary>
+        void LogIfChanged()
+        {
+            if (Mathf.Approximately(_lastThickness, settings.outlineThickness) &&
+                Mathf.Approximately(_lastPixelSize, settings.pixelSize) &&
+                Mathf.Approximately(_lastDepth, settings.depthThreshold) &&
+                Mathf.Approximately(_lastPixelate, settings.pixelateAmount))
+            {
+                return;
+            }
+
+            _lastThickness = settings.outlineThickness;
+            _lastPixelSize = settings.pixelSize;
+            _lastDepth = settings.depthThreshold;
+            _lastPixelate = settings.pixelateAmount;
+
+            Debug.Log($"[Slima] 全屏描边参数已更新（当前相机在用）：Thickness={settings.outlineThickness}, " +
+                      $"PixelSize={settings.pixelSize}, DepthThreshold={settings.depthThreshold}, " +
+                      $"Pixelate={settings.pixelateAmount}");
+        }
+
         static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
         static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
@@ -83,6 +112,7 @@ namespace SlimaPuzzle.Rendering
             _pass.renderPassEvent = settings.passEvent;
             _pass.Setup(_material, settings);
             renderer.EnqueuePass(_pass);
+            LogIfChanged();
         }
 
         /// <summary>

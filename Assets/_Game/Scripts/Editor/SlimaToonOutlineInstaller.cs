@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace SlimaPuzzle.Rendering.EditorTools
@@ -74,11 +75,19 @@ namespace SlimaPuzzle.Rendering.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            string message = $"装了 {installed} 个 Renderer，跳过 {already} 个（已装过）\n\n" +
+            // 关键提示：Feature 挂在哪个 Renderer 上，取决于当前生效的管线 —— 编辑错的那个会"完全没反应"
+            RenderPipelineAsset activePipeline = GraphicsSettings.currentRenderPipeline;
+            string activeName = activePipeline != null ? activePipeline.name : "（无，用的是默认管线）";
+
+            string message = $"★ 当前生效的管线：{activeName}\n" +
+                             "   你要编辑的是它对应的那个 Renderer 资产！\n" +
+                             "   （在别的 Renderer 上调参数是完全没反应的 ✓）\n\n" +
+                             $"装了 {installed} 个 Renderer，跳过 {already} 个（已装过）\n\n" +
                              string.Join("\n", lines) +
                              "\n\n接下来：进 Play。Console 里应该出现\n" +
                              "[Slima] Toon Outline 已生效：PixelSize=… Outline=… DepthThreshold=…\n\n" +
-                             "没出现那条日志 = 当前用的 Renderer 不是上面这几个，或者 Feature 没在跑。";
+                             "改参数时还会打一条「全屏描边参数已更新」——\n" +
+                             "拖滑块却没有这条日志 = 你编辑的不是当前生效的那个 Renderer。";
 
             Debug.Log("[Slima] 全屏描边安装结果：" + string.Join(" | ", lines));
             EditorUtility.DisplayDialog("Slima 全屏描边", message, "好");
