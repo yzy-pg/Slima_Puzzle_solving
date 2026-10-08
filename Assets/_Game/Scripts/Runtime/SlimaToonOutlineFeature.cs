@@ -314,7 +314,7 @@ namespace SlimaPuzzle.Rendering
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
-                desc.depthBufferBits = 24;
+                desc.depthBufferBits = 0;          // 遮罩不做深度测试
                 desc.msaaSamples = 1;
                 RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                                                   name: "_SlimaMask");
@@ -372,6 +372,7 @@ namespace SlimaPuzzle.Rendering
             Material _compositeMaterial;
             RTHandle _mask;
             RTHandle _temp;
+            bool _loggedMaskInfo;
 
             public void Setup(Settings settings, MaskGroup group, MeshRenderer[] renderers, Color tint)
             {
@@ -388,7 +389,7 @@ namespace SlimaPuzzle.Rendering
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
-                desc.depthBufferBits = 24;
+                desc.depthBufferBits = 0;          // 遮罩不做深度测试，不需要深度缓冲
                 desc.msaaSamples = 1;
                 RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                                                   name: "_SlimaGroupMask");
@@ -423,8 +424,22 @@ namespace SlimaPuzzle.Rendering
                         }
                     }
 
-                    // ---- ④ 用这张遮罩做外轮廓描边（遮罩直接绑在材质上，不走全局）----
+                    // ---- ④ 用这张遮罩做外轮廓描边 ----
+                    // 两条路都接上：材质绑定 + 全局绑定（哪个生效都行）
                     _compositeMaterial.SetTexture(MaskId, _mask.rt);
+                    cmd.SetGlobalTexture(MaskId, _mask);
+
+                    if (_mask.rt == null)
+                    {
+                        Debug.LogError("[Slima] 遮罩贴图句柄无效（_mask.rt == null）→ 合成只能读到黑色");
+                    }
+                    else if (!_loggedMaskInfo)
+                    {
+                        _loggedMaskInfo = true;
+                        Debug.Log($"[Slima] 遮罩贴图：{_mask.rt.width}x{_mask.rt.height} 格式={_mask.rt.format} " +
+                                  $"（组={_group.name}）");
+                    }
+
                     _compositeMaterial.SetFloat(PixelatePassId, 0f);
                     _compositeMaterial.SetColor(OutlineColorId, _settings.outlineColor);
                     _compositeMaterial.SetFloat(OutlineThicknessId, Mathf.Max(0f, _group.thickness));
