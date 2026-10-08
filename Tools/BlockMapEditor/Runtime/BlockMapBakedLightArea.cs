@@ -262,6 +262,30 @@ namespace BlockMap.Tools
         {
             ditherBlock = Mathf.Max(1, ditherBlock);
             SyncPreviewLight();
+            QueueRebuild();     // ★ 调参数 → 触发地形重建 → 立刻看到烘焙出的风格化
+        }
+
+        // ------------------------------------------------------------------
+        // 编辑器实时预览：参数一变就重建地形（延迟到帧末合并，避免拖滑条时疯狂重建）
+        // ------------------------------------------------------------------
+        static bool _rebuildQueued;
+
+        static void QueueRebuild()
+        {
+#if UNITY_EDITOR
+            if (_rebuildQueued) return;
+            _rebuildQueued = true;
+
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                _rebuildQueued = false;
+                foreach (BlockChunkRenderer r in Object.FindObjectsOfType<BlockChunkRenderer>())
+                {
+                    if (r != null) r.RebuildAll();
+                }
+                UnityEditor.SceneView.RepaintAll();
+            };
+#endif
         }
 
         // ★ 运行时：关掉预览灯 —— 发光体在 Play 里不参与任何光照计算

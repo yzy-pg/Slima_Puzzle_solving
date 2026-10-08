@@ -113,6 +113,16 @@ namespace BlockMap
             }
         }
 
+        /// <summary>销毁 chunk 物体：编辑模式下必须用 DestroyImmediate，否则报 "Destroy may not be called from edit mode"。</summary>
+        static void DestroySafe(GameObject go)
+        {
+            if (go == null) return;
+#if UNITY_EDITOR
+            if (!Application.isPlaying) { Object.DestroyImmediate(go); return; }
+#endif
+            Object.Destroy(go);
+        }
+
         void OnChunkDirty(Vector3Int chunk) { /* 由 LateUpdate 统一处理 */ }
 
         public Material GetMaterial(BlockDefinition def)
@@ -179,7 +189,7 @@ namespace BlockMap
             foreach (var kv in _chunks) if (!alive.Contains(kv.Key)) dead.Add(kv.Key);
             foreach (var c in dead)
             {
-                if (_chunks[c] != null) Destroy(_chunks[c]);
+                if (_chunks[c] != null) DestroySafe(_chunks[c]);
                 _chunks.Remove(c);
             }
             foreach (var c in alive) RebuildChunk(c);
@@ -190,7 +200,7 @@ namespace BlockMap
             var blocks = new List<KeyValuePair<Vector3Int, int>>(_world.BlocksInChunk(chunk));
             if (blocks.Count == 0)
             {
-                if (_chunks.TryGetValue(chunk, out var stale) && stale != null) Destroy(stale);
+                if (_chunks.TryGetValue(chunk, out var stale) && stale != null) DestroySafe(stale);
                 _chunks.Remove(chunk);
                 return;
             }
@@ -267,7 +277,7 @@ namespace BlockMap
 
             if (verts.Count == 0)
             {
-                if (_chunks.TryGetValue(chunk, out var empty) && empty != null) Destroy(empty);
+                if (_chunks.TryGetValue(chunk, out var empty) && empty != null) DestroySafe(empty);
                 _chunks.Remove(chunk);
                 return;
             }
