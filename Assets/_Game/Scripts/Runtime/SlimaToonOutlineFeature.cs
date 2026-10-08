@@ -204,7 +204,20 @@ namespace SlimaPuzzle.Rendering
         void RefreshRenderers()
         {
             if (_meshRenderers != null && _rescanCountdown-- > 0) return;
-            _meshRenderers = Object.FindObjectsOfType<MeshRenderer>();
+
+            MeshRenderer[] all = Object.FindObjectsOfType<MeshRenderer>();
+            var kept = new List<MeshRenderer>(all.Length);
+            foreach (MeshRenderer meshRenderer in all)
+            {
+                if (meshRenderer == null) continue;
+
+                // 挂了这个组件的物体（含子物体）不参与遮罩采样 → 不描边
+                if (meshRenderer.GetComponentInParent<SlimaOutlineIgnore>() != null) continue;
+
+                kept.Add(meshRenderer);
+            }
+
+            _meshRenderers = kept.ToArray();
             _rescanCountdown = 60;
         }
 

@@ -102,10 +102,32 @@ namespace BlockMap
         }
 
         /// <summary>
-        /// 保证场景里至少有一盏灯，返回"是否是这次补上的"。
-        /// 菜单 ② 用 NewScene(EmptyScene) 烘场景 —— 空场景没有平行光，而三渲二 shader 靠主光分段，
-        /// 没光时会整片落在最暗段（表现为"地图一片灰"）。
+        /// 把当前场景的 BlockMapGameRoot 相机拉近（cameraSize 5.5 / offset (0,12,-10.5)）。
+        /// 场景里已经保存过的旧值不会被代码默认值更新，所以要改就点这个菜单。
         /// </summary>
+        [MenuItem("Tools/Slima/地图编辑器/把镜头拉近（相机贴近场景）", false, 421)]
+        public static void ZoomCameraInMenu()
+        {
+            BlockMapGameRoot root = Object.FindObjectOfType<BlockMapGameRoot>();
+            if (root == null)
+            {
+                EditorUtility.DisplayDialog("BlockMap", "当前场景里没有 BlockMapGameRoot。\n\n先跑菜单 ③ 把场景变成可玩关卡。", "好");
+                return;
+            }
+
+            Undo.RecordObject(root, "Zoom camera in");
+            root.cameraSize = 5.5f;
+            root.cameraOffset = new Vector3(0f, 12f, -10.5f);
+
+            EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
+            EditorSceneManager.SaveOpenScenes();
+            Debug.Log($"[BlockMap] 相机已拉近：cameraSize={root.cameraSize}, cameraOffset={root.cameraOffset}");
+            EditorUtility.DisplayDialog("BlockMap",
+                "相机已拉近：\n\ncameraSize = 5.5（原来 8）\ncameraOffset = (0, 12, -10.5)（原来 (0, 18, -16)）\n\n" +
+                "想再近就继续调小 cameraSize；想改俯视角度，直接改 cameraOffset。", "好");
+        }
+
+        /// <summary>保证场景里至少有一盏灯，返回"是否是这次补上的"。</summary>
         public static bool EnsureDirectionalLight()
         {
             if (Object.FindObjectsOfType<Light>().Length > 0) return false;

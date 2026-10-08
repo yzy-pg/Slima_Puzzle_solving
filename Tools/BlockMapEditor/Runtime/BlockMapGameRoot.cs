@@ -24,7 +24,9 @@ namespace BlockMap
 
         [Header("相机")]
         public bool cameraFollowsPlayer = true;
-        public float cameraSize = 8f;
+
+        [Tooltip("正交相机视野大小：越小 = 越靠近场景（放大）。默认 5.5（原来是 8，更贴近场景）")]
+        public float cameraSize = 5.5f;
 
         [Tooltip("相机背景色。临时想白底看轮廓/截图就设白色（原来的深蓝是 0.055, 0.08, 0.12）")]
         public Color backgroundColor = Color.white;
@@ -35,7 +37,8 @@ namespace BlockMap
                  "位移方向会跟着这个角度转，所以 W 永远朝屏幕上方走。")]
         public float cameraYaw = 0f;
 
-        public Vector3 cameraOffset = new Vector3(0f, 18f, -16f);
+        [Tooltip("相机相对角色的位置。默认 (0, 12, -10.5)：和原来的 (0, 18, -16) 是同一个俯视角度，只是更近")]
+        public Vector3 cameraOffset = new Vector3(0f, 12f, -10.5f);
 
         BlockWorld _world;
         Camera _camera;
