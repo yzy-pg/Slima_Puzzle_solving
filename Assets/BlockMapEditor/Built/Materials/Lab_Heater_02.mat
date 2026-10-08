@@ -36,10 +36,12 @@ Material:
     - _Bands: 5
     - _Cull: 2
     - _Cutoff: 0.5
-    - _LightWrap: 0.15
-    - _NoiseStrength: 0.65
+    - _ExtraLightMode: 0
+    - _LightWrap: 0.1
+    - _NoiseMaskInvert: 0
+    - _NoiseStrength: 0.85
     - _NoiseSurfaceLock: 1
-    - _NoiseWorldSize: 0.5
+    - _NoiseWorldSize: 0.1
     - _OutlineNoise: 0
     - _OutlineWidth: 2
     - _PixelBlock: 2

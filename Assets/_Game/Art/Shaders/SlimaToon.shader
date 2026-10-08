@@ -28,7 +28,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _LightTint ("光影｜受光色", Color) = (1, 1, 1, 1)
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
-        _ExtraLightMode ("光影｜额外光（Lamp）模式（0 = 按法线，1 = 按距离·以灯为中心）", Range(0, 1)) = 0
+        _ExtraLightMode ("光影｜额外光（Lamp）模式（0 = 按法线，1 = 按距离·以灯为中心）", Range(0, 1)) = 1
         _NoiseStrength ("光影｜阶梯过渡噪声强度（0 = 纯阶梯，0.35 = 像素颗粒过渡）", Range(0, 1)) = 0.35
         _NoiseWorldSize ("光影｜噪声格大小（世界单位，0.06 ≈ 6 屏幕像素 ≈ 3 个像素块）", Range(0.002, 0.5)) = 0.06
         _NoiseMaskInvert ("光影｜噪声遮罩反转（0 = 只有受光处有颗粒，1 = 反过来）", Range(0, 1)) = 0

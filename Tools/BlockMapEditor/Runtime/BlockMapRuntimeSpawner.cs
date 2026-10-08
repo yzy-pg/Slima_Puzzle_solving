@@ -28,8 +28,9 @@ namespace BlockMap
                  "  只有侧面亮，看起来像「只照一个方向」。地板中心在 y=+0.5、上表面即 +1.0，所以默认给 1.5。")]
         public float lightHeightOffset = 1.5f;
 
-        [Tooltip("true = 聚光（沿方块「正面」照射，方向由地图编辑器里的方块朝向决定）；false = 点光（全向）")]
-        public bool lampAsSpot = true;
+        [Tooltip("true = 聚光（沿方块「正面」照射，方向由地图编辑器里的方块朝向决定，摆位麻烦）；" +
+                 "false = 点光（全向，推荐：配合材质「额外光模式 = 按距离」就是以灯为中心的圆形光斑，不用瞄准）")]
+        public bool lampAsSpot = false;
 
         [Tooltip("聚光的照射倾角：0 = 沿正面水平射；45 = 斜下；90 = 正上方（「正面朝上」）")]
         [Range(0f, 90f)] public float lightTiltDegrees = 60f;
