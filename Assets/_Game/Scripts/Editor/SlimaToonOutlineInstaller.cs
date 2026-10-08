@@ -72,6 +72,27 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 lines.Add($"✔ {Path.GetFileName(path)}：已装上 Slima Toon Outline");
             }
 
+            // ★ 描边要读深度：URP Asset 上的「Depth Texture」必须打开，
+            //   否则 _CameraDepthTexture 恒为 0（远平面）→ 落差恒为 0 → 永远不出线。
+            //   pass 里的 ConfigureInput(Depth) 在这个工程里没兜住，所以这里直接把开关打开。
+            int depthEnabled = 0;
+            foreach (string guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var pipeline = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(path);
+                if (pipeline == null) continue;
+
+                var serializedPipeline = new SerializedObject(pipeline);
+                SerializedProperty requireDepth = serializedPipeline.FindProperty("m_RequireDepthTexture");
+                if (requireDepth == null || requireDepth.boolValue) continue;
+
+                requireDepth.boolValue = true;
+                serializedPipeline.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(pipeline);
+                depthEnabled++;
+                lines.Add($"✔ {Path.GetFileName(path)}：已开启 Depth Texture（描边必须）");
+            }
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -81,8 +102,9 @@ namespace SlimaPuzzle.Rendering.EditorTools
 
             string message = $"★ 当前生效的管线：{activeName}\n" +
                              "   你要编辑的是它对应的那个 Renderer 资产！\n" +
-                             "   （在别的 Renderer 上调参数是完全没反应的 ✓）\n\n" +
-                             $"装了 {installed} 个 Renderer，跳过 {already} 个（已装过）\n\n" +
+                             "   （在别的 Renderer 上调参数是完全没反应的 ✗）\n\n" +
+                             $"装了 {installed} 个 Renderer，跳过 {already} 个（已装过）\n" +
+                             $"开了 {depthEnabled} 个 URP Asset 的 Depth Texture\n\n" +
                              string.Join("\n", lines) +
                              "\n\n接下来：进 Play。Console 里应该出现\n" +
                              "[Slima] Toon Outline 已生效：PixelSize=… Outline=… DepthThreshold=…\n\n" +

@@ -114,9 +114,17 @@ Shader "Slima/Toon Outline Post"
 
                 float3 color = SampleSceneColor(sampledUV);
 
-                // ---- 调试 1：把线性眼深度画成灰度（白=近，黑=远）----
-                //   如果这里是一片纯色（没有明暗层次），说明深度纹理没拿到，描边就永远不会出线。
+                // ---- 调试 1：直接看原始深度缓冲 ----
+                //   深度纹理没绑上时这里是纯黑（raw = 0 = 远平面）；
+                //   正常时应该能看出地形轮廓（D3D 反转 Z：近处偏亮）。
                 if (_DebugMode > 0.5 && _DebugMode < 1.5)
+                {
+                    float raw = SampleSceneDepth(sampledUV);
+                    return half4(raw, raw, raw, 1);
+                }
+
+                // ---- 调试 3：线性眼深度（白 = 近，黑 = 远）----
+                if (_DebugMode > 2.5)
                 {
                     float d = SampleEyeDepth(sampledUV);
                     float t = saturate(1.0 - d / 60.0);

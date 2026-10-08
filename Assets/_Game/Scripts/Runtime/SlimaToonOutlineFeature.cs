@@ -48,10 +48,10 @@ namespace SlimaPuzzle.Rendering
 
             [Header("调试")]
             [Tooltip("0 = 正常。\n" +
-                     "1 = 把深度画成灰度（白=近）：如果整屏一片纯色，说明深度纹理没拿到，描边永远不会出线。\n" +
-                     "2 = 把「落差/阈值」画成红色：红色区域就是会被描边的像素；调 Outline Thickness 时"
-                     + "这块红色区域应该跟着变宽。")]
-            [Range(0, 2)] public int debugMode = 0;
+                     "1 = 原始深度缓冲（没绑上深度纹理时是纯黑；正常时能看出地形轮廓）。\n" +
+                     "2 = 「落差/阈值」画成红色：红色区域就是会被描边的像素。\n" +
+                     "3 = 线性眼深度灰度图（白=近，黑=远）。")]
+            [Range(0, 3)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
@@ -175,7 +175,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, _settings.outlineThickness));
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 2));
+                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 3));
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))

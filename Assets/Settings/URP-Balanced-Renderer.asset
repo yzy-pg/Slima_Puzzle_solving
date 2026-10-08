@@ -49,13 +49,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    shader: {fileID: 0}
+    shader: {fileID: 4800000, guid: ad23417605fd40368b6f2bf4b288edf3, type: 3}
     passEvent: 550
-    pixelSize: 4
-    pixelateAmount: 1
+    pixelSize: 2.47
+    pixelateAmount: 0.369
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
-    outlineThickness: 1
+    outlineThickness: 5.33
     depthThreshold: 0.6
+    debugMode: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,7 +119,7 @@ MonoBehaviour:
     passOperation: 2
     failOperation: 0
     zFailOperation: 0
-  m_ShadowTransparentReceive: 1
+  m_ShadowTransparentReceive: 0
   m_RenderingMode: 0
   m_DepthPrimingMode: 0
   m_CopyDepthMode: 0

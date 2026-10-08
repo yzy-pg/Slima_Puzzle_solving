@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    shader: {fileID: 0}
+    shader: {fileID: 4800000, guid: ad23417605fd40368b6f2bf4b288edf3, type: 3}
     passEvent: 550
-    pixelSize: 4
+    pixelSize: 1.88
     pixelateAmount: 1
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
-    outlineThickness: 1
-    depthThreshold: 0.6
+    outlineThickness: 12.67
+    depthThreshold: 0.5
+    debugMode: 2
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41,7 +42,7 @@ MonoBehaviour:
     Source: 1
     NormalSamples: 1
     Intensity: 0.5
-    DirectLightingStrength: 0.25
+    DirectLightingStrength: 1
     Radius: 0.25
     Samples: 0
     BlurQuality: 0

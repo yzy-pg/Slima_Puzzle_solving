@@ -81,10 +81,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    shader: {fileID: 0}
+    shader: {fileID: 4800000, guid: ad23417605fd40368b6f2bf4b288edf3, type: 3}
     passEvent: 550
-    pixelSize: 4
+    pixelSize: 4.15
     pixelateAmount: 1
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
-    outlineThickness: 1
+    outlineThickness: 8.44
     depthThreshold: 0.6
+    debugMode: 0
