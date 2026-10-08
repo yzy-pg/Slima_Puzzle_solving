@@ -29,11 +29,6 @@ Shader "Slima/Toon (Cel + Pixel)"
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
 
-        _NoiseStrength ("像素噪声｜过渡强度（0 = 纯阶梯，推荐）", Range(0, 1)) = 0
-        _NoiseSurfaceLock ("像素噪声｜锁在表面（1 = 跟模型走，0 = 钉在屏幕上）", Range(0, 1)) = 1
-        _NoiseWorldSize ("像素噪声｜世界噪声格大小（世界单位，0.5 ≈ 半格方块）", Range(0.05, 2)) = 0.5
-        _PixelSize ("像素噪声｜屏幕噪声块大小（只在上一个参数 = 0 时用）", Range(1, 16)) = 4
-
         _PixelSnap ("像素化｜顶点像素吸附（0 = 关；会和全屏像素化叠加，建议只开一层）", Range(0, 16)) = 0
 
         _OutlineColor ("描边｜颜色", Color) = (0, 0, 0, 1)
@@ -78,10 +73,6 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _LightTint;
                 half4  _AmbientColor;
                 half   _LightWrap;
-                half   _NoiseStrength;
-                half   _PixelSize;
-                half   _NoiseSurfaceLock;
-                half   _NoiseWorldSize;
                 half   _PixelSnap;
                 half   _Cull;
                 half   _Cutoff;
@@ -195,10 +186,6 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _LightTint;
                 half4  _AmbientColor;
                 half   _LightWrap;
-                half   _NoiseStrength;
-                half   _PixelSize;
-                half   _NoiseSurfaceLock;
-                half   _NoiseWorldSize;
                 half   _PixelSnap;
                 half   _Cull;
                 half   _Cutoff;
@@ -273,25 +260,11 @@ Shader "Slima/Toon (Cel + Pixel)"
 
             half4 ToonFragment(Varyings input) : SV_Target
             {
-                float2 screenPx = input.screenPos.xy / max(input.screenPos.w, 1e-5) * _ScreenParams.xy;
+                // ★ 已删除"像素噪声/世界噪声格"那套：它会把五段阶梯打散成随机噪点，看起来非常怪。
+                //   现在光影严格是"NdotL(+阴影) → 五段硬边"的转换，不再有任何抖动。
+                const float dither = 0.0;
 
-                // ③-a 像素化噪声：
-                //   默认锁在**表面**上（世界坐标量化成固定大小的格子）——
-                //   镜头移动时噪声跟着世界/模型走，不会出现"贴图钉在屏幕上、一移动就滑动"。
-                //   想要老式的屏幕网点/抖动（图案固定在屏幕上），把 _NoiseSurfaceLock 设成 0。
-                float noise;
-                if (_NoiseSurfaceLock > 0.5)
-                {
-                    float3 wp = input.positionWS / max(0.01, _NoiseWorldSize);
-                    // 以 XZ 为主、混一点 Y：纯竖直面（墙）上才不会退化成一条条直线
-                    noise = Hash21(floor(float2(wp.x + wp.y * 0.37, wp.z - wp.y * 0.29)));
-                }
-                else
-                {
-                    noise = PixelNoise(screenPx, _PixelSize);
-                }
-
-                // ③-b 五段阶梯：先给 NdotL 加噪声抖动，再量化成 _Bands 段
+                // ③ 五段阶梯
                 float3 normalWS = normalize(input.normalWS);
                 Light mainLight = GetMainLight(input.shadowCoord);
 
@@ -309,9 +282,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 
-                // 抖动幅度 ≈ 一段的宽度，这样只用噪声"糊"过渡、不破坏阶梯
+                // 抖动幅度 ≈ 一段的宽度（现已固定为 0：纯阶梯）
                 float steps = max(2.0, _Bands);
-                float dither = (noise - 0.5) * _NoiseStrength / steps;
                 half lit = saturate(wrapped + dither);
 
                 half band = min(floor(lit * steps), steps - 1.0) / (steps - 1.0);       // 5 段 → 0 / .25 / .5 / .75 / 1

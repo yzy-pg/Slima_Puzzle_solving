@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Lab_Floor
-  m_Shader: {fileID: 4800000, guid: 080c040c8b7e14141983ea3baa44be00, type: 3}
+  m_Shader: {fileID: 4800000, guid: 0bb0776b56ae4487bb749465152c3611, type: 3}
   m_Parent: {fileID: 2100000, guid: bc5a99b055f9d614591ab706b3d09170, type: 2}
   m_ModifiedSerializedProperties: 16
   m_ValidKeywords: []
