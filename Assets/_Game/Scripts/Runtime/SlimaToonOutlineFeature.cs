@@ -191,19 +191,21 @@ namespace SlimaPuzzle.Rendering
 
                     if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
                     _crispMaskPass.renderPassEvent = settings.passEvent;
-                    _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers, CrispMaskTextureId);
+                    _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers,
+                                         CrispMaskTextureId, Color.black);   // 黑底 + 白物件
                     renderer.EnqueuePass(_crispMaskPass);
                 }
 
                 int groupIndex = 0;
-                foreach (MaskGroup group in settings.maskGroups)
+                foreach (MaskGroup group in EnumerateGroups())
                 {
                     if (group == null || !group.enabled) continue;
 
                     EnsurePassSlot(groupIndex);
 
                     _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
-                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers, MaskTextureId);
+                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers,
+                                                  MaskTextureId, Color.white);   // 白底 + 黑物件
                     renderer.EnqueuePass(_maskPasses[groupIndex]);
 
                     _compositePasses[groupIndex].renderPassEvent = settings.passEvent;
@@ -247,6 +249,51 @@ namespace SlimaPuzzle.Rendering
 
             _meshRenderers = kept.ToArray();
             _rescanCountdown = 60;
+        }
+
+        /// <summary>
+        /// 场景里没有这几种内置分组时自动补上。
+        /// 原因：Feature 是序列化在 Renderer 资产里的，老实例只有早期那一组（地面），
+        /// 代码里加的默认值不会进到已保存的实例 —— 靠这里自动补齐，不用手点。
+        /// （如果想改某组的行为，改它的名字就会生成一份新的：直接用 `settings.maskGroups` 里同名的那份。）
+        /// </summary>
+        static readonly (string name, string material, string nameFilter, float thickness)[] BuiltinGroups =
+        {
+            ("地面", "_Floor", "", 2f),
+            ("墙面", "_Wall", "", 2f),
+            ("起点", "", "Spawn", 1f),
+            ("出口", "", "Exit", 1f),
+            ("主角", "", "Player|Slime", 2f),
+        };
+
+        readonly List<MaskGroup> _mergedGroups = new List<MaskGroup>();
+
+        List<MaskGroup> EnumerateGroups()
+        {
+            _mergedGroups.Clear();
+
+            foreach (MaskGroup group in settings.maskGroups)
+                if (group != null && group.enabled) _mergedGroups.Add(group);
+
+            foreach ((string name, string material, string nameFilter, float thickness) in BuiltinGroups)
+            {
+                bool exists = false;
+                foreach (MaskGroup group in _mergedGroups)
+                {
+                    if (string.Equals(group.name, name, System.StringComparison.Ordinal)) { exists = true; break; }
+                }
+                if (exists) continue;
+
+                _mergedGroups.Add(new MaskGroup
+                {
+                    name = name,
+                    materialContains = material,
+                    nameContains = nameFilter,
+                    thickness = thickness,
+                });
+            }
+
+            return _mergedGroups;
         }
 
         static readonly Color[] DebugTints =
@@ -332,14 +379,17 @@ namespace SlimaPuzzle.Rendering
             MaskGroup _group;
             MeshRenderer[] _renderers;
             int _globalTextureId = 0;
+            Color _clearColor = Color.white;
             RTHandle _mask;
 
-            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers, int globalTextureId)
+            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers,
+                              int globalTextureId, Color clearColor)
             {
                 _material = material;
                 _group = group;
                 _renderers = renderers;
                 _globalTextureId = globalTextureId;
+                _clearColor = clearColor;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -358,8 +408,8 @@ namespace SlimaPuzzle.Rendering
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Outline Mask")))
                 {
-                    // 白 = 背景（描边会画在它上面），黑 = 这一组的物体
-                    CoreUtils.SetRenderTarget(cmd, _mask, ClearFlag.Color | ClearFlag.Depth, Color.white);
+                    // 白底黑块 = 描边分组；黑底白块 = 不参与像素化的物件（靠 _clearColor + _MaskColor 决定）
+                    CoreUtils.SetRenderTarget(cmd, _mask, ClearFlag.Color | ClearFlag.Depth, _clearColor);
 
                     if (_renderers != null)
                     {

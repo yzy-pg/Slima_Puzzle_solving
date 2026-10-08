@@ -148,6 +148,16 @@ Shader "Slima/Toon Outline Post"
                 // ---- 不参与像素化的物件（特殊物件）：这些像素改用原始 UV 取色 → 保持清晰 ----
                 float crisp = SampleCrisp(sourceUV);
 
+                // 把"保持清晰"的范围沿描边方向外扩一圈：这样这些物件外面的描边线也是清晰的
+                if (_OutlineThickness > 0.001)
+                {
+                    float2 ctexel = _OutlineThickness / virtualRes;
+                    crisp = max(crisp, max(max(SampleCrisp(sourceUV + float2(-ctexel.x, 0.0)),
+                                               SampleCrisp(sourceUV + float2(ctexel.x, 0.0))),
+                                           max(SampleCrisp(sourceUV + float2(0.0, -ctexel.y)),
+                                               SampleCrisp(sourceUV + float2(0.0, ctexel.y)))));
+                }
+
                 // 调试 4：品红 = 该物件不参与像素化（用来确认"谁被排除了"）
                 if (_DebugMode > 3.5)
                 {
