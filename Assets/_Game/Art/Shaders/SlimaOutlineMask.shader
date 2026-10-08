@@ -24,8 +24,13 @@ Shader "Slima/Outline Mask"
         Pass
         {
             Name "Mask"
-            ZWrite On
-            ZTest LEqual
+
+            // ★ 不写深度、不做深度测试：
+            //   遮罩只需要回答"这个像素有没有这一组的物体"，不需要前后遮挡关系。
+            //   之前用 ZTest LEqual，清屏后的深度（反转 Z 下是远平面）会让所有几何测试失败
+            //   → 遮罩一个像素都画不上 → 之后所有模式都变成"纯色"。
+            ZWrite Off
+            ZTest Always
             Cull Back
             ColorMask RGB
 

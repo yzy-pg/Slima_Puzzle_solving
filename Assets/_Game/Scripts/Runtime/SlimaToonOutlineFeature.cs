@@ -226,8 +226,7 @@ namespace SlimaPuzzle.Rendering
                         if (Matches(group, renderer.gameObject, mats[submesh])) hit++;
                     }
                 }
-                report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}' → 命中 {hit} 个子网格\n");
-            }
+                report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}' → 命中 {hit} 个子网格\n");            }
 
             var list = new List<string>(materials);
             if (list.Count > 20) list = list.GetRange(0, 20);
@@ -407,7 +406,7 @@ namespace SlimaPuzzle.Rendering
                 {
                     // ---- ③ 画这一组的遮罩（白底，物体涂黑）----
                     cmd.SetRenderTarget(_mask);
-                    cmd.ClearRenderTarget(true, true, Color.white);
+                    cmd.ClearRenderTarget(false, true, Color.white);   // 只清颜色（遮罩不做深度测试）
 
                     if (_renderers != null)
                     {
