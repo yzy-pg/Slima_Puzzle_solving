@@ -62,11 +62,29 @@ Shader "Slima/Toon Outline Post"
                 float2 uv         : TEXCOORD0;
             };
 
+            // 全屏三角形：照 core 包 Runtime/Utilities/Blit.hlsl 的实现写一份。
+            // 那两个官方函数不在 URP ShaderLibrary/Core.hlsl 的 include 链里，所以必须自带一份；
+            // 这里换成 Slima 前缀，避免万一被间接 include 时和官方符号撞名。
+            float4 SlimaFullScreenPos(uint vertexID)
+            {
+                float2 uv = float2((vertexID << 1) & 2, vertexID & 2);   // 0/1/2 → (0,0) (2,0) (0,2)
+                return float4(uv * 2.0 - 1.0, UNITY_NEAR_CLIP_VALUE, 1.0);
+            }
+
+            float2 SlimaFullScreenUV(uint vertexID)
+            {
+            #if UNITY_UV_STARTS_AT_TOP
+                return float2((vertexID << 1) & 2, 1.0 - (vertexID & 2));
+            #else
+                return float2((vertexID << 1) & 2, vertexID & 2);
+            #endif
+            }
+
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = GetFullScreenTriangleVertexPosition(input.vertexID);
-                output.uv = GetFullScreenTriangleTexCoord(input.vertexID);
+                output.positionCS = SlimaFullScreenPos(input.vertexID);
+                output.uv = SlimaFullScreenUV(input.vertexID);
                 return output;
             }
 
