@@ -294,13 +294,11 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 
-                // 抖动幅度 = 一段的宽度 × 强度 × **受光遮罩**
+                // ★ 主光 = 天空 / 环境平行光：**不加任何噪声**。
+                //   环境对物体不产生颗粒影响，只走干净的硬边阶梯；
+                //   阶梯过渡的颗粒**只来自 Lamp 类额外光**（见下面 additional light 循环里各自的 extraMask）。
                 float steps = max(2.0, _Bands);
-                half mainAtten = saturate(mainLight.shadowAttenuation * mainLight.distanceAttenuation);
-                // 遮罩：atten = 1 表示"被这盏光照到"。默认"照到才有颗粒"，可按需反转
-                half noiseMask = lerp(mainAtten, 1.0 - mainAtten, _NoiseMaskInvert);
-                dither *= noiseMask;
-                dither /= steps;
+                dither = 0.0;
                 half lit = saturate(wrapped + dither);
 
                 half band = min(floor(lit * steps), steps - 1.0) / (steps - 1.0);       // 5 段 → 0 / .25 / .5 / .75 / 1
