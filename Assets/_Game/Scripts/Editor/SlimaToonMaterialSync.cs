@@ -54,7 +54,11 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 "只同步了颜色 / 数值 / 开关，每个材质自己的贴图保持不变。", "好");
         }
 
-        /// <summary>只复制颜色与数值属性，跳过 Texture（避免图集互相覆盖）。</summary>
+        /// <summary>
+        /// 只复制**数值**属性（Float / Range），跳过 Texture 与 Color。
+        /// - Texture：每个方块材质自己的图集不同，复制会互相覆盖
+        /// - Color：曾经把参考材质的颜色/环境色等复制到全部材质，属于"顶掉默认值"，已禁止
+        /// </summary>
         static void CopyScalarProperties(Material source, Material target)
         {
             Shader shader = source.shader;
@@ -64,13 +68,11 @@ namespace SlimaPuzzle.Rendering.EditorTools
             {
                 ShaderPropertyType type = shader.GetPropertyType(i);
                 if (type == ShaderPropertyType.Texture) continue;
+                if (type == ShaderPropertyType.Color) continue;      // ★ 颜色一律不动
 
                 string name = shader.GetPropertyName(i);
                 switch (type)
                 {
-                    case ShaderPropertyType.Color:
-                        target.SetColor(name, source.GetColor(name));
-                        break;
                     case ShaderPropertyType.Float:
                     case ShaderPropertyType.Range:
                         target.SetFloat(name, source.GetFloat(name));
