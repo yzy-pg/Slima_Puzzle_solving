@@ -17,6 +17,7 @@ Shader "Slima/Toon Outline Post"
         _OutlineThickness ("描边粗细（像素块）", Range(0, 16)) = 2
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
+        _DebugMode ("调试模式（0=正常 1=看深度 2=看边缘强度）", Range(0, 2)) = 0
     }
 
     SubShader
@@ -49,6 +50,7 @@ Shader "Slima/Toon Outline Post"
                 float _OutlineThickness;
                 float _DepthThreshold;
                 half  _PixelateAmount;
+                float _DebugMode;
             CBUFFER_END
 
             struct Attributes
@@ -112,6 +114,15 @@ Shader "Slima/Toon Outline Post"
 
                 float3 color = SampleSceneColor(sampledUV);
 
+                // ---- 调试 1：把线性眼深度画成灰度（白=近，黑=远）----
+                //   如果这里是一片纯色（没有明暗层次），说明深度纹理没拿到，描边就永远不会出线。
+                if (_DebugMode > 0.5 && _DebugMode < 1.5)
+                {
+                    float d = SampleEyeDepth(sampledUV);
+                    float t = saturate(1.0 - d / 60.0);
+                    return half4(t, t, t, 1);
+                }
+
                 // ---- ② 描边：看像素格 3×3 邻域的「深度落差」（世界单位）----
                 //   用落差而不是梯度，语义直观：_DepthThreshold = 多大的落差算一条边。
                 //   默认 0.6 ≈ 半格方块 → 方块的直角棱、物体轮廓都会出线；
@@ -140,6 +151,16 @@ Shader "Slima/Toon Outline Post"
                     //   刚好压到阈值线上 → 检测区只剩紧贴棱的 1 个像素 → 调 thickness 也永远不变粗。
                     //   只保留一个很轻的距离项，兜住透视相机下的远景噪声。
                     float threshold = _DepthThreshold * (1.0 + dc * 0.003);
+
+                    // ---- 调试 2：把「落差 / 阈值」画成红色 ----
+                    //   红色（>1）的那些像素就是会被描边的像素。调 Outline Thickness 时这块红区应该变宽；
+                    //   如果红区怎么都不变宽，说明落差没有余量（阈值太大），加粗就没有作用范围。
+                    if (_DebugMode > 1.5)
+                    {
+                        float ratio = saturate(jump / max(threshold, 1e-4));
+                        return half4(ratio, ratio * 0.25, ratio * 0.25, 1);
+                    }
+
                     float outline = (jump >= threshold) ? 1.0 : 0.0;
 
                     color = lerp(color, _OutlineColor.rgb, outline * _OutlineColor.a);

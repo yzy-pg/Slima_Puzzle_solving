@@ -41,9 +41,17 @@ namespace SlimaPuzzle.Rendering
                      "⚠ 材质里那个「描边｜粗细」是物体的反转壳描边（给角色用），调它不会影响全屏这条线，地形要设 0。")]
             [Range(0f, 16f)] public float outlineThickness = 2f;
 
-            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）：邻域落差小于它就不算出边。\n" +
-                     "调小 = 出线更多、线也更粗；调大 = 只剩最明显的轮廓。")]
+            [Tooltip("调小 = 出线更多、线也更粗；调大 = 只剩最明显的轮廓。\n" +
+                     "⚠ 正交相机下「一格方块」的深度落差 ≈ 1 世界单位 —— 阈值给 3 以上就是"
+                     + "「落差要超过 3 格才算出边」，普通方块棱会全部消失。建议 0.3 ~ 0.8。")]
             [Range(0.05f, 20f)] public float depthThreshold = 0.5f;
+
+            [Header("调试")]
+            [Tooltip("0 = 正常。\n" +
+                     "1 = 把深度画成灰度（白=近）：如果整屏一片纯色，说明深度纹理没拿到，描边永远不会出线。\n" +
+                     "2 = 把「落差/阈值」画成红色：红色区域就是会被描边的像素；调 Outline Thickness 时"
+                     + "这块红色区域应该跟着变宽。")]
+            [Range(0, 2)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
@@ -86,6 +94,7 @@ namespace SlimaPuzzle.Rendering
         static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
         static readonly int DepthThresholdId = Shader.PropertyToID("_DepthThreshold");
         static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
+        static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
 
         public override void Create()
         {
@@ -166,6 +175,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, _settings.outlineThickness));
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
+                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 2));
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))
