@@ -28,6 +28,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _LightTint ("光影｜受光色", Color) = (1, 1, 1, 1)
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
+        _ExtraLightMode ("光影｜额外光（Lamp）模式（0 = 按法线，1 = 按距离·以灯为中心）", Range(0, 1)) = 0
         _NoiseStrength ("光影｜阶梯过渡噪声强度（0 = 纯阶梯，0.35 = 像素颗粒过渡）", Range(0, 1)) = 0.35
         _NoiseWorldSize ("光影｜噪声格大小（世界单位，0.02 ≈ 2 屏幕像素）", Range(0.002, 0.5)) = 0.02
         _NoiseMaskInvert ("光影｜噪声遮罩反转（0 = 只有受光处有颗粒，1 = 反过来）", Range(0, 1)) = 0
@@ -80,6 +81,7 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _NoiseStrength;
                 half   _NoiseWorldSize;
                 half   _NoiseMaskInvert;
+                half   _ExtraLightMode;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -196,6 +198,7 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _NoiseStrength;
                 half   _NoiseWorldSize;
                 half   _NoiseMaskInvert;
+                half   _ExtraLightMode;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -330,6 +333,9 @@ Shader "Slima/Toon (Cel + Pixel)"
                     half attenExtra = saturate(extra.distanceAttenuation * extra.shadowAttenuation);
                     half nlExtra = dot(normalWS, extra.direction);
                     half wrappedExtra = saturate((nlExtra + _LightWrap) / (1.0 + _LightWrap));
+
+                    // ★ 模式 1：不看面法线，只用"到灯的距离" → 以灯为中心的圆形光斑（背面、侧面一样亮）
+                    wrappedExtra = lerp(wrappedExtra, 1.0, saturate(_ExtraLightMode));
 
                     // ★ Lamp 的噪声遮罩：按你的要求**不做渐变** —— 只要这盏灯照到（atten > 0）就统一为 1，
                     //   照不到就是 0。这样"灯范围内"全是满强度颗粒，不再随距离衰减、也不会弱到看不见。
