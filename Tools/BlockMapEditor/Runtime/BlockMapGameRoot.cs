@@ -104,7 +104,26 @@ namespace BlockMap
             if (_camera == null) return;
             SlimeActor active = _party != null ? _party.ActiveActor : null;
             Vector3 target = cameraFollowsPlayer && active != null ? active.transform.position : LevelCenter();
-            _camera.transform.position = target + CameraOffsetWorld();
+            Vector3 desired = target + CameraOffsetWorld();
+
+            // ★ 像素吸附：把相机位置量化到"一个屏幕像素"的整数倍（沿相机的右/上方向）。
+            //   否则相机停在非整数像素位置上 → 全屏像素化网格每帧重新采样 → 整个画面同步闪烁
+            //   （表现就是"主角一动，所有环境物品跟着一起 refresh"）。
+            if (_camera.orthographic)
+            {
+                float unitsPerPixel = (_camera.orthographicSize * 2f) / Mathf.Max(1f, Screen.height);
+                Vector3 right = _camera.transform.right;
+                Vector3 up = _camera.transform.up;
+
+                float offsetX = Vector3.Dot(desired, right);
+                float offsetY = Vector3.Dot(desired, up);
+                float snapX = Mathf.Round(offsetX / unitsPerPixel) * unitsPerPixel - offsetX;
+                float snapY = Mathf.Round(offsetY / unitsPerPixel) * unitsPerPixel - offsetY;
+
+                desired += right * snapX + up * snapY;
+            }
+
+            _camera.transform.position = desired;
             _camera.transform.LookAt(target);
         }
 
