@@ -23,8 +23,10 @@ namespace BlockMap
         [Tooltip("点光源数量上限，超出的发光方块不再生成灯")]
         public int maxLights = 32;
 
-        [Tooltip("点光源相对格子中心的高度偏移")]
-        public float lightHeightOffset = 0.5f;
+        [Tooltip("灯光离方块中心的高度（世界单位）。\n" +
+                 "⚠ 必须让灯高于邻近地板的上表面，否则对地板顶面来说光来自下方（NdotL<0）→ 地板照不到，\n" +
+                 "  只有侧面亮，看起来像「只照一个方向」。地板中心在 y=+0.5、上表面即 +1.0，所以默认给 1.5。")]
+        public float lightHeightOffset = 1.5f;
 
         [Tooltip("重建节流：两次重建之间至少间隔的秒数（避免连续刷方块时反复重建）")]
         public float rebuildInterval = 0.2f;
