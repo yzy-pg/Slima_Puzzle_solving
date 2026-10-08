@@ -160,7 +160,7 @@ Shader "Slima/Toon Outline Post"
                 }
 
                 // 调试 4：品红 = 该物件不参与像素化（用来确认"谁被排除了"）
-                if (_DebugMode > 3.5)
+                if (_DebugMode > 3.5 && _DebugMode < 4.5)
                 {
                     return half4(crisp, crisp * 0.2, crisp, 1);
                 }
@@ -187,7 +187,9 @@ Shader "Slima/Toon Outline Post"
                 }
 
                 // ---- ②-a 颜色/亮度描边（不依赖深度纹理：深度没绑上时用这条也能出线）----
-                if (_OutlineThickness > 0.001 && _EdgeSource > 0.5)
+                //   注意 `_DebugMode < 5.5`：调试 6（分组填色）要留给下面的遮罩分支，
+                //   否则 EdgeSource=1 时会被这一支抢先返回，填色永远看不到。
+                if (_OutlineThickness > 0.001 && _EdgeSource > 0.5 && _DebugMode < 5.5)
                 {
                     float2 texel = _OutlineThickness / virtualRes;
                     float lx0 = Lum(sampledUV + float2(-texel.x, 0.0));
