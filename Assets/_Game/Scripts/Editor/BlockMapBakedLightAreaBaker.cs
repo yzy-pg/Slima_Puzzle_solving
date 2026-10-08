@@ -205,11 +205,11 @@ namespace BlockMap.EditorTools
                         {
                             Vector3 lp = area.transform.InverseTransformPoint(wp);
                             Vector2 face = new Vector2(lp.x, lp.y);
-                            float len = Mathf.Max(0.01f, area.BeamLength);
+                            float len = Mathf.Max(0.01f, area.EffectiveRange);   // ★ 用聚光灯式的照射距离
                             if (lp.z < 0f || lp.z > len) continue;
 
                             float beamT = Mathf.Clamp01(lp.z / len);
-                            Color c = area.CellLight(wp, face, beamT, out float level);
+                            Color c = area.CellLight(wp, face, lp.z, out float level);
                             if (level <= 0.001f) continue;
 
                             add += new Color(c.r * level, c.g * level, c.b * level, 0f);

@@ -91,8 +91,12 @@ namespace BlockMap.Tools
             float t = edgeSoftness > 0.001f ? Mathf.Clamp01(edge / edgeSoftness) : 1f;
             float level = brightness.Evaluate(t).grayscale * intensity;
 
-            // ② 沿光程衰减
-            level *= Mathf.Lerp(1f, 1f - Mathf.Clamp01(beamT), beamFalloff);
+            // ② 沿光程衰减（第三个参数 = 沿发射方向的距离 depth，单位格）
+            float lenRange = Mathf.Max(0.01f, EffectiveRange);
+            float depthZ = Mathf.Max(0f, beamT);
+            float beamT01 = Mathf.Clamp01(depthZ / lenRange);
+            level *= Mathf.Lerp(1f, 1f - beamT01, beamFalloff);
+            _lastScatterFactor = ScatterFactorAt(depthZ);   // 供烘焙侧按光锥放大范围
 
             // ③ 像素噪波（世界空间的固定格子 → 锁在表面上，不随镜头滑动）
             float cell = Mathf.Max(0.005f, noiseCell);
@@ -115,6 +119,40 @@ namespace BlockMap.Tools
             return c;
         }
 
+        [Header("聚光灯式选项")]
+        [Tooltip("照射距离（格）。0 = 用物体 Z 缩放作为距离；觉得范围太小就把它调大 ✓")]
+        [Range(0f, 64f)] public float rangeOverride = 0f;
+
+        [Tooltip("锥角（度）。0 = 按矩形 X/Y 自动算；>0 = 用它。越大 = 散射范围越宽")]
+        [Range(0f, 179f)] public float spotAngleOverride = 0f;
+
+        [Tooltip("内锥比例：锥角里多少比例算「满亮」，其余柔和过渡（0.5 = 一半）")]
+        [Range(0f, 1f)] public float innerConeRatio = 0.5f;
+
+        /// <summary>实际照射距离：优先 rangeOverride，否则用 Z 缩放。</summary>
+        public float EffectiveRange => rangeOverride > 0.01f ? rangeOverride : Mathf.Max(0.5f, BeamLength);
+
+        /// <summary>实际锥角（度）：优先 spotAngleOverride，否则按矩形/距离自动算。</summary>
+        public float EffectiveSpotAngle
+        {
+            get
+            {
+                if (spotAngleOverride > 0.01f) return Mathf.Clamp(spotAngleOverride, 1f, 179f);
+                Vector2 r = RectSize;
+                float half = Mathf.Max(r.x, r.y) * 0.5f;
+                return Mathf.Clamp(2f * Mathf.Atan2(half, EffectiveRange) * Mathf.Rad2Deg, 1f, 179f);
+            }
+        }
+
+        /// <summary>光锥散射：距离 depth 处，横向范围相对发光面放大多少倍（1 = 不放大）。</summary>
+        public float ScatterFactorAt(float depth)
+        {
+            Vector2 r = RectSize;
+            float half = Mathf.Max(0.5f, Mathf.Max(r.x, r.y) * 0.5f);
+            float grow = Mathf.Tan(EffectiveSpotAngle * 0.5f * Mathf.Deg2Rad) * Mathf.Max(0f, depth);
+            return 1f + grow / half;
+        }
+
         static float Hash21(Vector2 p)
         {
             p = new Vector2(p.x * 123.34f, p.y * 456.21f);
@@ -123,6 +161,10 @@ namespace BlockMap.Tools
             p += new Vector2(d, d);
             return (p.x * p.y) - Mathf.Floor(p.x * p.y);
         }
+
+        /// <summary>上一次 CellLight 调用处的光锥散射倍率（烘焙侧用来把采样点按光锥收缩）。</summary>
+        public float LastScatterFactor => _lastScatterFactor;
+        float _lastScatterFactor = 1f;
 
         /// <summary>该格子是否被点亮（Bayer 4×4 抖动 → 像素颗粒疏密）。</summary>
         public bool ShouldLight(int cellX, int cellZ, float level01)
@@ -202,13 +244,13 @@ namespace BlockMap.Tools
             float coneDeg = 2f * Mathf.Atan2(halfDiag, len) * Mathf.Rad2Deg;
 
             light.type = LightType.Spot;
-            light.color = brightness.Evaluate(1f);          // 用渐变最亮那一端的颜色
+            light.color = brightness.Evaluate(1f);
             light.intensity = previewIntensity;
-            light.range = len;                              // 范围 = 发射长度
-            light.spotAngle = Mathf.Clamp(coneDeg, 1f, 179f);
-            light.innerSpotAngle = Mathf.Clamp(coneDeg * 0.5f, 0.5f, 178f);
+            light.range = EffectiveRange;                    // ★ 照射距离（rangeOverride 控制）
+            light.spotAngle = EffectiveSpotAngle;            // ★ 锥角（spotAngleOverride 控制）
+            light.innerSpotAngle = Mathf.Clamp(EffectiveSpotAngle * innerConeRatio, 0.5f, 178f);
             light.transform.localPosition = Vector3.zero;
-            light.transform.localRotation = Quaternion.identity;   // ★ 指向发射方向（本地 +Z）
+            light.transform.localRotation = Quaternion.identity;
             light.shadows = LightShadows.None;
             light.enabled = true;
         }
