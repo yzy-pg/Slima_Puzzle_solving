@@ -17,11 +17,27 @@ namespace BlockMap.EditorTools
         public static void CreateArea()
         {
             var go = new GameObject("BakedLightArea");
-            go.AddComponent<BlockMapBakedLightArea>();
+            var area = go.AddComponent<BlockMapBakedLightArea>();
+
+            // 触发碰撞体：让它在 Scene 视图里可以**点击选中**（运行时会被自动关掉，不参与物理）
+            var box = go.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = new Vector3(0f, 0.5f, 0f);
+            box.size = new Vector3(area.size.x, 1f, area.size.y);
+
             Selection.activeGameObject = go;
             Undo.RegisterCreatedObjectUndo(go, "Create BakedLightArea");
             EditorSceneManager.MarkSceneDirty(go.scene);
-            Debug.Log("[BlockMap] 已新建发光体：调它的 Size（矩形范围）和 Brightness（渐变），然后跑「把发光体范围烘焙到方块」");
+
+            Debug.Log("[BlockMap] 已新建发光体：黄色线框 = 矩形范围，彩色格子 = 会被点亮的格子。\n" +
+                      "调 Size / Brightness / Dither Block，然后跑「把发光体范围烘焙到方块」。");
+            EditorUtility.DisplayDialog("BlockMap",
+                "已新建发光体 ✓\n\n" +
+                "· 黄色线框 = 矩形范围（Size 控制）\n" +
+                "· 彩色格子 = 按渐变会被点亮的格子（Dither Block 控制像素格大小）\n" +
+                "· 两个黄色立柱 = 高度区间（Height Range）\n\n" +
+                "调好后跑「把发光体范围烘焙到方块（像素抖动渐变）」。\n" +
+                "（它带了触发碰撞体以便在 Scene 里点击选中；运行时会自动关闭，不影响物理。）", "好");
         }
 
         [MenuItem("Tools/Slima/地图编辑器/把发光体范围烘焙到方块（像素抖动渐变）", false, 451)]
