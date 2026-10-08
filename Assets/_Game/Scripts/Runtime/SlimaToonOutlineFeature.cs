@@ -28,10 +28,14 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("分组名，只用于显示")]
             public string name = "地面";
 
-            [Tooltip("材质名包含这个片段就归到这组。整片地面用 _Floor（Lab_Floor_01..07 都会命中）")]
+            [Tooltip("材质名包含这个片段就归到这组（子网格级）。整片地面用 _Floor，墙面用 _Wall；多个用 | 分隔表示或")]
             public string materialContains = "_Floor";
 
-            [Tooltip("按 Layer 匹配。功能物件用这个：把 Spawn/Exit/门 放到同一个 Layer，再在这里勾上")]
+            [Tooltip("物体名字包含这个片段就归到这组（对象级）。多个用 | 分隔表示或\n" +
+                     "起点/出口/主角这类没有专属材质的，用这个最方便（如 Spawn、Exit、Player|Slime）")]
+            public string nameContains = "";
+
+            [Tooltip("按 Layer 匹配。想用渲染层分组就勾这里（和上面的条件是「同时满足」）")]
             public LayerMask layerMask = 0;
 
             [Tooltip("这一组的描边粗细（像素块）")]
@@ -78,7 +82,11 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("每一组 = 一个整体对象。同组物体（哪怕不同区块、不同材质）合成一个黑块，只描整体外沿。")]
             public List<MaskGroup> maskGroups = new List<MaskGroup>
             {
-                new MaskGroup { name = "地面", materialContains = "_Floor", thickness = 2f }
+                new MaskGroup { name = "地面",  materialContains = "_Floor",                     thickness = 2f },
+                new MaskGroup { name = "墙面",  materialContains = "_Wall",                      thickness = 2f },
+                new MaskGroup { name = "起点",  nameContains = "Spawn",                          thickness = 2f },
+                new MaskGroup { name = "出口",  nameContains = "Exit",                           thickness = 2f },
+                new MaskGroup { name = "主角",  nameContains = "Player|Slime",                   thickness = 3f },
             };
 
             [Header("深度/颜色描边参数")]
@@ -297,7 +305,7 @@ namespace SlimaPuzzle.Rendering
                             Material[] materials = meshRenderer.sharedMaterials;
                             for (int submesh = 0; submesh < materials.Length; submesh++)
                             {
-                                if (!Matches(_group, meshRenderer.gameObject.layer, materials[submesh])) continue;
+                                if (!Matches(_group, meshRenderer.gameObject, materials[submesh])) continue;
                                 cmd.DrawRenderer(meshRenderer, _material, submesh, 0);
                             }
                         }
@@ -310,19 +318,38 @@ namespace SlimaPuzzle.Rendering
                 CommandBufferPool.Release(cmd);
             }
 
-            /// <summary>分组匹配：材质名片段 / Layer 谁设置了就按谁；两个都设置则要同时满足。</summary>
-            static bool Matches(MaskGroup group, int layer, Material material)
+            /// <summary>过滤串匹配：多个片段用 | 分隔（任一命中即可），大小写不敏感。</summary>
+            static bool MatchesAny(string filter, string value)
+            {
+                if (string.IsNullOrEmpty(filter)) return true;
+                if (string.IsNullOrEmpty(value)) return false;
+
+                foreach (string token in filter.Split('|'))
+                {
+                    string trimmed = token.Trim();
+                    if (trimmed.Length == 0) continue;
+                    if (value.IndexOf(trimmed, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                }
+                return false;
+            }
+
+            /// <summary>
+            /// 分组匹配：材质名片段（子网格级）/ 物体名片段（对象级）/ Layer，设置了哪几个就要求同时满足。
+            /// 三个都没设 → 不匹配（防止误把全场都画进遮罩）。
+            /// </summary>
+            static bool Matches(MaskGroup group, GameObject target, Material material)
             {
                 bool hasLayer = group.layerMask.value != 0;
-                bool hasName = !string.IsNullOrEmpty(group.materialContains);
-                if (!hasLayer && !hasName) return false;
+                bool hasName = !string.IsNullOrEmpty(group.nameContains);
+                bool hasMaterial = !string.IsNullOrEmpty(group.materialContains);
+                if (!hasLayer && !hasName && !hasMaterial) return false;
 
-                if (hasLayer && (group.layerMask.value & (1 << layer)) == 0) return false;
-                if (hasName)
+                if (hasLayer && (group.layerMask.value & (1 << target.layer)) == 0) return false;
+                if (hasName && !MatchesAny(group.nameContains, target.name)) return false;
+                if (hasMaterial)
                 {
                     if (material == null) return false;
-                    if (material.name.IndexOf(group.materialContains, System.StringComparison.OrdinalIgnoreCase) < 0)
-                        return false;
+                    if (!MatchesAny(group.materialContains, material.name)) return false;
                 }
                 return true;
             }
