@@ -40,6 +40,9 @@ namespace BlockMap
         [Tooltip("相机相对角色的位置。默认 (0, 12, -10.5)：和原来的 (0, 18, -16) 是同一个俯视角度，只是更近")]
         public Vector3 cameraOffset = new Vector3(0f, 12f, -10.5f);
 
+        [Tooltip("把相机位置吸附到屏幕像素网格（默认关）。开了像素化网格会更稳，但可能出现逐帧抖动/频闪")]
+        public bool snapCameraToPixelGrid = false;
+
         BlockWorld _world;
         Camera _camera;
         Vector3Int _spawnCell;
@@ -106,10 +109,10 @@ namespace BlockMap
             Vector3 target = cameraFollowsPlayer && active != null ? active.transform.position : LevelCenter();
             Vector3 desired = target + CameraOffsetWorld();
 
-            // ★ 像素吸附：把相机位置量化到"一个屏幕像素"的整数倍（沿相机的右/上方向）。
-            //   否则相机停在非整数像素位置上 → 全屏像素化网格每帧重新采样 → 整个画面同步闪烁
-            //   （表现就是"主角一动，所有环境物品跟着一起 refresh"）。
-            if (_camera.orthographic)
+            // ★ 像素吸附（默认关闭）：把相机位置量化到"一个屏幕像素"的整数倍。
+            //   好处：像素化网格相对世界稳定，环境物品不会随移动重新采样。
+            //   风险：吸附基准取自相机的实时朝向，若和 LookAt 互相影响会出现逐帧抖动/频闪 —— 所以默认关。
+            if (snapCameraToPixelGrid && _camera.orthographic)
             {
                 float unitsPerPixel = (_camera.orthographicSize * 2f) / Mathf.Max(1f, Screen.height);
                 Vector3 right = _camera.transform.right;
