@@ -48,11 +48,13 @@ namespace BlockMap.Tools
             return g;
         }
 
-        /// <summary>发光面尺寸（用 Transform 缩放表达）。</summary>
-        public Vector2 RectSize => new Vector2(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
+        /// <summary>发光面尺寸 = Base Size Hint × Transform 的 X/Y 缩放（Scale = 1 → 就是 Base Size Hint）。</summary>
+        public Vector2 RectSize => new Vector2(
+            Mathf.Max(0.1f, baseSizeHint.x) * Mathf.Abs(transform.lossyScale.x),
+            Mathf.Max(0.1f, baseSizeHint.y) * Mathf.Abs(transform.lossyScale.y));
 
-        /// <summary>射出长度（沿本地 +Z）。</summary>
-        public float BeamLength => Mathf.Abs(transform.lossyScale.z);
+        /// <summary>射出长度 = 8 × Z 缩放（Range Override &gt; 0 时会覆盖它）。</summary>
+        public float BeamLength => 8f * Mathf.Abs(transform.lossyScale.z);
 
         [Header("风格化（和 toon shader 一致）")]
         [Tooltip("像素噪波强度：把阶梯边界打散成像素颗粒")]
