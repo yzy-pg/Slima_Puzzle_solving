@@ -6,40 +6,40 @@ using UnityEngine.Rendering.Universal;
 namespace SlimaPuzzle.Rendering
 {
     /// <summary>
-    /// 全屏「像素化 + 描边」的 URP Renderer Feature。
+    /// 三渲二描边（重写版）—— 严格按五步流程：
     ///
-    /// 三种描边依据（Edge Source）：
-    ///   0 = 深度落差：需要 Depth Texture，物品与背景的前后关系断开处出线
-    ///   1 = 颜色亮度：不依赖任何额外资源，但深色地面/暗物体上容易乱出线
-    ///   2 = 遮罩分组（推荐）：把"一组物体"整体渲染成黑、背景白，只在这一组的外沿描边
-    ///       · 分组靠 材质名片段（地面用 _Floor）/ Layer（功能物件放进同一个 Layer）
-    ///       · 同组的多个物体（哪怕不同区块、不同材质）合成一个整体 → 只描这个整体的外轮廓
-    ///       · 天生只画外侧：物品自己的像素不会被啃
+    ///   ① 摄影机采样           : 每个 pass 都从相机颜色 Blit 一遍
+    ///   ② 多对象分别采样        : 每个"遮罩分组"单独一次 pass
+    ///   ③ 每个对象一张遮罩      : 把该组几何画成黑、背景白，写进临时贴图
+    ///   ④ 对遮罩做外轮廓描边    : 只有"自己是背景 + 邻域有物体"的像素才画 → 天生只在外面
+    ///   ⑤ 剔除特殊对象 + 重采样像素化 : 特殊物件进"清晰遮罩"，最后一步像素化时它们保持清晰
     ///
-    /// 装法：URP Renderer 资产 → Add Renderer Feature → Slima Toon Outline
-    /// （或菜单 Tools/Slima/地图编辑器/给 URP Renderer 装上全屏描边 Feature 一键装）
+    /// 上一版的坑都在结构上避免了：
+    ///   · 遮罩与合成在**同一个 Execute** 里 → 执行顺序不可能乱
+    ///   · 遮罩贴图**绑在材质上**（不是全局贴图）→ 各组不会互相覆盖
+    ///   · **每个 pass 独立材质实例** → 参数不会互相覆盖
+    ///   · 遮罩 pass 与合成 pass 用**不同 renderPassEvent** → 排序稳定
     /// </summary>
     public sealed class SlimaToonOutlineFeature : ScriptableRendererFeature
     {
-        /// <summary>一个描边分组 = 一个"整体对象"</summary>
+        /// <summary>一个描边分组 = 一个"整体对象"：同组物体合成一张遮罩，只描这个整体的外轮廓</summary>
         [System.Serializable]
         public sealed class MaskGroup
         {
-            [Tooltip("分组名，只用于显示")]
+            [Tooltip("分组名，只用于显示（内置组按名字识别，想覆盖内置组就取同名）")]
             public string name = "地面";
 
-            [Tooltip("材质名包含这个片段就归到这组（子网格级）。整片地面用 _Floor，墙面用 _Wall；多个用 | 分隔表示或")]
+            [Tooltip("材质名包含这个片段就归到这组（子网格级）。地面 _Floor，墙面 _Wall；多个用 | 表示或")]
             public string materialContains = "_Floor";
 
-            [Tooltip("物体名字包含这个片段就归到这组（对象级）。多个用 | 分隔表示或\n" +
-                     "起点/出口/主角这类没有专属材质的，用这个最方便（如 Spawn、Exit、Player|Slime）")]
+            [Tooltip("物体名包含这个片段就归到这组（对象级，会沿父链匹配）。起点 Spawn、出口 Exit、主角 Player|Slime")]
             public string nameContains = "";
 
-            [Tooltip("按 Layer 匹配。想用渲染层分组就勾这里（和上面的条件是「同时满足」）")]
+            [Tooltip("按 Layer 匹配（和上面条件是「同时满足」）")]
             public LayerMask layerMask = 0;
 
-            [Tooltip("这一组的描边粗细（像素块）")]
-            [Range(0f, 16f)] public float thickness = 2f;
+            [Tooltip("这一组的描边粗细（屏幕像素）")]
+            [Range(0f, 32f)] public float thickness = 3f;
 
             public bool enabled = true;
         }
@@ -47,627 +47,488 @@ namespace SlimaPuzzle.Rendering
         [System.Serializable]
         public sealed class Settings
         {
-            [Tooltip("留空会自动找「Slima/Toon Outline Post」")]
-            public Shader shader;
+            [Tooltip("留空会自动找 Slima/Outline Composite")]
+            public Shader compositeShader;
 
-            [Tooltip("遮罩材质用的 shader（留空自动找「Slima/Outline Mask」）")]
+            [Tooltip("留空会自动找 Slima/Outline Mask")]
             public Shader maskShader;
 
-            [Tooltip("插在哪个阶段。默认：透明物体之后、后处理之前")]
+            [Tooltip("描边/填色插在哪个阶段（要在透明物体之后、后处理之前）")]
             public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
-            [Header("像素化")]
-            [Tooltip("像素块大小（屏幕像素）。1 = 不像素化。\n" +
-                     "⚠ 它会和物体材质里的「像素化｜顶点像素吸附」叠加，两个都开就会非常糊；\n" +
-                     "建议只留一层：要么只用这里，要么只用 URP Asset 的 Render Scale + Point。")]
-            [Range(1f, 16f)] public float pixelSize = 2f;
-
-            [Tooltip("0 = 关闭像素化，只描边")]
-            [Range(0f, 1f)] public float pixelateAmount = 1f;
-
-            [Header("描边")]
             public Color outlineColor = Color.black;
 
-            [Tooltip("描边依据。\n" +
-                     "0 = 深度落差（需要 Depth Texture 可用）。\n" +
-                     "1 = 颜色/亮度落差（深色地面上容易乱出线）。\n" +
-                     "2 = 遮罩分组（推荐）：同组物体合成一个整体，只在外沿出线，不依赖深度纹理。")]
-            [Range(0, 2)] public int edgeSource = 2;
-
-            [Tooltip("描边画在哪一侧（仅 0/1 依据有效；遮罩依据天生只在外面画）。\n" +
-                     "0 = 两侧（会吃掉物品自己的像素）· 1 = 只向外（默认）· 2 = 只向内")]
-            [Range(0, 2)] public int outlinePlacement = 1;
-
-            [Header("遮罩分组（描边依据 = 2 时生效）")]
-            [Tooltip("每一组 = 一个整体对象。同组物体（哪怕不同区块、不同材质）合成一个黑块，只描整体外沿。")]
-            public List<MaskGroup> maskGroups = new List<MaskGroup>
-            {
-                new MaskGroup { name = "地面",  materialContains = "_Floor",                     thickness = 2f },
-                new MaskGroup { name = "墙面",  materialContains = "_Wall",                      thickness = 2f },
-                // 起点/出口在屏幕上只有 2~3 像素：线宽 ≈ Thickness × Pixel Size，所以这里必须给 1
-                new MaskGroup { name = "起点",  nameContains = "Spawn",                          thickness = 1f },
-                new MaskGroup { name = "出口",  nameContains = "Exit",                           thickness = 1f },
-                new MaskGroup { name = "主角",  nameContains = "Player|Slime",                   thickness = 2f },
-            };
-
-            [Header("深度/颜色描边参数")]
-            [Tooltip("全屏描边粗细（像素块）。屏幕实际宽度 ≈ 这个值 × Pixel Size。\n" +
-                     "（遮罩模式用分组里的 Thickness）")]
-            [Range(0f, 16f)] public float outlineThickness = 2f;
-
-            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）。调小 = 出线更多、线也更粗。")]
-            [Range(0.05f, 20f)] public float depthThreshold = 0.5f;
-
-            [Tooltip("颜色描边阈值（0.01~1，仅 依据 = 颜色 时有效）。越小线越多、越粗。")]
-            [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
+            [Header("像素化（最后一步）")]
+            [Range(1f, 16f)] public float pixelSize = 2f;
+            [Range(0f, 1f)] public float pixelateAmount = 1f;
 
             [Header("不参与像素化的物件（特殊物件保持清晰）")]
-            [Tooltip("勾上后：名字匹配下面过滤器的物件保持清晰、不被像素化 —— 起点/出口这类小物件用")]
             public bool crispSpecials = true;
-
-            [Tooltip("名字过滤器（多个用 | 分隔）。默认覆盖起点/出口/主角")]
+            [Tooltip("名字过滤器（多个用 | 分隔）。这些物件 + 它们的外轮廓会保持清晰")]
             public string crispNameFilter = "Spawn|Exit|Player|Slime";
+            [Tooltip("清晰范围外扩像素数：让特殊物件外面的描边也清晰")]
+            [Range(0f, 32f)] public float crispDilate = 3f;
+
+            [Header("遮罩分组（每组 = 一个整体对象）")]
+            public List<MaskGroup> maskGroups = new List<MaskGroup>
+            {
+                new MaskGroup { name = "地面", materialContains = "_Floor",                       thickness = 3f },
+                new MaskGroup { name = "墙面", materialContains = "_Wall",                        thickness = 3f },
+                new MaskGroup { name = "起点", nameContains = "Spawn",                            thickness = 2f },
+                new MaskGroup { name = "出口", nameContains = "Exit",                             thickness = 2f },
+                new MaskGroup { name = "主角", nameContains = "Player|Slime",                     thickness = 3f },
+            };
 
             [Header("调试")]
-            [Tooltip("0 = 正常。\n" +
-                     "1 = 原始深度缓冲（全黑 = 深度纹理没绑上）。\n" +
-                     "2 = 描边分组可视化（每组一个颜色，只显示边缘判定）。\n" +
-                     "3 = 线性眼深度灰度图（白 = 近）。\n" +
-                     "4 = 特殊物件专属：品红 = 不参与像素化（保持清晰）。\n" +
-                     "6 = 分组填色测试：把每一组的物体整体填成该组的颜色 —— 一眼看出识别范围；\n" +
-                     "    完全没被填色的物体 = 没有任何分组识别到它。")]
-            [Range(0, 7)] public int debugMode = 0;
+            [Tooltip("0 = 正常。1 = 分组填色测试（一眼看出每组识别到哪些物体）。2 = 遮罩读数（红=物体 绿=背景）")]
+            [Range(0, 2)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
 
-        Material _material;
-        Material _maskMaterial;
-        Material _crispMaskMaterial;                  // 白色遮罩 = 不参与像素化的物件
-        PixelOutlinePass _pass;
-        readonly List<MaskPass> _maskPasses = new List<MaskPass>();
-        readonly List<PixelOutlinePass> _compositePasses = new List<PixelOutlinePass>();
-        MaskPass _crispMaskPass;
-        MaskGroup _crispGroup;
+        readonly List<GroupPass> _groupPasses = new List<GroupPass>();
+        MaskPass _crispPass;
+        PixelatePass _pixelatePass;
         bool _loggedOnce;
-        MeshRenderer[] _meshRenderers;
-        int _rescanCountdown;
-
-        // 用来分辨"你改的 Feature 是不是当前生效的那个"
-        float _lastThickness = -1f;
-        float _lastPixelSize = -1f;
-        float _lastDepth = -1f;
-        float _lastPixelate = -1f;
-
-        static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
-        static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
-        static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
-        static readonly int DepthThresholdId = Shader.PropertyToID("_DepthThreshold");
-        static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
-        static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
-        static readonly int EdgeSourceId = Shader.PropertyToID("_EdgeSource");
-        static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
-        static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
-        static readonly int MaskTextureId = Shader.PropertyToID("_SlimaMask");
-        static readonly int CrispMaskTextureId = Shader.PropertyToID("_SlimaCrispMask");
-        static readonly int MaskColorId = Shader.PropertyToID("_MaskColor");
-        static readonly int DebugTintId = Shader.PropertyToID("_DebugTint");
+        MeshRenderer[] _renderers;
+        int _rescan;
+        readonly List<MaskGroup> _groups = new List<MaskGroup>();
 
         public override void Create()
         {
-            _pass = new PixelOutlinePass { renderPassEvent = settings.passEvent };
+            _crispPass = new MaskPass { renderPassEvent = RenderPassEvent.BeforeRenderingOpaques };
+            _pixelatePass = new PixelatePass { renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing };
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             CameraType cameraType = renderingData.cameraData.cameraType;
             if (cameraType == CameraType.Preview || cameraType == CameraType.Reflection) return;
+            if (settings.compositeShader == null) settings.compositeShader = Shader.Find("Slima/Outline Composite");
+            if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
+            if (settings.compositeShader == null || settings.maskShader == null) return;
 
-            if (!EnsureMaterials()) return;
-
-            LogIfChanged();
+            RefreshRenderers();
+            CollectGroups();
 
             if (!_loggedOnce)
             {
                 _loggedOnce = true;
-                var pipeline = GraphicsSettings.currentRenderPipeline;
-                Debug.Log($"[Slima] Toon Outline 已生效：依据={EdgeSourceLabel(settings.edgeSource)}, " +
-                          $"PixelSize={settings.pixelSize}, Thickness={settings.outlineThickness} | " +
-                          $"管线={pipeline?.name ?? "（默认）"} | " +
-                          $"相机需要深度纹理={renderingData.cameraData.requiresDepthTexture}");
+                float aspect = settings.pixelSize;
+                Debug.Log($"[Slima] 描边流程已就绪：分组 {_groups.Count} 个，像素化 PixelSize={aspect}，" +
+                          $"管线={GraphicsSettings.currentRenderPipeline?.name ?? "（默认）"}");
             }
 
-            // ★ 清晰遮罩（不参与像素化）在任何描边依据下都要生效 —— 它管的是像素化，不是描边
-            RefreshRenderers();
+            if (settings.debugMode >= 1) LogReport();
 
-            if (settings.crispSpecials && !string.IsNullOrEmpty(settings.crispNameFilter))
+            // ⑤ 清晰遮罩（要被最终像素化那一步读取）
+            bool wantCrisp = settings.crispSpecials && !string.IsNullOrEmpty(settings.crispNameFilter);
+            if (wantCrisp)
             {
-                if (_crispGroup == null) _crispGroup = new MaskGroup();
-                _crispGroup.name = "清晰（不参与像素化）";
-                _crispGroup.nameContains = settings.crispNameFilter;
-                _crispGroup.materialContains = "";
-                _crispGroup.layerMask = 0;
-
-                if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
-                // ★ 遮罩必须**早于**合成执行：同一个 renderPassEvent 下 URP 不保证顺序
-                //   （内部排序不稳定），合成可能先跑 → 读到还没写/已回收的贴图 = 全黑。
-                //   遮罩只画几何、用自己的深度缓冲，所以放在最前面（不透明物体之前）完全安全。
-                _crispMaskPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
-                _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers,
-                                     CrispMaskTextureId, Color.black);   // 黑底 + 白物件
-                renderer.EnqueuePass(_crispMaskPass);
+                if (_crispPass.Material == null) _crispPass.CreateMaterial(settings.maskShader, Color.white);
+                _crispPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
+                _crispPass.Setup(BuildFilterGroup("清晰（不像素化）", "", settings.crispNameFilter), _renderers, Color.black);
+                renderer.EnqueuePass(_crispPass);
             }
 
-            // ---- 遮罩分组模式：每组 = 一次"画遮罩 + 一次合成" ----
-            // 调试模式 6（分组填色测试）也要走这条路，否则拿不到每组遮罩
-            if (settings.edgeSource >= 2 || settings.debugMode >= 6)
-            {
-                // 匹配报告只在调试时打（正常游玩时 Console 保持干净）
-                if (settings.debugMode >= 2) LogMatchReport();
-                int groupIndex = 0;
-                foreach (MaskGroup group in EnumerateGroups())
-                {
-                    if (group == null || !group.enabled) continue;
-
-                    EnsurePassSlot(groupIndex);
-
-                    _maskPasses[groupIndex].renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
-                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers,
-                                                  MaskTextureId, Color.white);   // 白底 + 黑物件
-                    renderer.EnqueuePass(_maskPasses[groupIndex]);
-
-                    _compositePasses[groupIndex].renderPassEvent = settings.passEvent;
-                    _compositePasses[groupIndex].Setup(_material, settings, group.thickness, DebugTintFor(groupIndex));
-                    renderer.EnqueuePass(_compositePasses[groupIndex]);
-
-                    groupIndex++;
-                }
-                return;
-            }
-            // ---- 深度 / 颜色模式：单个合成 pass ----
-            _pass.renderPassEvent = settings.passEvent;
-            _pass.Setup(_material, settings, -1f, DebugTintFor(0));
-            renderer.EnqueuePass(_pass);
-        }
-
-        void EnsurePassSlot(int index)
-        {
-            while (_maskPasses.Count <= index) _maskPasses.Add(new MaskPass());
-            while (_compositePasses.Count <= index)
-            {
-                var composite = new PixelOutlinePass { renderPassEvent = settings.passEvent };
-                // ★ 每个分组一份独立材质实例：共用一份时，命令缓冲里的属性会互相覆盖，
-                //   导致整屏被最后一组的颜色填满（就是"全屏粉红"那个 bug）
-                composite.SetOwnMaterial(settings.shader != null ? settings.shader : Shader.Find("Slima/Toon Outline Post"));
-                _compositePasses.Add(composite);
-            }
-        }
-
-        /// <summary>每 60 帧重扫一次场景里的 MeshRenderer（烘出来的地形是静态的，道具是运行时生成的）</summary>
-        void RefreshRenderers()
-        {
-            if (_meshRenderers != null && _rescanCountdown-- > 0) return;
-
-            MeshRenderer[] all = Object.FindObjectsOfType<MeshRenderer>();
-            var kept = new List<MeshRenderer>(all.Length);
-            foreach (MeshRenderer meshRenderer in all)
-            {
-                if (meshRenderer == null) continue;
-
-                // 挂了这个组件的物体（含子物体）不参与遮罩采样 → 不描边
-                if (meshRenderer.GetComponentInParent<SlimaOutlineIgnore>() != null) continue;
-
-                kept.Add(meshRenderer);
-            }
-
-            _meshRenderers = kept.ToArray();
-            _rescanCountdown = 60;
-        }
-
-        /// <summary>
-        /// 场景里没有这几种内置分组时自动补上。
-        /// 原因：Feature 是序列化在 Renderer 资产里的，老实例只有早期那一组（地面），
-        /// 代码里加的默认值不会进到已保存的实例 —— 靠这里自动补齐，不用手点。
-        /// （如果想改某组的行为，改它的名字就会生成一份新的：直接用 `settings.maskGroups` 里同名的那份。）
-        /// </summary>
-        static readonly (string name, string material, string nameFilter, float thickness)[] BuiltinGroups =
-        {
-            ("地面", "_Floor", "", 2f),
-            ("墙面", "_Wall", "", 2f),
-            ("起点", "", "Spawn", 1f),
-            ("出口", "", "Exit", 1f),
-            ("主角", "", "Player|Slime", 2f),
-        };
-
-        readonly List<MaskGroup> _mergedGroups = new List<MaskGroup>();
-
-        List<MaskGroup> EnumerateGroups()
-        {
-            _mergedGroups.Clear();
-
-            foreach (MaskGroup group in settings.maskGroups)
-                if (group != null && group.enabled) _mergedGroups.Add(group);
-
-            foreach ((string name, string material, string nameFilter, float thickness) in BuiltinGroups)
-            {
-                bool exists = false;
-                foreach (MaskGroup group in _mergedGroups)
-                {
-                    if (string.Equals(group.name, name, System.StringComparison.Ordinal)) { exists = true; break; }
-                }
-                if (exists) continue;
-
-                _mergedGroups.Add(new MaskGroup
-                {
-                    name = name,
-                    materialContains = material,
-                    nameContains = nameFilter,
-                    thickness = thickness,
-                });
-            }
-
-            return _mergedGroups;
-        }
-
-        int _reportCountdown;
-
-        /// <summary>
-        /// 匹配报告：每组命中了多少个子网格 + 场景里实际有哪些材质名。
-        /// 约 5 秒一次。用来判断"某组没匹配上"到底是过滤条件写错、还是场景里根本没有这类东西。
-        /// </summary>
-        void LogMatchReport()
-        {
-            if (_reportCountdown-- > 0) return;
-            _reportCountdown = 300;
-
-            var report = new System.Text.StringBuilder();
-            report.Append("[Slima] 遮罩匹配报告：\n");
-
+            // ③④ 每个分组：一张遮罩 + 一次外轮廓描边（同一个 pass 内，顺序确定）
             int index = 0;
-            foreach (MaskGroup group in EnumerateGroups())
+            foreach (MaskGroup group in _groups)
             {
-                int hit = 0;
-                if (_meshRenderers != null)
-                {
-                    foreach (MeshRenderer meshRenderer in _meshRenderers)
-                    {
-                        if (meshRenderer == null) continue;      // 运行时被销毁的对象：Unity 的假 null
-                        Material[] materials = meshRenderer.sharedMaterials;
-                        if (materials == null) continue;
-                        for (int submesh = 0; submesh < materials.Length; submesh++)
-                        {
-                            if (MaskPass.Matches(group, meshRenderer.gameObject, materials[submesh])) hit++;
-                        }
-                    }
-                }
+                while (_groupPasses.Count <= index)
+                    _groupPasses.Add(new GroupPass { renderPassEvent = settings.passEvent });
 
-                report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}'" +
-                              $"｜Layer{(group.layerMask.value != 0 ? "有" : "无")} → 命中 {hit} 个子网格" +
-                              $"｜上一帧实际画出 {(_maskPasses.Count > index ? _maskPasses[index].LastDrawCount : 0)} 个\n");
+                GroupPass pass = _groupPasses[index];
+                pass.renderPassEvent = settings.passEvent;
+                pass.Setup(settings, group, _renderers,
+                           index < DebugTints.Length ? DebugTints[index] : DebugTints[index % DebugTints.Length]);
+                renderer.EnqueuePass(pass);
                 index++;
             }
 
-            var names = new HashSet<string>();
-            if (_meshRenderers != null)
+            // ⑤ 最后一步：像素化（清晰遮罩里的像素除外）
+            if (settings.debugMode == 0)
             {
-                foreach (MeshRenderer meshRenderer in _meshRenderers)
-                {
-                    if (meshRenderer == null) continue;
-                    Material[] materials = meshRenderer.sharedMaterials;
-                    if (materials == null) continue;
-                    for (int submesh = 0; submesh < materials.Length; submesh++)
-                        if (materials[submesh] != null) names.Add(materials[submesh].name);
-                }
+                _pixelatePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+                _pixelatePass.Setup(settings, wantCrisp ? _crispPass.Mask : null);
+                renderer.EnqueuePass(_pixelatePass);
             }
-
-            var limited = new List<string>(names);
-            if (limited.Count > 24) limited = limited.GetRange(0, 24);
-            report.Append($"  场景里的材质名（{names.Count} 个，列前 24）：" + string.Join(", ", limited));
-
-            Debug.Log(report.ToString());
         }
 
         static readonly Color[] DebugTints =
         {
-            new Color(1.00f, 0.25f, 0.25f),   // 红
-            new Color(0.25f, 1.00f, 0.35f),   // 绿
-            new Color(0.30f, 0.55f, 1.00f),   // 蓝
-            new Color(1.00f, 0.90f, 0.25f),   // 黄
-            new Color(1.00f, 0.40f, 1.00f),   // 紫
-            new Color(0.25f, 1.00f, 1.00f),   // 青
+            new Color(1.00f, 0.25f, 0.25f), new Color(0.25f, 1.00f, 0.35f),
+            new Color(0.30f, 0.55f, 1.00f), new Color(1.00f, 0.90f, 0.25f),
+            new Color(1.00f, 0.40f, 1.00f), new Color(0.25f, 1.00f, 1.00f),
         };
 
-        static Color DebugTintFor(int index) => DebugTints[index % DebugTints.Length];
+        static MaskGroup BuildFilterGroup(string name, string materialFilter, string nameFilter) =>
+            new MaskGroup { name = name, materialContains = materialFilter, nameContains = nameFilter };
 
-        static string EdgeSourceLabel(int source) =>
-            source >= 2 ? "遮罩分组" : (source == 1 ? "颜色亮度" : "深度落差");
-
-        void LogIfChanged()
+        /// <summary>内置 5 组：老资产里缺的自动补上（按名字识别，同名可覆盖）</summary>
+        static readonly MaskGroup[] Builtins =
         {
-            if (Mathf.Approximately(_lastThickness, settings.outlineThickness) &&
-                Mathf.Approximately(_lastPixelSize, settings.pixelSize) &&
-                Mathf.Approximately(_lastDepth, settings.depthThreshold) &&
-                Mathf.Approximately(_lastPixelate, settings.pixelateAmount))
+            BuildFilterGroup("地面", "_Floor", ""),
+            BuildFilterGroup("墙面", "_Wall", ""),
+            BuildFilterGroup("起点", "", "Spawn"),
+            BuildFilterGroup("出口", "", "Exit"),
+            BuildFilterGroup("主角", "", "Player|Slime"),
+        };
+
+        void CollectGroups()
+        {
+            _groups.Clear();
+            foreach (MaskGroup group in settings.maskGroups)
+                if (group != null && group.enabled) _groups.Add(group);
+
+            foreach (MaskGroup builtin in Builtins)
             {
-                return;
+                bool exists = false;
+                foreach (MaskGroup group in _groups)
+                    if (string.Equals(group.name, builtin.name, System.StringComparison.Ordinal)) { exists = true; break; }
+                if (!exists) _groups.Add(builtin);
             }
-
-            _lastThickness = settings.outlineThickness;
-            _lastPixelSize = settings.pixelSize;
-            _lastDepth = settings.depthThreshold;
-            _lastPixelate = settings.pixelateAmount;
-
-            Debug.Log($"[Slima] 全屏描边参数已更新（当前相机在用）：依据={EdgeSourceLabel(settings.edgeSource)}, " +
-                      $"Thickness={settings.outlineThickness}, PixelSize={settings.pixelSize}, " +
-                      $"DepthThreshold={settings.depthThreshold}, Pixelate={settings.pixelateAmount}");
         }
 
-        /// <summary>材质延迟创建：Create() 发生在资源刚加载时，那时 Shader.Find 可能还找不到。</summary>
-        bool EnsureMaterials()
+        /// <summary>每 60 帧重扫一次（地形是静态的，道具是运行时生成的）；跳过挂了 SlimaOutlineIgnore 的物体</summary>
+        void RefreshRenderers()
         {
-            if (_material == null)
+            if (_renderers != null && _rescan-- > 0) return;
+
+            MeshRenderer[] all = Object.FindObjectsOfType<MeshRenderer>();
+            var kept = new List<MeshRenderer>(all.Length);
+            foreach (MeshRenderer renderer in all)
             {
-                if (settings.shader == null) settings.shader = Shader.Find("Slima/Toon Outline Post");
-                if (settings.shader == null) return false;
-                _material = CoreUtils.CreateEngineMaterial(settings.shader);
+                if (renderer == null) continue;
+                if (renderer.GetComponentInParent<SlimaOutlineIgnore>() != null) continue;
+                kept.Add(renderer);
+            }
+            _renderers = kept.ToArray();
+            _rescan = 60;
+        }
+
+        void LogReport()
+        {
+            var report = new System.Text.StringBuilder("[Slima] 遮罩分组报告：\n");
+            var materials = new HashSet<string>();
+
+            foreach (MaskGroup group in _groups)
+            {
+                int hit = 0;
+                foreach (MeshRenderer renderer in _renderers)
+                {
+                    if (renderer == null) continue;
+                    Material[] mats = renderer.sharedMaterials;
+                    if (mats == null) continue;
+                    for (int submesh = 0; submesh < mats.Length; submesh++)
+                    {
+                        if (mats[submesh] != null) materials.Add(mats[submesh].name);
+                        if (Matches(group, renderer.gameObject, mats[submesh])) hit++;
+                    }
+                }
+                report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}' → 命中 {hit} 个子网格\n");
             }
 
-            if (_maskMaterial == null && settings.edgeSource >= 2)
+            var list = new List<string>(materials);
+            if (list.Count > 20) list = list.GetRange(0, 20);
+            report.Append($"  场景材质名（{materials.Count}）：" + string.Join(", ", list));
+            Debug.Log(report.ToString());
+        }
+
+        /// <summary>过滤串匹配：多个片段用 | 分隔（任一命中），大小写不敏感</summary>
+        internal static bool MatchesAny(string filter, string value)
+        {
+            if (string.IsNullOrEmpty(filter)) return true;
+            if (string.IsNullOrEmpty(value)) return false;
+            foreach (string token in filter.Split('|'))
             {
-                if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
-                if (settings.maskShader == null) return false;
-
-                _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
-                _maskMaterial.SetColor(MaskColorId, Color.black);      // 黑 = 这一组的物体
+                string trimmed = token.Trim();
+                if (trimmed.Length == 0) continue;
+                if (value.IndexOf(trimmed, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
             }
+            return false;
+        }
 
-            // 清晰遮罩材质：任何依据下都可能需要（它管像素化）
-            if (_crispMaskMaterial == null && settings.crispSpecials &&
-                !string.IsNullOrEmpty(settings.crispNameFilter))
+        /// <summary>分组匹配：材质名 / 物体名（含父链）/ Layer，设置了哪几个就要求同时满足</summary>
+        internal static bool Matches(MaskGroup group, GameObject target, Material material)
+        {
+            bool hasLayer = group.layerMask.value != 0;
+            bool hasName = !string.IsNullOrEmpty(group.nameContains);
+            bool hasMaterial = !string.IsNullOrEmpty(group.materialContains);
+            if (!hasLayer && !hasName && !hasMaterial) return false;
+
+            if (hasLayer && (group.layerMask.value & (1 << target.layer)) == 0) return false;
+            if (hasName && !MatchesAny(group.nameContains, HierarchyName(target))) return false;
+            if (hasMaterial)
             {
-                if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
-                if (settings.maskShader == null) return false;
-
-                _crispMaskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
-                _crispMaskMaterial.SetColor(MaskColorId, Color.white); // 白 = 不被像素化
+                if (material == null) return false;
+                if (!MatchesAny(group.materialContains, material.name)) return false;
             }
+            return true;
+        }
 
-            return _material != null;
+        static string HierarchyName(GameObject target)
+        {
+            string result = target.name;
+            Transform parent = target.transform.parent;
+            int depth = 0;
+            while (parent != null && depth < 6) { result += "|" + parent.name; parent = parent.parent; depth++; }
+            return result;
         }
 
         protected override void Dispose(bool disposing)
         {
-            CoreUtils.Destroy(_material);
-            CoreUtils.Destroy(_maskMaterial);
-            CoreUtils.Destroy(_crispMaskMaterial);
-            _material = null;
-            _maskMaterial = null;
-            _crispMaskMaterial = null;
-            _pass?.Dispose();
-            _crispMaskPass?.Dispose();
-            foreach (MaskPass pass in _maskPasses) pass.Dispose();
-            foreach (PixelOutlinePass pass in _compositePasses) pass.Dispose();
+            _crispPass?.Dispose();
+            _pixelatePass?.Dispose();
+            foreach (GroupPass pass in _groupPasses) pass.Dispose();
+            _groupPasses.Clear();
         }
 
         // ==================================================================
-        // 遮罩 pass：把这一组物体画成黑、背景白，写进一张临时贴图
+        // ③ 遮罩 pass：把一组几何画成单色，背景为反色（写进自己的 RT）
         // ==================================================================
         sealed class MaskPass : ScriptableRenderPass
         {
             Material _material;
             MaskGroup _group;
             MeshRenderer[] _renderers;
-            int _globalTextureId = 0;
             Color _clearColor = Color.white;
             RTHandle _mask;
 
-            /// <summary>上一帧实际画进遮罩的子网格数量</summary>
-            public int LastDrawCount { get; private set; }
+            public Material Material => _material;
+            public RTHandle Mask => _mask;
 
-            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers,
-                              int globalTextureId, Color clearColor)
+            public void CreateMaterial(Shader shader, Color maskColor)
             {
-                _material = material;
+                if (_material != null) return;
+                _material = CoreUtils.CreateEngineMaterial(shader);
+                _material.SetColor(MaskColorId, maskColor);
+            }
+
+            public void Setup(MaskGroup group, MeshRenderer[] renderers, Color clearColor)
+            {
                 _group = group;
                 _renderers = renderers;
-                _globalTextureId = globalTextureId;
                 _clearColor = clearColor;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
-                desc.depthBufferBits = 24;      // 组内物体之间要正确遮挡
+                desc.depthBufferBits = 24;
                 desc.msaaSamples = 1;
                 RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
-                                                  name: "_SlimaOutlineMask");
+                                                  name: "_SlimaMask");
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 if (_material == null || _group == null || _mask == null) return;
 
-                CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
-                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Outline Mask")))
+                CommandBuffer cmd = CommandBufferPool.Get("Slima Mask");
+                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Mask")))
                 {
-                    // 明确清屏（不用 CoreUtils 的重载，避免"清屏色没生效"这种歧义）
                     cmd.SetRenderTarget(_mask);
                     cmd.ClearRenderTarget(true, true, _clearColor);
 
-                    int drawn = 0;
                     if (_renderers != null)
                     {
-                        foreach (MeshRenderer meshRenderer in _renderers)
+                        foreach (MeshRenderer renderer in _renderers)
                         {
-                            if (meshRenderer == null) continue;
-
-                            Material[] materials = meshRenderer.sharedMaterials;
-                            if (materials == null) continue;
-                            for (int submesh = 0; submesh < materials.Length; submesh++)
+                            if (renderer == null) continue;
+                            Material[] mats = renderer.sharedMaterials;
+                            if (mats == null) continue;
+                            for (int submesh = 0; submesh < mats.Length; submesh++)
                             {
-                                if (!Matches(_group, meshRenderer.gameObject, materials[submesh])) continue;
-                                cmd.DrawRenderer(meshRenderer, _material, submesh, 0);
-                                drawn++;
+                                if (!Matches(_group, renderer.gameObject, mats[submesh])) continue;
+                                cmd.DrawRenderer(renderer, _material, submesh, 0);
                             }
                         }
                     }
-                    LastDrawCount = drawn;
-
-                    cmd.SetGlobalTexture(_globalTextureId, _mask);
                 }
-
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
-            /// <summary>过滤串匹配：多个片段用 | 分隔（任一命中即可），大小写不敏感。</summary>
-            static bool MatchesAny(string filter, string value)
-            {
-                if (string.IsNullOrEmpty(filter)) return true;
-                if (string.IsNullOrEmpty(value)) return false;
-
-                foreach (string token in filter.Split('|'))
-                {
-                    string trimmed = token.Trim();
-                    if (trimmed.Length == 0) continue;
-                    if (value.IndexOf(trimmed, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
-                }
-                return false;
-            }
-
-            /// <summary>
-            /// 名字过滤要沿**整条父子链**匹配：起点/出口/主角的 MeshRenderer 常在子物体上
-            /// （如 `Spawned_Spawn_123/Disc`），只看自身名字会漏掉。
-            /// </summary>
-            static string HierarchyName(GameObject target)
-            {
-                string result = target.name;
-                Transform parent = target.transform.parent;
-                int depth = 0;
-                while (parent != null && depth < 6)
-                {
-                    result += "|" + parent.name;
-                    parent = parent.parent;
-                    depth++;
-                }
-                return result;
-            }
-
-            /// <summary>
-            /// 分组匹配：材质名片段（子网格级）/ 物体名片段（对象级，含父链）/ Layer，
-            /// 设置了哪几个就要求同时满足。三个都没设 → 不匹配（防止误把全场都画进遮罩）。
-            /// </summary>
-            public static bool Matches(MaskGroup group, GameObject target, Material material)
-            {
-                bool hasLayer = group.layerMask.value != 0;
-                bool hasName = !string.IsNullOrEmpty(group.nameContains);
-                bool hasMaterial = !string.IsNullOrEmpty(group.materialContains);
-                if (!hasLayer && !hasName && !hasMaterial) return false;
-
-                if (hasLayer && (group.layerMask.value & (1 << target.layer)) == 0) return false;
-                if (hasName && !MatchesAny(group.nameContains, HierarchyName(target))) return false;
-                if (hasMaterial)
-                {
-                    if (material == null) return false;
-                    if (!MatchesAny(group.materialContains, material.name)) return false;
-                }
-                return true;
-            }
-
             public void Dispose()
             {
+                CoreUtils.Destroy(_material);
+                _material = null;
                 _mask?.Release();
                 _mask = null;
             }
         }
 
         // ==================================================================
-        // 合成 pass：像素化 + 描边（三种依据都在这里分支）
+        // ④ 分组 pass：画遮罩 + 立刻用它做外轮廓描边（同一个 Execute，顺序确定）
         // ==================================================================
-        sealed class PixelOutlinePass : ScriptableRenderPass
+        sealed class GroupPass : ScriptableRenderPass
         {
-            Material _material;
-            Material _ownMaterial;
             Settings _settings;
-            float _thicknessOverride = -1f;
-            Color _debugTint = Color.red;
+            MaskGroup _group;
+            MeshRenderer[] _renderers;
+            Color _tint;
+
+            Material _maskMaterial;
+            Material _compositeMaterial;
+            RTHandle _mask;
             RTHandle _temp;
 
-            public PixelOutlinePass()
+            public void Setup(Settings settings, MaskGroup group, MeshRenderer[] renderers, Color tint)
             {
-                ConfigureInput(ScriptableRenderPassInput.Depth);   // 依据 0 需要深度
-            }
-
-            /// <summary>给这个 pass 一份独立材质（多组共用一份会互相覆盖属性）</summary>
-            public void SetOwnMaterial(Shader shader)
-            {
-                if (shader != null) _ownMaterial = CoreUtils.CreateEngineMaterial(shader);
-            }
-
-            public void Setup(Material material, Settings settings, float thicknessOverride, Color debugTint)
-            {
-                _material = material;
                 _settings = settings;
-                _thicknessOverride = thicknessOverride;
-                _debugTint = debugTint;
-            }
+                _group = group;
+                _renderers = renderers;
+                _tint = tint;
 
-            public void RequestDepth() => ConfigureInput(ScriptableRenderPassInput.Depth);
+                if (_maskMaterial == null) _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
+                if (_maskMaterial != null) _maskMaterial.SetColor(MaskColorId, Color.black);
+                if (_compositeMaterial == null) _compositeMaterial = CoreUtils.CreateEngineMaterial(settings.compositeShader);
+            }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                ConfigureInput(ScriptableRenderPassInput.Depth);
+                RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
+                desc.depthBufferBits = 24;
+                desc.msaaSamples = 1;
+                RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
+                                                  name: "_SlimaGroupMask");
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                if (_material == null || _settings == null) return;
+                if (_maskMaterial == null || _compositeMaterial == null || _mask == null || _group == null) return;
 
-                Material material = _ownMaterial != null ? _ownMaterial : _material;
-                float thickness = _thicknessOverride >= 0f ? _thicknessOverride : _settings.outlineThickness;
+                RTHandle source = renderingData.cameraData.renderer.cameraColorTargetHandle;
+                if (source == null) return;
 
-                material.SetColor(OutlineColorId, _settings.outlineColor);
-                material.SetFloat(PixelSizeId, Mathf.Max(1f, _settings.pixelSize));
-                material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
-                material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
-                material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 7));
-                material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
-                material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
-                material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
-                material.SetColor(DebugTintId, _debugTint);
-
-                CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
-                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))
+                CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Group");
+                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Outline Group")))
                 {
-                    RTHandle source = renderingData.cameraData.renderer.cameraColorTargetHandle;
-                    if (source != null)
-                    {
-                        RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
-                        desc.depthBufferBits = 0;
-                        desc.msaaSamples = 1;
-                        RenderingUtils.ReAllocateIfNeeded(ref _temp, desc, FilterMode.Point, TextureWrapMode.Clamp,
-                                                          name: "_SlimaToonTemp");
+                    // ---- ③ 画这一组的遮罩（白底，物体涂黑）----
+                    cmd.SetRenderTarget(_mask);
+                    cmd.ClearRenderTarget(true, true, Color.white);
 
-                        if (_temp != null)
+                    if (_renderers != null)
+                    {
+                        foreach (MeshRenderer renderer in _renderers)
                         {
-                            Blitter.BlitCameraTexture(cmd, source, _temp, material, 0);
-                            Blitter.BlitCameraTexture(cmd, _temp, source);
+                            if (renderer == null) continue;
+                            Material[] mats = renderer.sharedMaterials;
+                            if (mats == null) continue;
+                            for (int submesh = 0; submesh < mats.Length; submesh++)
+                            {
+                                if (!Matches(_group, renderer.gameObject, mats[submesh])) continue;
+                                cmd.DrawRenderer(renderer, _maskMaterial, submesh, 0);
+                            }
                         }
                     }
-                }
 
+                    // ---- ④ 用这张遮罩做外轮廓描边（遮罩直接绑在材质上，不走全局）----
+                    _compositeMaterial.SetTexture(MaskId, _mask.rt);
+                    _compositeMaterial.SetFloat(PixelatePassId, 0f);
+                    _compositeMaterial.SetColor(OutlineColorId, _settings.outlineColor);
+                    _compositeMaterial.SetFloat(OutlineThicknessId, Mathf.Max(0f, _group.thickness));
+                    _compositeMaterial.SetFloat(DebugModeId, _settings.debugMode);
+                    _compositeMaterial.SetColor(DebugTintId, _tint);
+
+                    RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
+                    desc.depthBufferBits = 0;
+                    desc.msaaSamples = 1;
+                    RenderingUtils.ReAllocateIfNeeded(ref _temp, desc, FilterMode.Point, TextureWrapMode.Clamp,
+                                                      name: "_SlimaOutlineTemp");
+
+                    if (_temp != null)
+                    {
+                        Blitter.BlitCameraTexture(cmd, source, _temp, _compositeMaterial, 0);
+                        Blitter.BlitCameraTexture(cmd, _temp, source);
+                    }
+                }
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
             public void Dispose()
             {
-                CoreUtils.Destroy(_ownMaterial);
-                _ownMaterial = null;
+                CoreUtils.Destroy(_maskMaterial);
+                CoreUtils.Destroy(_compositeMaterial);
+                _maskMaterial = null;
+                _compositeMaterial = null;
+                _mask?.Release();
+                _mask = null;
                 _temp?.Release();
                 _temp = null;
             }
         }
+
+        // ==================================================================
+        // ⑤ 最后一步：重采样 + 像素化（清晰遮罩内的像素除外）
+        // ==================================================================
+        sealed class PixelatePass : ScriptableRenderPass
+        {
+            Settings _settings;
+            RTHandle _crispMask;
+            Material _material;
+            RTHandle _temp;
+
+            public void Setup(Settings settings, RTHandle crispMask)
+            {
+                _settings = settings;
+                _crispMask = crispMask;
+                if (_material == null) _material = CoreUtils.CreateEngineMaterial(settings.compositeShader);
+            }
+
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {
+                if (_material == null) return;
+
+                RTHandle source = renderingData.cameraData.renderer.cameraColorTargetHandle;
+                if (source == null) return;
+
+                _material.SetFloat(PixelatePassId, 1f);
+                _material.SetFloat(PixelSizeId, Mathf.Max(1f, _settings.pixelSize));
+                _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
+                _material.SetFloat(CrispDilateId, Mathf.Max(0f, _settings.crispDilate));
+                _material.SetTexture(CrispMaskId, _crispMask != null ? _crispMask.rt : Texture2D.blackTexture);
+
+                CommandBuffer cmd = CommandBufferPool.Get("Slima Pixelate");
+                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Pixelate")))
+                {
+                    RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
+                    desc.depthBufferBits = 0;
+                    desc.msaaSamples = 1;
+                    RenderingUtils.ReAllocateIfNeeded(ref _temp, desc, FilterMode.Point, TextureWrapMode.Clamp,
+                                                      name: "_SlimaPixelateTemp");
+
+                    if (_temp != null)
+                    {
+                        Blitter.BlitCameraTexture(cmd, source, _temp, _material, 0);
+                        Blitter.BlitCameraTexture(cmd, _temp, source);
+                    }
+                }
+                context.ExecuteCommandBuffer(cmd);
+                CommandBufferPool.Release(cmd);
+            }
+
+            public void Dispose()
+            {
+                CoreUtils.Destroy(_material);
+                _material = null;
+                _temp?.Release();
+                _temp = null;
+            }
+        }
+
+        static readonly int MaskColorId = Shader.PropertyToID("_MaskColor");
+        static readonly int MaskId = Shader.PropertyToID("_SlimaMask");
+        static readonly int CrispMaskId = Shader.PropertyToID("_SlimaCrispMask");
+        static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+        static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
+        static readonly int PixelatePassId = Shader.PropertyToID("_PixelatePass");
+        static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
+        static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
+        static readonly int CrispDilateId = Shader.PropertyToID("_CrispDilate");
+        static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
+        static readonly int DebugTintId = Shader.PropertyToID("_DebugTint");
     }
 }
