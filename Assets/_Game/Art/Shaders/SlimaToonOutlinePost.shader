@@ -17,7 +17,7 @@ Shader "Slima/Toon Outline Post"
         _OutlineThickness ("描边粗细（像素块）", Range(0, 16)) = 2
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
-        _DebugMode ("调试模式（0=正常 1=看原始深度 2=看边缘强度 3=看线性深度）", Range(0, 3)) = 0
+        _DebugMode ("调试模式（0=正常 1=原始深度 2=边缘 3=线性深度 4=清晰遮罩 6=分组填色）", Range(0, 6)) = 0
         _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 2=遮罩分组 · 推荐）", Range(0, 2)) = 2
         _OutlinePlacement ("描边位置（0=两侧 1=只向外/亮侧 2=只向内/暗侧）", Range(0, 2)) = 1
         _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
@@ -234,6 +234,15 @@ Shader "Slima/Toon Outline Post"
                                          SampleMask(sourceUV + float2(texel.x, 0.0))),
                                      min(SampleMask(sourceUV + float2(0.0, -texel.y)),
                                          SampleMask(sourceUV + float2(0.0, texel.y))));
+
+                    // ---- 调试 6：把这一组的物体整体**填色**（不是描边）----
+                    //   用途：一眼确认"这一组到底圈住了哪些物体"。每组一个颜色，多组会叠加显示。
+                    //   完全没被填色的物体 = 没有被任何分组识别到 → 该组的过滤条件没匹配上。
+                    if (_DebugMode > 5.5)
+                    {
+                        color = lerp(color, _DebugTint.rgb, saturate(1.0 - mC));
+                        return half4(color, 1);
+                    }
 
                     if (_DebugMode > 1.5)
                     {

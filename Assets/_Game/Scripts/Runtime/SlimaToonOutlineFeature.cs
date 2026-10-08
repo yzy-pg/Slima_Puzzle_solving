@@ -111,10 +111,12 @@ namespace SlimaPuzzle.Rendering
             [Header("调试")]
             [Tooltip("0 = 正常。\n" +
                      "1 = 原始深度缓冲（全黑 = 深度纹理没绑上）。\n" +
-                     "2 = 描边分组可视化（每组一个颜色）。\n" +
+                     "2 = 描边分组可视化（每组一个颜色，只显示边缘判定）。\n" +
                      "3 = 线性眼深度灰度图（白 = 近）。\n" +
-                     "4 = 特殊物件专属：品红 = 这些物件不参与像素化（保持清晰）。")]
-            [Range(0, 4)] public int debugMode = 0;
+                     "4 = 特殊物件专属：品红 = 不参与像素化（保持清晰）。\n" +
+                     "6 = 分组填色测试：把每一组的物体整体填成该组的颜色 —— 一眼看出识别范围；\n" +
+                     "    完全没被填色的物体 = 没有任何分组识别到它。")]
+            [Range(0, 6)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
@@ -194,7 +196,8 @@ namespace SlimaPuzzle.Rendering
             }
 
             // ---- 遮罩分组模式：每组 = 一次"画遮罩 + 一次合成" ----
-            if (settings.edgeSource >= 2)
+            // 调试模式 6（分组填色测试）也要走这条路，否则拿不到每组遮罩
+            if (settings.edgeSource >= 2 || settings.debugMode >= 6)
             {
                 int groupIndex = 0;
                 foreach (MaskGroup group in EnumerateGroups())
@@ -544,7 +547,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 4));
+                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 6));
                 _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
                 _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));

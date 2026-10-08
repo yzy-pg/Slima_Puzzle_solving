@@ -50,12 +50,59 @@ MonoBehaviour:
   m_Active: 1
   settings:
     shader: {fileID: 4800000, guid: ad23417605fd40368b6f2bf4b288edf3, type: 3}
+    maskShader: {fileID: 4800000, guid: 2cebe40c0a2f42a2b20434a1323a21b2, type: 3}
     passEvent: 550
     pixelSize: 2.47
     pixelateAmount: 0.369
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
+    edgeSource: 2
+    outlinePlacement: 1
+    maskGroups:
+    - name: "\u5730\u9762"
+      materialContains: _Floor
+      nameContains: 
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 0
+      thickness: 2
+      enabled: 1
+    - name: "\u5899\u9762"
+      materialContains: _Wall
+      nameContains: 
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 0
+      thickness: 2
+      enabled: 1
+    - name: "\u8D77\u70B9"
+      materialContains: 
+      nameContains: Spawn
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 0
+      thickness: 1
+      enabled: 1
+    - name: "\u51FA\u53E3"
+      materialContains: 
+      nameContains: Exit
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 0
+      thickness: 1
+      enabled: 1
+    - name: "\u4E3B\u89D2"
+      materialContains: 
+      nameContains: Player|Slime
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 0
+      thickness: 2
+      enabled: 1
     outlineThickness: 5.33
     depthThreshold: 0.6
+    colorThreshold: 0.15
+    crispSpecials: 1
+    crispNameFilter: Spawn|Exit|Player|Slime
     debugMode: 0
 --- !u!114 &11400000
 MonoBehaviour:
