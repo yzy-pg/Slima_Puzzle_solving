@@ -175,27 +175,27 @@ namespace SlimaPuzzle.Rendering
                           $"相机需要深度纹理={renderingData.cameraData.requiresDepthTexture}");
             }
 
+            // ★ 清晰遮罩（不参与像素化）在任何描边依据下都要生效 —— 它管的是像素化，不是描边
+            RefreshRenderers();
+
+            if (settings.crispSpecials && !string.IsNullOrEmpty(settings.crispNameFilter))
+            {
+                if (_crispGroup == null) _crispGroup = new MaskGroup();
+                _crispGroup.name = "清晰（不参与像素化）";
+                _crispGroup.nameContains = settings.crispNameFilter;
+                _crispGroup.materialContains = "";
+                _crispGroup.layerMask = 0;
+
+                if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
+                _crispMaskPass.renderPassEvent = settings.passEvent;
+                _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers,
+                                     CrispMaskTextureId, Color.black);   // 黑底 + 白物件
+                renderer.EnqueuePass(_crispMaskPass);
+            }
+
             // ---- 遮罩分组模式：每组 = 一次"画遮罩 + 一次合成" ----
             if (settings.edgeSource >= 2)
             {
-                RefreshRenderers();
-
-                // ★ 先画"不参与像素化"的遮罩（特殊物件保持清晰），再画各组的描边遮罩
-                if (settings.crispSpecials && !string.IsNullOrEmpty(settings.crispNameFilter))
-                {
-                    if (_crispGroup == null) _crispGroup = new MaskGroup();
-                    _crispGroup.name = "清晰（不参与像素化）";
-                    _crispGroup.nameContains = settings.crispNameFilter;
-                    _crispGroup.materialContains = "";
-                    _crispGroup.layerMask = 0;
-
-                    if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
-                    _crispMaskPass.renderPassEvent = settings.passEvent;
-                    _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers,
-                                         CrispMaskTextureId, Color.black);   // 黑底 + 白物件
-                    renderer.EnqueuePass(_crispMaskPass);
-                }
-
                 int groupIndex = 0;
                 foreach (MaskGroup group in EnumerateGroups())
                 {
@@ -348,6 +348,14 @@ namespace SlimaPuzzle.Rendering
 
                 _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
                 _maskMaterial.SetColor(MaskColorId, Color.black);      // 黑 = 这一组的物体
+            }
+
+            // 清晰遮罩材质：任何依据下都可能需要（它管像素化）
+            if (_crispMaskMaterial == null && settings.crispSpecials &&
+                !string.IsNullOrEmpty(settings.crispNameFilter))
+            {
+                if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
+                if (settings.maskShader == null) return false;
 
                 _crispMaskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
                 _crispMaskMaterial.SetColor(MaskColorId, Color.white); // 白 = 不被像素化

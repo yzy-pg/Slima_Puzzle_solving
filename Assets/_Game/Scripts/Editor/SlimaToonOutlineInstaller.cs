@@ -17,10 +17,111 @@ namespace SlimaPuzzle.Rendering.EditorTools
     /// </summary>
     public static class SlimaToonOutlineInstaller
     {
-        [MenuItem("Tools/Slima/地图编辑器/给 URP Renderer 装上全屏描边 Feature", false, 430)]
-        public static void Install()
+        // ==================================================================
+        // 把内置分组 + Mask Shader 真正写进 Renderer 资产（Inspector 里能看见）
+        // ==================================================================
+        static readonly string[] BuiltinGroupNames = { "地面", "墙面", "起点", "出口", "主角" };
+        static readonly string[] BuiltinMaterialFilters = { "_Floor", "_Wall", "", "", "" };
+        static readonly string[] BuiltinNameFilters = { "", "", "Spawn", "Exit", "Player|Slime" };
+        static readonly float[] BuiltinThickness = { 2f, 2f, 1f, 1f, 2f };
+
+        [MenuItem("Tools/Slima/地图编辑器/把描边分组写进 Renderer 资产（Inspector 可见）", false, 431)]
+        public static void FillBuiltinGroups()
         {
             string[] guids = AssetDatabase.FindAssets("t:UniversalRendererData");
+            var lines = new List<string>();
+            int touched = 0;
+
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var data = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(path);
+                if (data == null) continue;
+
+                var serialized = new SerializedObject(data);
+                SerializedProperty features = serialized.FindProperty("m_RendererFeatures");
+                if (features == null) continue;
+
+                bool changedThisAsset = false;
+
+                for (int i = 0; i < features.arraySize; i++)
+                {
+                    var feature = features.GetArrayElementAtIndex(i).objectReferenceValue as SlimaToonOutlineFeature;
+                    if (feature == null) continue;
+
+                    var featureSo = new SerializedObject(feature);
+                    SerializedProperty shaderProp = featureSo.FindProperty("settings.maskShader");
+                    SerializedProperty sourceProp = featureSo.FindProperty("settings.edgeSource");
+                    SerializedProperty groupsProp = featureSo.FindProperty("settings.maskGroups");
+
+                    bool changed = false;
+
+                    // 1) 补 Mask Shader
+                    if (shaderProp != null && shaderProp.objectReferenceValue == null)
+                    {
+                        shaderProp.objectReferenceValue = Shader.Find("Slima/Outline Mask");
+                        changed = true;
+                        lines.Add($"{Path.GetFileName(path)}：Mask Shader 已补上");
+                    }
+
+                    // 2) 补齐 5 个内置分组
+                    if (groupsProp != null)
+                    {
+                        for (int g = 0; g < BuiltinGroupNames.Length; g++)
+                        {
+                            bool exists = false;
+                            for (int k = 0; k < groupsProp.arraySize; k++)
+                            {
+                                SerializedProperty nameProp = groupsProp.GetArrayElementAtIndex(k)
+                                    .FindPropertyRelative("name");
+                                if (nameProp != null && nameProp.stringValue == BuiltinGroupNames[g]) { exists = true; break; }
+                            }
+                            if (exists) continue;
+
+                            groupsProp.arraySize++;
+                            SerializedProperty item = groupsProp.GetArrayElementAtIndex(groupsProp.arraySize - 1);
+                            item.FindPropertyRelative("name").stringValue = BuiltinGroupNames[g];
+                            item.FindPropertyRelative("materialContains").stringValue = BuiltinMaterialFilters[g];
+                            item.FindPropertyRelative("nameContains").stringValue = BuiltinNameFilters[g];
+                            item.FindPropertyRelative("layerMask").intValue = 0;
+                            item.FindPropertyRelative("thickness").floatValue = BuiltinThickness[g];
+                            item.FindPropertyRelative("enabled").boolValue = true;
+                            changed = true;
+                            lines.Add($"{Path.GetFileName(path)}：补了「{BuiltinGroupNames[g]}」组");
+                        }
+                    }
+
+                    if (changed)
+                    {
+                        featureSo.ApplyModifiedPropertiesWithoutUndo();
+                        EditorUtility.SetDirty(feature);
+                        changedThisAsset = true;
+                    }
+                }
+
+                if (changedThisAsset)
+                {
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                    EditorUtility.SetDirty(data);
+                    touched++;
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            string message = touched == 0
+                ? "所有 Renderer 里的分组都齐了（或没装 Feature），没有需要补的。"
+                : $"已更新 {touched} 个 Renderer：\n\n" + string.Join("\n", lines);
+
+            Debug.Log("[Slima] 补齐描边分组：" + message.Replace("\n", " | "));
+            EditorUtility.DisplayDialog("Slima 描边分组", message +
+                "\n\n现在去 Renderer 资产的 Render Features → Slima Toon Outline 就能看到这几组了。", "好");
+        }
+
+        [MenuItem("Tools/Slima/地图编辑器/给 URP Renderer 装上全屏描边 Feature", false, 430)]
+        public static void Install()
+        {            string[] guids = AssetDatabase.FindAssets("t:UniversalRendererData");
             if (guids == null || guids.Length == 0)
             {
                 EditorUtility.DisplayDialog("Slima",
@@ -113,6 +214,9 @@ namespace SlimaPuzzle.Rendering.EditorTools
 
             Debug.Log("[Slima] 全屏描边安装结果：" + string.Join(" | ", lines));
             EditorUtility.DisplayDialog("Slima 全屏描边", message, "好");
+
+            // 顺手把内置分组 + Mask Shader 写进资产（Inspector 里就能看见并调）
+            FillBuiltinGroups();
         }
     }
 }
