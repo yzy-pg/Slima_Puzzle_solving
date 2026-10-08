@@ -457,8 +457,26 @@ namespace SlimaPuzzle.Rendering
             }
 
             /// <summary>
-            /// 分组匹配：材质名片段（子网格级）/ 物体名片段（对象级）/ Layer，设置了哪几个就要求同时满足。
-            /// 三个都没设 → 不匹配（防止误把全场都画进遮罩）。
+            /// 名字过滤要沿**整条父子链**匹配：起点/出口/主角的 MeshRenderer 常在子物体上
+            /// （如 `Spawned_Spawn_123/Disc`），只看自身名字会漏掉。
+            /// </summary>
+            static string HierarchyName(GameObject target)
+            {
+                string result = target.name;
+                Transform parent = target.transform.parent;
+                int depth = 0;
+                while (parent != null && depth < 6)
+                {
+                    result += "|" + parent.name;
+                    parent = parent.parent;
+                    depth++;
+                }
+                return result;
+            }
+
+            /// <summary>
+            /// 分组匹配：材质名片段（子网格级）/ 物体名片段（对象级，含父链）/ Layer，
+            /// 设置了哪几个就要求同时满足。三个都没设 → 不匹配（防止误把全场都画进遮罩）。
             /// </summary>
             static bool Matches(MaskGroup group, GameObject target, Material material)
             {
@@ -468,7 +486,7 @@ namespace SlimaPuzzle.Rendering
                 if (!hasLayer && !hasName && !hasMaterial) return false;
 
                 if (hasLayer && (group.layerMask.value & (1 << target.layer)) == 0) return false;
-                if (hasName && !MatchesAny(group.nameContains, target.name)) return false;
+                if (hasName && !MatchesAny(group.nameContains, HierarchyName(target))) return false;
                 if (hasMaterial)
                 {
                     if (material == null) return false;
