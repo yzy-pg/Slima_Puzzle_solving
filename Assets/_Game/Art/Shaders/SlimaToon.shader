@@ -33,7 +33,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _PixelSnap ("像素化｜顶点像素吸附（0 = 关，越大越方）", Range(0, 16)) = 3
 
         _OutlineColor ("描边｜颜色", Color) = (0, 0, 0, 1)
-        _OutlineWidth ("描边｜粗细（屏幕像素）", Range(0, 8)) = 2
+        _OutlineWidth ("描边｜粗细（屏幕像素，0 = 关掉这个物体的反转壳描边）", Range(0, 8)) = 2
         _OutlineNoise ("描边｜噪声（手绘感）", Range(0, 1)) = 0
     }
 
@@ -107,6 +107,16 @@ Shader "Slima/Toon (Cel + Pixel)"
             Varyings OutlineVertex(Attributes input)
             {
                 Varyings output = (Varyings)0;
+
+                // ★ 粗细 = 0 → 整个 pass 退化到裁剪空间外，什么都不画。
+                //   方块地形（chunk 是合并网格、每面顶点独立）必须用这个来关掉反转壳：
+                //   反转壳沿各面法线外扩会让每个方块棱裂开，表现就是"只在部分边上出现厚黑块、非常不均衡"。
+                //   地形轮廓交给全屏描边（SlimaToonOutlineFeature）去做。
+                if (_OutlineWidth <= 0.001)
+                {
+                    output.positionCS = float4(0.0, 0.0, -10.0, 1.0);
+                    return output;
+                }
 
                 VertexPositionInputs positionInputs = GetVertexPositionInputs(input.positionOS.xyz);
                 float4 positionCS = positionInputs.positionCS;
