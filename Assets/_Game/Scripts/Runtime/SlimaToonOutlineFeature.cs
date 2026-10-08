@@ -135,6 +135,7 @@ namespace SlimaPuzzle.Rendering
         static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
         static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
         static readonly int MaskTextureId = Shader.PropertyToID("_SlimaMask");
+        static readonly int DebugTintId = Shader.PropertyToID("_DebugTint");
 
         public override void Create()
         {
@@ -177,7 +178,7 @@ namespace SlimaPuzzle.Rendering
                     renderer.EnqueuePass(_maskPasses[groupIndex]);
 
                     _compositePasses[groupIndex].renderPassEvent = settings.passEvent;
-                    _compositePasses[groupIndex].Setup(_material, settings, group.thickness);
+                    _compositePasses[groupIndex].Setup(_material, settings, group.thickness, DebugTintFor(groupIndex));
                     renderer.EnqueuePass(_compositePasses[groupIndex]);
 
                     groupIndex++;
@@ -187,7 +188,7 @@ namespace SlimaPuzzle.Rendering
 
             // ---- 深度 / 颜色模式：单个合成 pass ----
             _pass.renderPassEvent = settings.passEvent;
-            _pass.Setup(_material, settings, -1f);
+            _pass.Setup(_material, settings, -1f, DebugTintFor(0));
             renderer.EnqueuePass(_pass);
         }
 
@@ -205,6 +206,18 @@ namespace SlimaPuzzle.Rendering
             _meshRenderers = Object.FindObjectsOfType<MeshRenderer>();
             _rescanCountdown = 60;
         }
+
+        static readonly Color[] DebugTints =
+        {
+            new Color(1.00f, 0.25f, 0.25f),   // 红
+            new Color(0.25f, 1.00f, 0.35f),   // 绿
+            new Color(0.30f, 0.55f, 1.00f),   // 蓝
+            new Color(1.00f, 0.90f, 0.25f),   // 黄
+            new Color(1.00f, 0.40f, 1.00f),   // 紫
+            new Color(0.25f, 1.00f, 1.00f),   // 青
+        };
+
+        static Color DebugTintFor(int index) => DebugTints[index % DebugTints.Length];
 
         static string EdgeSourceLabel(int source) =>
             source >= 2 ? "遮罩分组" : (source == 1 ? "颜色亮度" : "深度落差");
@@ -369,6 +382,7 @@ namespace SlimaPuzzle.Rendering
             Material _material;
             Settings _settings;
             float _thicknessOverride = -1f;
+            Color _debugTint = Color.red;
             RTHandle _temp;
 
             public PixelOutlinePass()
@@ -376,11 +390,12 @@ namespace SlimaPuzzle.Rendering
                 ConfigureInput(ScriptableRenderPassInput.Depth);   // 依据 0 需要深度
             }
 
-            public void Setup(Material material, Settings settings, float thicknessOverride)
+            public void Setup(Material material, Settings settings, float thicknessOverride, Color debugTint)
             {
                 _material = material;
                 _settings = settings;
                 _thicknessOverride = thicknessOverride;
+                _debugTint = debugTint;
             }
 
             public void RequestDepth() => ConfigureInput(ScriptableRenderPassInput.Depth);
@@ -405,6 +420,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
                 _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
+                _material.SetColor(DebugTintId, _debugTint);
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))

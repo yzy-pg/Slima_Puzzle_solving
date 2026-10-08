@@ -21,6 +21,7 @@ Shader "Slima/Toon Outline Post"
         _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 2=遮罩分组 · 推荐）", Range(0, 2)) = 2
         _OutlinePlacement ("描边位置（0=两侧 1=只向外/亮侧 2=只向内/暗侧）", Range(0, 2)) = 1
         _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
+        _DebugTint ("调试用颜色（各组不同，由 Feature 设置）", Color) = (1, 0.2, 0.2, 1)
     }
 
     SubShader
@@ -57,6 +58,7 @@ Shader "Slima/Toon Outline Post"
                 float _EdgeSource;
                 float _OutlinePlacement;
                 float _ColorThreshold;
+                half4 _DebugTint;
             CBUFFER_END
 
             struct Attributes
@@ -202,8 +204,9 @@ Shader "Slima/Toon Outline Post"
 
                     if (_DebugMode > 1.5)
                     {
+                        // 每个组一个颜色，叠加显示：一眼看出"哪个物体被分到了哪一组"
                         float m = 1.0 - mC;   // 白 = 这一组的物体
-                        return half4(m, m * 0.35, 0, 1);
+                        return half4(max(color, _DebugTint.rgb * m), 1);
                     }
 
                     float mOutline = (mC > 0.5 && mMin < 0.5) ? 1.0 : 0.0;
