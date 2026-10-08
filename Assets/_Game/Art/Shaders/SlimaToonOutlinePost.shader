@@ -178,7 +178,8 @@ Shader "Slima/Toon Outline Post"
                 }
 
                 // ---- 调试 3：线性眼深度（白 = 近，黑 = 远）----
-                if (_DebugMode > 2.5)
+                // ⚠ 必须限定在 3 这一档：以前写成 > 2.5，把 4 / 6 也一起劫持了
+                if (_DebugMode > 2.5 && _DebugMode < 3.5)
                 {
                     float d = SampleEyeDepth(sampledUV);
                     float t = saturate(1.0 - d / 60.0);
@@ -223,7 +224,8 @@ Shader "Slima/Toon Outline Post"
                 //   把"这一组物体"整体渲染成黑、背景白，然后：自己是背景 + 邻域里有物体 → 就在物体外面画线。
                 //   · 不依赖深度纹理，也不依赖颜色阈值 → 深色地面/暗物体都不会乱出线
                 //   · 天生只画外侧：物品自己的像素永远是黑的，不会被啃
-                else if (_OutlineThickness > 0.001 && _EdgeSource > 1.5)
+                //   · 调试 6（分组填色）也要走这一支 —— 所以不能只在 EdgeSource=2 时进入
+                else if (_OutlineThickness > 0.001 && (_EdgeSource > 1.5 || _DebugMode > 5.5))
                 {
                     float2 texel = _OutlineThickness / virtualRes;
 
