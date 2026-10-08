@@ -43,6 +43,7 @@ Shader "Slima/Outline Composite"
             #pragma fragment Frag
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
             TEXTURE2D_X(_BlitTexture);
             SAMPLER(sampler_LinearClamp);
@@ -60,6 +61,7 @@ Shader "Slima/Outline Composite"
                 float _PixelSize;
                 float _PixelateAmount;
                 float _CrispDilate;
+                float _MaskFar;
                 float _DebugMode;
                 half4 _DebugTint;
             CBUFFER_END
@@ -125,14 +127,27 @@ Shader "Slima/Outline Composite"
                     return half4(lerp(SceneColor(uv), _DebugTint.rgb, saturate(1.0 - mC)), 1);
                 }
 
-                // 外轮廓：自己是背景 + 邻域里有该组物体 → 只画在物体外面
-                float mMin = min(min(
-                    SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(-texel.x, 0)).r,
-                    SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(texel.x, 0)).r),
-                    min(SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(0, -texel.y)).r,
-                        SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(0, texel.y)).r));
+                // 外轮廓：自己是背景 + 邻域里有该组物体 + **那个物体没有被更近的东西挡住**
+                //   （遮罩 G 通道存了该物体的深度；与相机深度图比较 → 主角站上去、墙挡在前面都不会画线）
+                float4 mx0 = SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(-texel.x, 0));
+                float4 mx1 = SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(texel.x, 0));
+                float4 my0 = SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(0, -texel.y));
+                float4 my1 = SAMPLE_TEXTURE2D(_SlimaMask, sampler_SlimaMask, uv + float2(0, texel.y));
 
-                float outline = (mC > 0.5 && mMin < 0.5) ? 1.0 : 0.0;
+                float mMin = min(min(mx0.r, mx1.r), min(my0.r, my1.r));      // 0 = 邻域里有该组物体
+
+                // 取"最近的那个邻域物体"的深度
+                float groupDepth = 1.0;
+                groupDepth = min(groupDepth, mx0.r < 0.5 ? mx0.g : 1.0);
+                groupDepth = min(groupDepth, mx1.r < 0.5 ? mx1.g : 1.0);
+                groupDepth = min(groupDepth, my0.r < 0.5 ? my0.g : 1.0);
+                groupDepth = min(groupDepth, my1.r < 0.5 ? my1.g : 1.0);
+
+                // 相机深度图（归一化到同一尺度）。深度图不可用时线性化结果会偏大 → 退化为"总是画线"（不会更糟）
+                float sceneDepth = LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams) / max(1e-3, _MaskFar);
+                float visible = (sceneDepth >= groupDepth - 0.01) ? 1.0 : 0.0;   // 1% 容差
+
+                float outline = (mC > 0.5 && mMin < 0.5 && visible > 0.5) ? 1.0 : 0.0;
                 float3 color = lerp(SceneColor(uv), _OutlineColor.rgb, outline * _OutlineColor.a);
                 return half4(color, 1);
             }

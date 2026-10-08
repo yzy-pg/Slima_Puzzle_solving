@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: BlockMapPlayer
-  m_Shader: {fileID: 10755, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: 0bb0776b56ae4487bb749465152c3611, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,9 +22,27 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats: []
+    m_Floats:
+    - _Bands: 5
+    - _LightWrap: 0.176
+    - _NoiseStrength: 0.573
+    - _NoiseSurfaceLock: 1
+    - _NoiseWorldSize: 0.05
+    - _OutlineNoise: 0.272
+    - _OutlineWidth: 2.52
+    - _PixelSize: 13.05
+    - _PixelSnap: 6.77
     m_Colors:
+    - _AmbientColor: {r: 0.15999997, g: 0.17999998, b: 0.23999995, a: 1}
+    - _BaseColor: {r: 0.35765752, g: 0.9924528, b: 0.5592702, a: 1}
     - _Color: {r: 0.3, g: 0.9, b: 0.72, a: 1}
+    - _LightTint: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _ShadowColor: {r: 0.41999996, g: 0.4699999, b: 0.6, a: 1}
   m_BuildTextureStacks: []

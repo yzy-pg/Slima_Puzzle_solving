@@ -427,6 +427,8 @@ namespace SlimaPuzzle.Rendering
                     // ---- ④ 用这张遮罩做外轮廓描边 ----
                     // 两条路都接上：材质绑定 + 全局绑定（哪个生效都行）
                     _compositeMaterial.SetTexture(MaskId, _mask.rt);
+                    _compositeMaterial.SetFloat(MaskFarId, renderingData.cameraData.camera.farClipPlane);
+                    _maskMaterial.SetFloat(MaskFarId, renderingData.cameraData.camera.farClipPlane);
                     cmd.SetGlobalTexture(MaskId, _mask);
 
                     if (_mask.rt == null)
@@ -535,6 +537,7 @@ namespace SlimaPuzzle.Rendering
 
         static readonly int MaskColorId = Shader.PropertyToID("_MaskColor");
         static readonly int MaskId = Shader.PropertyToID("_SlimaMask");
+        static readonly int MaskFarId = Shader.PropertyToID("_MaskFar");
         static readonly int CrispMaskId = Shader.PropertyToID("_SlimaCrispMask");
         static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");

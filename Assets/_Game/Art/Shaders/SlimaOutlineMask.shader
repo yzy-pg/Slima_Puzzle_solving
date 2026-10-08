@@ -42,6 +42,7 @@ Shader "Slima/Outline Mask"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _MaskColor;
+                float _MaskFar;      // 相机远裁剪面（把深度归一化到 0..1 写进 G 通道）
             CBUFFER_END
 
             struct Attributes
@@ -52,20 +53,25 @@ Shader "Slima/Outline Mask"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                float  eyeDepth   : TEXCOORD0;
             };
 
             Varyings MaskVertex(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionCS = TransformWorldToHClip(positionWS);
+                // 视线方向深度（正交/透视都正确），给"被遮挡就不画线"用
+                output.eyeDepth = -(mul(UNITY_MATRIX_V, float4(positionWS, 1.0)).z);
                 return output;
             }
 
-            // 遮罩颜色由 Feature 指定：
-            //   黑 = 描边分组（会被描边）；白 = 不参与像素化的物件（保持清晰）
+            // R = 遮罩颜色（黑=描边分组物体 / 白=不参与像素化的物件）
+            // G = 该几何的视线深度归一化（合成时用来判断"有没有被更近的东西挡住"）
             half4 MaskFragment(Varyings input) : SV_Target
             {
-                return _MaskColor;
+                float depth01 = saturate(input.eyeDepth / max(1e-3, _MaskFar));
+                return half4(_MaskColor.r, depth01, _MaskColor.b, 1);
             }
             ENDHLSL
         }
