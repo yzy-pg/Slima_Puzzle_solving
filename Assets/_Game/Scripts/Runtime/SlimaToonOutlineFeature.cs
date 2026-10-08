@@ -37,6 +37,14 @@ namespace SlimaPuzzle.Rendering
             [Header("描边")]
             public Color outlineColor = Color.black;
 
+            [Tooltip("描边依据。\n" +
+                     "0 = 深度落差（需要项目里 Depth Texture 可用）。\n" +
+                     "1 = 颜色/亮度落差（默认）—— 不依赖深度纹理，任何情况都能出线。")]
+            [Range(0, 1)] public int edgeSource = 1;
+
+            [Tooltip("颜色描边阈值（0.01~1，仅当描边依据 = 颜色时有效）。越小线越多、越粗。")]
+            [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
+
             [Tooltip("★ 全屏描边粗细（像素块）。屏幕上的实际宽度 ≈ 这个值 × Pixel Size。\n" +
                      "⚠ 材质里那个「描边｜粗细」是物体的反转壳描边（给角色用），调它不会影响全屏这条线，地形要设 0。")]
             [Range(0f, 16f)] public float outlineThickness = 2f;
@@ -95,6 +103,8 @@ namespace SlimaPuzzle.Rendering
         static readonly int DepthThresholdId = Shader.PropertyToID("_DepthThreshold");
         static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
         static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
+        static readonly int EdgeSourceId = Shader.PropertyToID("_EdgeSource");
+        static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
 
         public override void Create()
         {
@@ -187,6 +197,8 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
                 _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 3));
+                _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 1));
+                _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))

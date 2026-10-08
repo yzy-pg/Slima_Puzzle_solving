@@ -17,7 +17,9 @@ Shader "Slima/Toon Outline Post"
         _OutlineThickness ("描边粗细（像素块）", Range(0, 16)) = 2
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
-        _DebugMode ("调试模式（0=正常 1=看深度 2=看边缘强度）", Range(0, 2)) = 0
+        _DebugMode ("调试模式（0=正常 1=看原始深度 2=看边缘强度 3=看线性深度）", Range(0, 3)) = 0
+        _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 · 不依赖深度纹理）", Range(0, 1)) = 1
+        _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
     }
 
     SubShader
@@ -51,6 +53,8 @@ Shader "Slima/Toon Outline Post"
                 float _DepthThreshold;
                 half  _PixelateAmount;
                 float _DebugMode;
+                float _EdgeSource;
+                float _ColorThreshold;
             CBUFFER_END
 
             struct Attributes
@@ -102,6 +106,13 @@ Shader "Slima/Toon Outline Post"
                 return LinearEyeDepth(raw, _ZBufferParams);
             }
 
+            // 颜色亮度：给"不依赖深度纹理"的描边用
+            float Lum(float2 uv)
+            {
+                float3 c = SampleSceneColor(uv);
+                return dot(c, float3(0.299, 0.587, 0.114));
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 // 源 UV（处理 render scale / 偏移）
@@ -131,11 +142,30 @@ Shader "Slima/Toon Outline Post"
                     return half4(t, t, t, 1);
                 }
 
-                // ---- ② 描边：看像素格 3×3 邻域的「深度落差」（世界单位）----
-                //   用落差而不是梯度，语义直观：_DepthThreshold = 多大的落差算一条边。
-                //   默认 0.6 ≈ 半格方块 → 方块的直角棱、物体轮廓都会出线；
-                //   斜着看地面时相邻像素那点微小深度变化不会乱出线。
-                if (_OutlineThickness > 0.001 && _DepthThreshold > 0)
+                // ---- ②-a 颜色/亮度描边（不依赖深度纹理：深度没绑上时用这条也能出线）----
+                if (_OutlineThickness > 0.001 && _EdgeSource > 0.5)
+                {
+                    float2 texel = _OutlineThickness / virtualRes;
+                    float lx0 = Lum(sampledUV + float2(-texel.x, 0.0));
+                    float lx1 = Lum(sampledUV + float2(texel.x,  0.0));
+                    float ly0 = Lum(sampledUV + float2(0.0, -texel.y));
+                    float ly1 = Lum(sampledUV + float2(0.0,  texel.y));
+
+                    float lMax = max(max(lx0, lx1), max(ly0, ly1));
+                    float lMin = min(min(lx0, lx1), min(ly0, ly1));
+                    float lJump = lMax - lMin;
+
+                    if (_DebugMode > 1.5)
+                    {
+                        float r = saturate(lJump / max(_ColorThreshold, 1e-4));
+                        return half4(r, r * 0.25, r * 0.25, 1);
+                    }
+
+                    float lOutline = (lJump >= _ColorThreshold) ? 1.0 : 0.0;
+                    color = lerp(color, _OutlineColor.rgb, lOutline * _OutlineColor.a);
+                }
+                // ---- ②-b 深度落差描边 ----
+                else if (_OutlineThickness > 0.001 && _DepthThreshold > 0)
                 {
                     float2 texel = _OutlineThickness / virtualRes;
 
