@@ -92,7 +92,7 @@ namespace BlockMap.Tools
         };
 
         // ------------------------------------------------------------------
-        // 场景里可见（否则空物体在 Scene 视图里完全看不到、也点不中）
+        // 场景里可见：**只画一个矩形线框**（不画格子预览、不画立柱，避免看着像两个矩形）
         // ------------------------------------------------------------------
         void OnDrawGizmos()
         {
@@ -102,47 +102,8 @@ namespace BlockMap.Tools
             Vector3 basePos = transform.position;
             Vector3 center = new Vector3(basePos.x, basePos.y + y, basePos.z);
 
-            // ① 矩形线框
             Gizmos.color = new Color(1f, 0.82f, 0.35f, 0.95f);
             Gizmos.DrawWireCube(center, new Vector3(w, 0.05f, d));
-
-            int halfW = Mathf.CeilToInt(w * 0.5f);
-            int halfD = Mathf.CeilToInt(d * 0.5f);
-
-            // ② 四角立柱（高度区间看得见）
-            float y0 = basePos.y + heightRange.x;
-            float y1 = basePos.y + heightRange.y + 1f;
-            Gizmos.color = new Color(1f, 0.82f, 0.35f, 0.45f);
-            foreach (Vector2 corner in new[]
-            {
-                new Vector2(-halfW, -halfD), new Vector2(halfW, -halfD),
-                new Vector2(-halfW,  halfD), new Vector2(halfW,  halfD),
-            })
-            {
-                var a = new Vector3(basePos.x + corner.x, y0, basePos.z + corner.y);
-                var b = new Vector3(basePos.x + corner.x, y1, basePos.z + corner.y);
-                Gizmos.DrawLine(a, b);
-            }
-
-            // ③ 会被点亮的格子（按渐变上色）—— 直接看到"像素格提亮"的样子
-            int dx0 = Mathf.RoundToInt(basePos.x) - halfW;
-            int dz0 = Mathf.RoundToInt(basePos.z) - halfD;
-            for (int dx = -halfW; dx <= halfW; dx++)
-            {
-                for (int dz = -halfD; dz <= halfD; dz++)
-                {
-                    var offset = new Vector2(dx, dz);
-                    int cellX = Mathf.RoundToInt(basePos.x) + dx;
-                    int cellZ = Mathf.RoundToInt(basePos.z) + dz;
-                    float level = Evaluate(offset, cellX, cellZ);
-                    if (!ShouldLight(cellX, cellZ, level)) continue;
-
-                    Color c = brightness.Evaluate(level);
-                    c.a = 0.35f;
-                    Gizmos.color = c;
-                    Gizmos.DrawCube(new Vector3(cellX, basePos.y + y, cellZ), new Vector3(0.92f, 0.02f, 0.92f));
-                }
-            }
         }
 
         void OnValidate()
@@ -151,22 +112,6 @@ namespace BlockMap.Tools
             size.y = Mathf.Max(1f, size.y);
             ditherBlock = Mathf.Max(1, ditherBlock);
             if (heightRange.y < heightRange.x) heightRange.y = heightRange.x;
-
-            // 同步触发碰撞体（Scene 里可点击选中）；只影响编辑器拾取
-            var box = GetComponent<BoxCollider>();
-            if (box != null)
-            {
-                box.isTrigger = true;
-                box.center = new Vector3(0f, (heightRange.x + heightRange.y) * 0.5f + 0.5f, 0f);
-                box.size = new Vector3(size.x, Mathf.Max(0.1f, heightRange.y - heightRange.x + 1f), size.y);
-            }
-        }
-
-        /// <summary>运行时不参与物理：关掉碰撞体（编辑器里仍可点选）。</summary>
-        void OnEnable()
-        {
-            var box = GetComponent<Collider>();
-            if (box != null) box.enabled = false;
         }
     }
 }
