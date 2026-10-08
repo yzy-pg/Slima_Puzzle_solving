@@ -312,7 +312,13 @@ Shader "Slima/Toon (Cel + Pixel)"
                 clip(baseSample.a - _Cutoff);   // 延续 BlockUnlit 的 alpha 裁切（镂空方块需要）
                 half3 albedo = _BaseColor.rgb * baseSample.rgb * input.color.rgb;
 
-                half3 color = albedo * (ramp + _AmbientColor.rgb);
+                // ★ 环境光取「场景环境光」（URP 的 SH，即 RenderSettings.ambientLight）；
+                //   材质里的 _AmbientColor 只当"最低环境光 / 色调"兜底 —— 取两者较大值。
+                //   之前只用材质的固定颜色 → 在场景里调环境光时主角和地形毫无反应（只有点光源有效）。
+                half3 ambientScene = SampleSH(normalWS);
+                half3 ambientFloor = _AmbientColor.rgb * _AmbientColor.a;
+
+                half3 color = albedo * (ramp + max(ambientScene, ambientFloor));
 
                 // ★ 额外光（点光 / 聚光，例如 Lamp 的 emitLight）——之前完全没处理，所以灯照不亮画面
                 //   每盏按同样规则量化成五段，再乘距离/阴影衰减累加
