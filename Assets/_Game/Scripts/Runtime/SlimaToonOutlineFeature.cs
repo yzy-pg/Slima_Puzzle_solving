@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -5,22 +6,48 @@ using UnityEngine.Rendering.Universal;
 namespace SlimaPuzzle.Rendering
 {
     /// <summary>
-    /// 全屏「像素化 + 黑描边」的 URP Renderer Feature。
+    /// 全屏「像素化 + 描边」的 URP Renderer Feature。
     ///
-    /// 装法：URP Asset → Renderer List → 你的 Renderer（URP-Balanced-Renderer / HighFidelity…）
-    ///       → Add Renderer Feature → Slima Toon Outline（Shader 留空会自动找 `Slima/Toon Outline Post`）。
+    /// 三种描边依据（Edge Source）：
+    ///   0 = 深度落差：需要 Depth Texture，物品与背景的前后关系断开处出线
+    ///   1 = 颜色亮度：不依赖任何额外资源，但深色地面/暗物体上容易乱出线
+    ///   2 = 遮罩分组（推荐）：把"一组物体"整体渲染成黑、背景白，只在这一组的外沿描边
+    ///       · 分组靠 材质名片段（地面用 _Floor）/ Layer（功能物件放进同一个 Layer）
+    ///       · 同组的多个物体（哪怕不同区块、不同材质）合成一个整体 → 只描这个整体的外轮廓
+    ///       · 天生只画外侧：物品自己的像素不会被啃
     ///
-    /// 为什么描边放在全屏做、而不是用物体的反转壳：
-    ///   本项目的方块地形是"每个 chunk 一个合并网格、每个面的顶点独立"，
-    ///   反转壳沿法线外扩会在每个方块棱上裂开；屏幕空间对深度做 Sobel 只会沿真正的轮廓/直角棱出线。
+    /// 装法：URP Renderer 资产 → Add Renderer Feature → Slima Toon Outline
+    /// （或菜单 Tools/Slima/地图编辑器/给 URP Renderer 装上全屏描边 Feature 一键装）
     /// </summary>
     public sealed class SlimaToonOutlineFeature : ScriptableRendererFeature
     {
+        /// <summary>一个描边分组 = 一个"整体对象"</summary>
+        [System.Serializable]
+        public sealed class MaskGroup
+        {
+            [Tooltip("分组名，只用于显示")]
+            public string name = "地面";
+
+            [Tooltip("材质名包含这个片段就归到这组。整片地面用 _Floor（Lab_Floor_01..07 都会命中）")]
+            public string materialContains = "_Floor";
+
+            [Tooltip("按 Layer 匹配。功能物件用这个：把 Spawn/Exit/门 放到同一个 Layer，再在这里勾上")]
+            public LayerMask layerMask = 0;
+
+            [Tooltip("这一组的描边粗细（像素块）")]
+            [Range(0f, 16f)] public float thickness = 2f;
+
+            public bool enabled = true;
+        }
+
         [System.Serializable]
         public sealed class Settings
         {
             [Tooltip("留空会自动找「Slima/Toon Outline Post」")]
             public Shader shader;
+
+            [Tooltip("遮罩材质用的 shader（留空自动找「Slima/Outline Mask」）")]
+            public Shader maskShader;
 
             [Tooltip("插在哪个阶段。默认：透明物体之后、后处理之前")]
             public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingPostProcessing;
@@ -38,51 +65,142 @@ namespace SlimaPuzzle.Rendering
             public Color outlineColor = Color.black;
 
             [Tooltip("描边依据。\n" +
-                     "0 = 深度落差（需要项目里 Depth Texture 可用）。\n" +
-                     "1 = 颜色/亮度落差（默认）—— 不依赖深度纹理，任何情况都能出线。")]
-            [Range(0, 1)] public int edgeSource = 1;
+                     "0 = 深度落差（需要 Depth Texture 可用）。\n" +
+                     "1 = 颜色/亮度落差（深色地面上容易乱出线）。\n" +
+                     "2 = 遮罩分组（推荐）：同组物体合成一个整体，只在外沿出线，不依赖深度纹理。")]
+            [Range(0, 2)] public int edgeSource = 2;
 
-            [Tooltip("描边画在哪一侧。\n" +
-                     "0 = 两侧（内外都画，会吃掉物品自己的像素）。\n" +
-                     "1 = 只向外（默认）：只画在背景那一侧（颜色模式=亮侧，深度模式=远侧），物品轮廓不被啃掉。\n" +
-                     "2 = 只向内：只画在物品那一侧。")]
+            [Tooltip("描边画在哪一侧（仅 0/1 依据有效；遮罩依据天生只在外面画）。\n" +
+                     "0 = 两侧（会吃掉物品自己的像素）· 1 = 只向外（默认）· 2 = 只向内")]
             [Range(0, 2)] public int outlinePlacement = 1;
 
-            [Tooltip("颜色描边阈值（0.01~1，仅当描边依据 = 颜色时有效）。越小线越多、越粗。")]
-            [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
+            [Header("遮罩分组（描边依据 = 2 时生效）")]
+            [Tooltip("每一组 = 一个整体对象。同组物体（哪怕不同区块、不同材质）合成一个黑块，只描整体外沿。")]
+            public List<MaskGroup> maskGroups = new List<MaskGroup>
+            {
+                new MaskGroup { name = "地面", materialContains = "_Floor", thickness = 2f }
+            };
 
-            [Tooltip("★ 全屏描边粗细（像素块）。屏幕上的实际宽度 ≈ 这个值 × Pixel Size。\n" +
-                     "⚠ 材质里那个「描边｜粗细」是物体的反转壳描边（给角色用），调它不会影响全屏这条线，地形要设 0。")]
+            [Header("深度/颜色描边参数")]
+            [Tooltip("全屏描边粗细（像素块）。屏幕实际宽度 ≈ 这个值 × Pixel Size。\n" +
+                     "（遮罩模式用分组里的 Thickness）")]
             [Range(0f, 16f)] public float outlineThickness = 2f;
 
-            [Tooltip("调小 = 出线更多、线也更粗；调大 = 只剩最明显的轮廓。\n" +
-                     "⚠ 正交相机下「一格方块」的深度落差 ≈ 1 世界单位 —— 阈值给 3 以上就是"
-                     + "「落差要超过 3 格才算出边」，普通方块棱会全部消失。建议 0.3 ~ 0.8。")]
+            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）。调小 = 出线更多、线也更粗。")]
             [Range(0.05f, 20f)] public float depthThreshold = 0.5f;
+
+            [Tooltip("颜色描边阈值（0.01~1，仅 依据 = 颜色 时有效）。越小线越多、越粗。")]
+            [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
 
             [Header("调试")]
             [Tooltip("0 = 正常。\n" +
-                     "1 = 原始深度缓冲（没绑上深度纹理时是纯黑；正常时能看出地形轮廓）。\n" +
-                     "2 = 「落差/阈值」画成红色：红色区域就是会被描边的像素。\n" +
-                     "3 = 线性眼深度灰度图（白=近，黑=远）。")]
+                     "1 = 原始深度缓冲（全黑 = 深度纹理没绑上）。\n" +
+                     "2 = 边缘/遮罩可视化（遮罩模式下：白 = 该组物体）。\n" +
+                     "3 = 线性眼深度灰度图（白 = 近）。")]
             [Range(0, 3)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
 
         Material _material;
-        PixelOutlinePass _pass;
+        Material _maskMaterial;
+        PixelOutlinePass _pass;                       // 0/1 依据时用的合成 pass
+        readonly List<MaskPass> _maskPasses = new List<MaskPass>();
+        readonly List<PixelOutlinePass> _compositePasses = new List<PixelOutlinePass>();
         bool _loggedOnce;
+        MeshRenderer[] _meshRenderers;
+        int _rescanCountdown;
 
-        // 用来分辨"你改的 Feature 是不是当前生效的那个"（在没生效的 Renderer 上调，这里不会打日志）
+        // 用来分辨"你改的 Feature 是不是当前生效的那个"
         float _lastThickness = -1f;
         float _lastPixelSize = -1f;
         float _lastDepth = -1f;
         float _lastPixelate = -1f;
 
-        /// <summary>
-        /// 参数变化时打一条日志。如果你拖了滑块却没看到这条日志，说明你编辑的不是当前生效的 Renderer。
-        /// </summary>
+        static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+        static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
+        static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
+        static readonly int DepthThresholdId = Shader.PropertyToID("_DepthThreshold");
+        static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
+        static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
+        static readonly int EdgeSourceId = Shader.PropertyToID("_EdgeSource");
+        static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
+        static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
+        static readonly int MaskTextureId = Shader.PropertyToID("_SlimaMask");
+
+        public override void Create()
+        {
+            _pass = new PixelOutlinePass { renderPassEvent = settings.passEvent };
+        }
+
+        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+        {
+            CameraType cameraType = renderingData.cameraData.cameraType;
+            if (cameraType == CameraType.Preview || cameraType == CameraType.Reflection) return;
+
+            if (!EnsureMaterials()) return;
+
+            LogIfChanged();
+
+            if (!_loggedOnce)
+            {
+                _loggedOnce = true;
+                var pipeline = GraphicsSettings.currentRenderPipeline;
+                Debug.Log($"[Slima] Toon Outline 已生效：依据={EdgeSourceLabel(settings.edgeSource)}, " +
+                          $"PixelSize={settings.pixelSize}, Thickness={settings.outlineThickness} | " +
+                          $"管线={pipeline?.name ?? "（默认）"} | " +
+                          $"相机需要深度纹理={renderingData.cameraData.requiresDepthTexture}");
+            }
+
+            // ---- 遮罩分组模式：每组 = 一次"画遮罩 + 一次合成" ----
+            if (settings.edgeSource >= 2)
+            {
+                RefreshRenderers();
+
+                int groupIndex = 0;
+                foreach (MaskGroup group in settings.maskGroups)
+                {
+                    if (group == null || !group.enabled) continue;
+
+                    EnsurePassSlot(groupIndex);
+
+                    _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
+                    _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers);
+                    renderer.EnqueuePass(_maskPasses[groupIndex]);
+
+                    _compositePasses[groupIndex].renderPassEvent = settings.passEvent;
+                    _compositePasses[groupIndex].Setup(_material, settings, group.thickness);
+                    renderer.EnqueuePass(_compositePasses[groupIndex]);
+
+                    groupIndex++;
+                }
+                return;
+            }
+
+            // ---- 深度 / 颜色模式：单个合成 pass ----
+            _pass.renderPassEvent = settings.passEvent;
+            _pass.Setup(_material, settings, -1f);
+            renderer.EnqueuePass(_pass);
+        }
+
+        void EnsurePassSlot(int index)
+        {
+            while (_maskPasses.Count <= index) _maskPasses.Add(new MaskPass());
+            while (_compositePasses.Count <= index)
+                _compositePasses.Add(new PixelOutlinePass { renderPassEvent = settings.passEvent });
+        }
+
+        /// <summary>每 60 帧重扫一次场景里的 MeshRenderer（烘出来的地形是静态的，道具是运行时生成的）</summary>
+        void RefreshRenderers()
+        {
+            if (_meshRenderers != null && _rescanCountdown-- > 0) return;
+            _meshRenderers = Object.FindObjectsOfType<MeshRenderer>();
+            _rescanCountdown = 60;
+        }
+
+        static string EdgeSourceLabel(int source) =>
+            source >= 2 ? "遮罩分组" : (source == 1 ? "颜色亮度" : "深度落差");
+
         void LogIfChanged()
         {
             if (Mathf.Approximately(_lastThickness, settings.outlineThickness) &&
@@ -98,95 +216,146 @@ namespace SlimaPuzzle.Rendering
             _lastDepth = settings.depthThreshold;
             _lastPixelate = settings.pixelateAmount;
 
-            Debug.Log($"[Slima] 全屏描边参数已更新（当前相机在用）：Thickness={settings.outlineThickness}, " +
-                      $"PixelSize={settings.pixelSize}, DepthThreshold={settings.depthThreshold}, " +
-                      $"Pixelate={settings.pixelateAmount}");
+            Debug.Log($"[Slima] 全屏描边参数已更新（当前相机在用）：依据={EdgeSourceLabel(settings.edgeSource)}, " +
+                      $"Thickness={settings.outlineThickness}, PixelSize={settings.pixelSize}, " +
+                      $"DepthThreshold={settings.depthThreshold}, Pixelate={settings.pixelateAmount}");
         }
 
-        static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
-        static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
-        static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
-        static readonly int DepthThresholdId = Shader.PropertyToID("_DepthThreshold");
-        static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
-        static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
-        static readonly int EdgeSourceId = Shader.PropertyToID("_EdgeSource");
-        static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
-        static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
-
-        public override void Create()
+        /// <summary>材质延迟创建：Create() 发生在资源刚加载时，那时 Shader.Find 可能还找不到。</summary>
+        bool EnsureMaterials()
         {
-            _pass = new PixelOutlinePass { renderPassEvent = settings.passEvent };
-        }
-
-        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-        {
-            // 预览相机 / 反射探针不需要这套
-            CameraType cameraType = renderingData.cameraData.cameraType;
-            if (cameraType == CameraType.Preview || cameraType == CameraType.Reflection) return;
-
-            if (!EnsureMaterial()) return;
-
-            // 每帧入队前再声明一次"我要深度"（ConfigureInput 是累加的，重复调用无害）：
-            // 这样即使管线已经建好，pass 的输入需求也一定被登记。
-            _pass.RequestDepth();
-
-            // 第一次生效时打一条日志 —— 用来确认「Feature 到底有没有挂上、有没有在跑」
-            if (!_loggedOnce)
+            if (_material == null)
             {
-                _loggedOnce = true;
-                var pipeline = GraphicsSettings.currentRenderPipeline;
-                Debug.Log($"[Slima] Toon Outline 已生效：PixelSize={settings.pixelSize}, " +
-                          $"Pixelate={settings.pixelateAmount}, Outline={settings.outlineThickness}, " +
-                          $"DepthThreshold={settings.depthThreshold} | " +
-                          $"管线={pipeline?.name ?? "（默认）"} | " +
-                          $"相机需要深度纹理={renderingData.cameraData.requiresDepthTexture} " +
-                          $"（这行如果是 False，描边一定不出线）");
+                if (settings.shader == null) settings.shader = Shader.Find("Slima/Toon Outline Post");
+                if (settings.shader == null) return false;
+                _material = CoreUtils.CreateEngineMaterial(settings.shader);
             }
 
-            _pass.renderPassEvent = settings.passEvent;
-            _pass.Setup(_material, settings);
-            renderer.EnqueuePass(_pass);
-            LogIfChanged();
-        }
+            if (_maskMaterial == null && settings.edgeSource >= 2)
+            {
+                if (settings.maskShader == null) settings.maskShader = Shader.Find("Slima/Outline Mask");
+                if (settings.maskShader == null) return false;
+                _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
+            }
 
-        /// <summary>
-        /// 材质延迟创建：Create() 发生在资源刚加载时，那时 Shader.Find 可能还找不到。
-        /// </summary>
-        bool EnsureMaterial()
-        {
-            if (_material != null) return true;
-            if (settings.shader == null) settings.shader = Shader.Find("Slima/Toon Outline Post");
-            if (settings.shader == null) return false;
-
-            _material = CoreUtils.CreateEngineMaterial(settings.shader);
             return _material != null;
         }
 
         protected override void Dispose(bool disposing)
         {
             CoreUtils.Destroy(_material);
+            CoreUtils.Destroy(_maskMaterial);
             _material = null;
+            _maskMaterial = null;
             _pass?.Dispose();
+            foreach (MaskPass pass in _maskPasses) pass.Dispose();
+            foreach (PixelOutlinePass pass in _compositePasses) pass.Dispose();
         }
 
+        // ==================================================================
+        // 遮罩 pass：把这一组物体画成黑、背景白，写进一张临时贴图
+        // ==================================================================
+        sealed class MaskPass : ScriptableRenderPass
+        {
+            Material _material;
+            MaskGroup _group;
+            MeshRenderer[] _renderers;
+            RTHandle _mask;
+
+            public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers)
+            {
+                _material = material;
+                _group = group;
+                _renderers = renderers;
+            }
+
+            public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+            {
+                RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
+                desc.depthBufferBits = 24;      // 组内物体之间要正确遮挡
+                desc.msaaSamples = 1;
+                RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Point, TextureWrapMode.Clamp,
+                                                  name: "_SlimaOutlineMask");
+            }
+
+            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            {
+                if (_material == null || _group == null || _mask == null) return;
+
+                CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
+                using (new ProfilingScope(cmd, new ProfilingSampler("Slima Outline Mask")))
+                {
+                    // 白 = 背景（描边会画在它上面），黑 = 这一组的物体
+                    CoreUtils.SetRenderTarget(cmd, _mask, ClearFlag.Color | ClearFlag.Depth, Color.white);
+
+                    if (_renderers != null)
+                    {
+                        foreach (MeshRenderer meshRenderer in _renderers)
+                        {
+                            if (meshRenderer == null) continue;
+
+                            Material[] materials = meshRenderer.sharedMaterials;
+                            for (int submesh = 0; submesh < materials.Length; submesh++)
+                            {
+                                if (!Matches(_group, meshRenderer.gameObject.layer, materials[submesh])) continue;
+                                cmd.DrawRenderer(meshRenderer, _material, submesh, 0);
+                            }
+                        }
+                    }
+
+                    cmd.SetGlobalTexture(MaskTextureId, _mask);
+                }
+
+                context.ExecuteCommandBuffer(cmd);
+                CommandBufferPool.Release(cmd);
+            }
+
+            /// <summary>分组匹配：材质名片段 / Layer 谁设置了就按谁；两个都设置则要同时满足。</summary>
+            static bool Matches(MaskGroup group, int layer, Material material)
+            {
+                bool hasLayer = group.layerMask.value != 0;
+                bool hasName = !string.IsNullOrEmpty(group.materialContains);
+                if (!hasLayer && !hasName) return false;
+
+                if (hasLayer && (group.layerMask.value & (1 << layer)) == 0) return false;
+                if (hasName)
+                {
+                    if (material == null) return false;
+                    if (material.name.IndexOf(group.materialContains, System.StringComparison.OrdinalIgnoreCase) < 0)
+                        return false;
+                }
+                return true;
+            }
+
+            public void Dispose()
+            {
+                _mask?.Release();
+                _mask = null;
+            }
+        }
+
+        // ==================================================================
+        // 合成 pass：像素化 + 描边（三种依据都在这里分支）
+        // ==================================================================
         sealed class PixelOutlinePass : ScriptableRenderPass
         {
             Material _material;
             Settings _settings;
+            float _thicknessOverride = -1f;
             RTHandle _temp;
 
             public PixelOutlinePass()
             {
-                ConfigureInput(ScriptableRenderPassInput.Depth);   // 描边要读深度
+                ConfigureInput(ScriptableRenderPassInput.Depth);   // 依据 0 需要深度
             }
 
-            public void Setup(Material material, Settings settings)
+            public void Setup(Material material, Settings settings, float thicknessOverride)
             {
                 _material = material;
                 _settings = settings;
+                _thicknessOverride = thicknessOverride;
             }
 
-            /// <summary>让外部（Feature）也能声明"这个 pass 需要深度"。</summary>
             public void RequestDepth() => ConfigureInput(ScriptableRenderPassInput.Depth);
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -198,13 +367,15 @@ namespace SlimaPuzzle.Rendering
             {
                 if (_material == null || _settings == null) return;
 
+                float thickness = _thicknessOverride >= 0f ? _thicknessOverride : _settings.outlineThickness;
+
                 _material.SetColor(OutlineColorId, _settings.outlineColor);
                 _material.SetFloat(PixelSizeId, Mathf.Max(1f, _settings.pixelSize));
-                _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, _settings.outlineThickness));
+                _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
                 _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
                 _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 3));
-                _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 1));
+                _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
                 _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
 
@@ -222,7 +393,6 @@ namespace SlimaPuzzle.Rendering
 
                         if (_temp != null)
                         {
-                            // 源 → 临时图（像素化 + 描边）→ 贴回源
                             Blitter.BlitCameraTexture(cmd, source, _temp, _material, 0);
                             Blitter.BlitCameraTexture(cmd, _temp, source);
                         }

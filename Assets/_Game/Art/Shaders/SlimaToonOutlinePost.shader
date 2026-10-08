@@ -18,7 +18,7 @@ Shader "Slima/Toon Outline Post"
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
         _DebugMode ("调试模式（0=正常 1=看原始深度 2=看边缘强度 3=看线性深度）", Range(0, 3)) = 0
-        _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 · 不依赖深度纹理）", Range(0, 1)) = 1
+        _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 2=遮罩分组 · 推荐）", Range(0, 2)) = 2
         _OutlinePlacement ("描边位置（0=两侧 1=只向外/亮侧 2=只向内/暗侧）", Range(0, 2)) = 1
         _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
     }
@@ -115,6 +115,15 @@ Shader "Slima/Toon Outline Post"
                 return dot(c, float3(0.299, 0.587, 0.114));
             }
 
+            // 描边遮罩：0 = 物体，1 = 背景（由 SlimaToonOutlineFeature 每次合成前设好）
+            TEXTURE2D_X(_SlimaMask);
+            SAMPLER(sampler_SlimaMask);
+
+            float SampleMask(float2 uv)
+            {
+                return SAMPLE_TEXTURE2D_X(_SlimaMask, sampler_SlimaMask, uv).r;
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 // 源 UV（处理 render scale / 偏移）
@@ -177,6 +186,28 @@ Shader "Slima/Toon Outline Post"
                     }
 
                     color = lerp(color, _OutlineColor.rgb, lOutline * _OutlineColor.a);
+                }
+                // ---- ②-c 遮罩分组描边（推荐）----
+                //   把"这一组物体"整体渲染成黑、背景白，然后：自己是背景 + 邻域里有物体 → 就在物体外面画线。
+                //   · 不依赖深度纹理，也不依赖颜色阈值 → 深色地面/暗物体都不会乱出线
+                //   · 天生只画外侧：物品自己的像素永远是黑的，不会被啃
+                else if (_OutlineThickness > 0.001 && _EdgeSource > 1.5)
+                {
+                    float2 texel = _OutlineThickness / virtualRes;
+                    float mC = SampleMask(sampledUV);
+                    float mMin = min(min(SampleMask(sampledUV + float2(-texel.x, 0.0)),
+                                         SampleMask(sampledUV + float2(texel.x, 0.0))),
+                                     min(SampleMask(sampledUV + float2(0.0, -texel.y)),
+                                         SampleMask(sampledUV + float2(0.0, texel.y))));
+
+                    if (_DebugMode > 1.5)
+                    {
+                        float m = 1.0 - mC;   // 白 = 这一组的物体
+                        return half4(m, m * 0.35, 0, 1);
+                    }
+
+                    float mOutline = (mC > 0.5 && mMin < 0.5) ? 1.0 : 0.0;
+                    color = lerp(color, _OutlineColor.rgb, mOutline * _OutlineColor.a);
                 }
                 // ---- ②-b 深度落差描边 ----
                 else if (_OutlineThickness > 0.001 && _DepthThreshold > 0)
