@@ -130,7 +130,6 @@ namespace SlimaPuzzle.Rendering
         MaskPass _crispMaskPass;
         MaskGroup _crispGroup;
         bool _loggedOnce;
-        bool _passesRanOnce;
         MeshRenderer[] _meshRenderers;
         int _rescanCountdown;
 
@@ -220,7 +219,6 @@ namespace SlimaPuzzle.Rendering
 
                     groupIndex++;
                 }
-                _passesRanOnce = true;
                 return;
             }
             // ---- 深度 / 颜色模式：单个合成 pass ----
