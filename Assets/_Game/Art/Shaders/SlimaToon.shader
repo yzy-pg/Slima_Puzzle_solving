@@ -291,8 +291,12 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 
-                // 抖动幅度 = 一段的宽度 × 强度（0.35 → 只在段边界附近抖，主体仍是干净的硬边）
+                // 抖动幅度 = 一段的宽度 × 强度 × **受光程度**
+                // ★ 噪声遮罩：主光的阴影/距离衰减当作遮罩 —— 阴影里、光照不到的暗处不加颗粒，
+                //   只有真正被这盏光照到的地方才有像素颗粒过渡。
                 float steps = max(2.0, _Bands);
+                half mainAtten = saturate(mainLight.shadowAttenuation * mainLight.distanceAttenuation);
+                dither *= mainAtten;
                 dither /= steps;
                 half lit = saturate(wrapped + dither);
 
@@ -316,12 +320,15 @@ Shader "Slima/Toon (Cel + Pixel)"
                 {
                     Light extra = GetAdditionalLight(li, input.positionWS);
 
+                    half attenExtra = saturate(extra.distanceAttenuation * extra.shadowAttenuation);
                     half nlExtra = dot(normalWS, extra.direction);
                     half wrappedExtra = saturate((nlExtra + _LightWrap) / (1.0 + _LightWrap));
-                    half litExtra = saturate(wrappedExtra + dither);
+
+                    // ★ 每盏额外光用自己的衰减当噪声遮罩：只有这盏光照到处才有颗粒
+                    half ditherExtra = (noise - 0.5) * _NoiseStrength * attenExtra / steps;
+                    half litExtra = saturate(wrappedExtra + ditherExtra);
                     half bandExtra = min(floor(litExtra * steps), steps - 1.0) / (steps - 1.0);
 
-                    half attenExtra = saturate(extra.distanceAttenuation * extra.shadowAttenuation);
                     bandExtra *= lerp(0.65, 1.0, attenExtra);
 
                     half3 rampExtra = lerp(_ShadowColor.rgb, extra.color * _LightTint.rgb, bandExtra);
