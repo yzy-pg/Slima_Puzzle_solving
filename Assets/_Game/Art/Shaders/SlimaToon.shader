@@ -299,6 +299,10 @@ Shader "Slima/Toon (Cel + Pixel)"
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            // ★ URP 的 Shadows.hlsl 内部用了 core 的 LerpWhiteTo（声明在 CommonMaterial.hlsl）。
+            //   官方 Lit 是靠 LitInput → SurfaceInput → CommonMaterial 这条链把它带进来的；
+            //   手写 ShadowCaster 必须自己补，否则报 undeclared identifier 'LerpWhiteTo'。
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
             float3 _LightDirection;
