@@ -108,13 +108,30 @@ namespace BlockMap.EditorTools
             EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
             EditorSceneManager.SaveOpenScenes();
 
+            // ★ 烘焙完成后：发光体不再与玩家/物理发生任何交互
+            //   （那个触发碰撞体只是用来在 Scene 里点选它；烤完就关掉，需要重新编辑时再手动打开）
+            var disabled = new List<string>();
+            foreach (BlockMapBakedLightArea area in areas)
+            {
+                var box = area.GetComponent<Collider>();
+                if (box != null && box.enabled)
+                {
+                    box.enabled = false;
+                    EditorUtility.SetDirty(box);
+                    disabled.Add(area.name);
+                }
+            }
+            if (disabled.Count > 0) EditorSceneManager.SaveOpenScenes();
+
             string msg =
                 $"发光体烘焙完成：\n\n" +
                 $"· 被点亮的格子：{lit} 个（涉及 {touched.Count} 处）\n" +
                 $"· 跳过：还没有 _Lit 提亮版的方块 {skippedNoVariant} 次\n" +
-                $"· 已是提亮版（无需处理）：{already} 次\n\n" +
+                $"· 已是提亮版（无需处理）：{already} 次\n" +
+                $"· 已关闭选择框（不再与玩家/物理交互）：{disabled.Count} 个发光体\n\n" +
                 (_skippedHint(skippedNoVariant) ? "提示：先跑「给所有方块生成提亮版（灯光亮斑，_Lit）」再烘焙 ✓\n\n" : "") +
-                "渐变是用「Bayer 抖动」变成像素格疏密的：越亮的地方点亮的格子越密 ✓";
+                "渐变用 Bayer 抖动变成像素格疏密：越亮的地方点亮的格子越密 ✓\n" +
+                "（需要再编辑发光体时，手动把它身上的 BoxCollider 勾回 Enabled 即可）";
 
             Debug.Log("[BlockMap] " + msg.Replace("\n", " "));
             EditorUtility.DisplayDialog("BlockMap", msg, "好");
