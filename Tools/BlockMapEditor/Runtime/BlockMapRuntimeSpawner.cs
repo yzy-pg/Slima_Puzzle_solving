@@ -109,7 +109,18 @@ namespace BlockMap
                 // ② 发光方块：在格子上放点光源
                 if (def.emitLight && lights < maxLights)
                 {
-                    var lgo = new GameObject($"Light_{def.id}_{kv.Key.x}_{kv.Key.y}_{kv.Key.z}");
+                    string lightName = $"Light_{def.id}_{kv.Key.x}_{kv.Key.y}_{kv.Key.z}";
+
+                    // ★ 场景里已经有这盏灯（烘焙时存进场景的、或你在编辑器里挪过位置/改过颜色的）→ 复用它。
+                    //   不要重建：重建会丢掉你的编辑。也不加进 _spawned，避免被 Clear() 清掉。
+                    GameObject existing = GameObject.Find(lightName);
+                    if (existing != null && existing.GetComponent<Light>() != null)
+                    {
+                        lights++;
+                        continue;
+                    }
+
+                    var lgo = new GameObject(lightName);
                     lgo.transform.SetParent(parent, false);
                     lgo.transform.position = center + Vector3.up * lightHeightOffset;
 
@@ -135,8 +146,15 @@ namespace BlockMap
             _spawned.Clear();
 
             // 兼容"上一次运行 / 已保存进场景"的生成物：靠标记组件找出来清掉
+            // ★ 跳过光源：场景里的灯（烘焙生成的、你在编辑器里挪过位置/改过颜色的）要保留，
+            //   否则每次 Play 都会把你的灯光编辑丢掉。
             var leftovers = FindObjectsOfType<BlockMapSpawned>();
-            for (int i = 0; i < leftovers.Length; i++) DestroySafe(leftovers[i].gameObject);
+            for (int i = 0; i < leftovers.Length; i++)
+            {
+                GameObject go = leftovers[i].gameObject;
+                if (go.GetComponent<Light>() != null) continue;   // 灯：保留
+                DestroySafe(go);
+            }
         }
 
         static void DestroySafe(GameObject go)
