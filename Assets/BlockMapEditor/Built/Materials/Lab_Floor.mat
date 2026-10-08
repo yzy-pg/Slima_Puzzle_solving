@@ -10,13 +10,13 @@ Material:
   m_Name: Lab_Floor
   m_Shader: {fileID: 4800000, guid: 080c040c8b7e14141983ea3baa44be00, type: 3}
   m_Parent: {fileID: 2100000, guid: bc5a99b055f9d614591ab706b3d09170, type: 2}
-  m_ModifiedSerializedProperties: 0
+  m_ModifiedSerializedProperties: 16
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 

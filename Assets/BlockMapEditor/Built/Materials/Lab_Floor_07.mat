@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Lab_Floor_07
-  m_Shader: {fileID: 4800000, guid: 080c040c8b7e14141983ea3baa44be00, type: 3}
+  m_Shader: {fileID: 4800000, guid: 0bb0776b56ae4487bb749465152c3611, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -23,13 +23,31 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: edec9650328452841a7386d7248cf196, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: edec9650328452841a7386d7248cf196, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Bands: 5
     - _Cull: 2
     - _Cutoff: 0.5
-    m_Colors: []
+    - _LightWrap: 0.15
+    - _NoiseStrength: 0.65
+    - _NoiseSurfaceLock: 1
+    - _NoiseWorldSize: 0.5
+    - _OutlineNoise: 0
+    - _OutlineWidth: 2
+    - _PixelSize: 4
+    - _PixelSnap: 0
+    m_Colors:
+    - _AmbientColor: {r: 0.15999997, g: 0.17999998, b: 0.23999995, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LightTint: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _ShadowColor: {r: 0.41999996, g: 0.4699999, b: 0.6, a: 1}
   m_BuildTextureStacks: []

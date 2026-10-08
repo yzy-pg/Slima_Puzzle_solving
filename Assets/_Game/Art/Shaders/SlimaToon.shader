@@ -17,6 +17,10 @@ Shader "Slima/Toon (Cel + Pixel)"
         [MainTexture] _BaseMap ("贴图", 2D) = "white" {}
         [MainColor]   _BaseColor ("颜色", Color) = (1, 1, 1, 1)
 
+        // 这两个是"继承自旧 BlockUnlit 的接口"：缺了会让双面墙 / 镂空方块显示错误
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull Mode", Float) = 2
+        _Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+
         // 注意：[Header(中文)] 会让 ShaderLab 解析器报错（属性参数只吃 ASCII）。
         // 所以这里用「分组｜名字」写进带引号的显示名 —— 中文放在引号里是安全的，Inspector 排序效果一样。
         _Bands ("光影｜阶梯段数（5 = 五段）", Range(2, 8)) = 5
@@ -25,7 +29,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
 
-        _NoiseStrength ("像素噪声｜过渡强度", Range(0, 1)) = 0.65
+        _NoiseStrength ("像素噪声｜过渡强度（0 = 纯阶梯，推荐）", Range(0, 1)) = 0
         _NoiseSurfaceLock ("像素噪声｜锁在表面（1 = 跟模型走，0 = 钉在屏幕上）", Range(0, 1)) = 1
         _NoiseWorldSize ("像素噪声｜世界噪声格大小（世界单位，0.5 ≈ 半格方块）", Range(0.05, 2)) = 0.5
         _PixelSize ("像素噪声｜屏幕噪声块大小（只在上一个参数 = 0 时用）", Range(1, 16)) = 4
@@ -79,6 +83,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _NoiseSurfaceLock;
                 half   _NoiseWorldSize;
                 half   _PixelSnap;
+                half   _Cull;
+                half   _Cutoff;
                 half4  _OutlineColor;
                 half   _OutlineWidth;
                 half   _OutlineNoise;
@@ -163,7 +169,7 @@ Shader "Slima/Toon (Cel + Pixel)"
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
 
-            Cull Back
+            Cull [_Cull]
             ZWrite On
             ZTest LEqual
 
@@ -172,6 +178,8 @@ Shader "Slima/Toon (Cel + Pixel)"
             #pragma fragment ToonFragment
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
@@ -192,6 +200,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _NoiseSurfaceLock;
                 half   _NoiseWorldSize;
                 half   _PixelSnap;
+                half   _Cull;
+                half   _Cutoff;
                 half4  _OutlineColor;
                 half   _OutlineWidth;
                 half   _OutlineNoise;
@@ -311,9 +321,31 @@ Shader "Slima/Toon (Cel + Pixel)"
                 band *= lerp(0.65, 1.0, atten);
 
                 half3 ramp = lerp(_ShadowColor.rgb, mainLight.color * _LightTint.rgb, band);
-                half3 albedo = _BaseColor.rgb * SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb * input.color.rgb;
+                half4 baseSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
+                clip(baseSample.a - _Cutoff);   // 延续 BlockUnlit 的 alpha 裁切（镂空方块需要）
+                half3 albedo = _BaseColor.rgb * baseSample.rgb * input.color.rgb;
 
                 half3 color = albedo * (ramp + _AmbientColor.rgb);
+
+                // ★ 额外光（点光 / 聚光，例如 Lamp 的 emitLight）——之前完全没处理，所以灯照不亮画面
+                //   每盏按同样规则量化成五段，再乘距离/阴影衰减累加
+                uint additionalCount = GetAdditionalLightsCount();
+                for (uint li = 0u; li < additionalCount; li++)
+                {
+                    Light extra = GetAdditionalLight(li, input.positionWS);
+
+                    half nlExtra = dot(normalWS, extra.direction);
+                    half wrappedExtra = saturate((nlExtra + _LightWrap) / (1.0 + _LightWrap));
+                    half litExtra = saturate(wrappedExtra + dither);
+                    half bandExtra = min(floor(litExtra * steps), steps - 1.0) / (steps - 1.0);
+
+                    half attenExtra = saturate(extra.distanceAttenuation * extra.shadowAttenuation);
+                    bandExtra *= lerp(0.65, 1.0, attenExtra);
+
+                    half3 rampExtra = lerp(_ShadowColor.rgb, extra.color * _LightTint.rgb, bandExtra);
+                    color += albedo * rampExtra * attenExtra;
+                }
+
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
             }
