@@ -53,6 +53,9 @@ Shader "Slima/Outline Composite"
             SAMPLER(sampler_SlimaMask);
             TEXTURE2D(_SlimaCrispMask);
             SAMPLER(sampler_SlimaCrispMask);
+            // 保护遮罩：1 = 这里永远不画线（主角所在处 → 保证角色永远清晰）
+            TEXTURE2D(_SlimaProtectMask);
+            SAMPLER(sampler_SlimaProtectMask);
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _OutlineColor;
@@ -150,6 +153,10 @@ Shader "Slima/Outline Composite"
                 float visible = (sceneDepth >= groupDepth - 0.002) ? 1.0 : 0.0;
 
                 float outline = (mC > 0.5 && mMin < 0.5 && visible > 0.5) ? 1.0 : 0.0;
+
+                // 保护遮罩（主角）：任何组的线都不许画在这里 → 主角永远压住线条
+                float protect = SAMPLE_TEXTURE2D(_SlimaProtectMask, sampler_SlimaProtectMask, uv).r;
+                outline *= (protect < 0.5) ? 1.0 : 0.0;
                 float3 color = lerp(SceneColor(uv), _OutlineColor.rgb, outline * _OutlineColor.a);
                 return half4(color, 1);
             }

@@ -69,6 +69,10 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("清晰范围外扩像素数：让特殊物件外面的描边也清晰")]
             [Range(0f, 32f)] public float crispDilate = 3f;
 
+            [Header("永远压住线条的物件（保证角色清晰）")]
+            [Tooltip("名字过滤器（多个用 | 分隔）。这些物件所在处**任何组都不会画线** —— 主角用这个")]
+            public string protectNameFilter = "Player|Slime";
+
             [Header("遮罩分组（每组 = 一个整体对象）")]
             public List<MaskGroup> maskGroups = new List<MaskGroup>
             {
@@ -88,6 +92,7 @@ namespace SlimaPuzzle.Rendering
 
         readonly List<GroupPass> _groupPasses = new List<GroupPass>();
         MaskPass _crispPass;
+        MaskPass _protectPass;
         PixelatePass _pixelatePass;
         bool _loggedOnce;
         MeshRenderer[] _renderers;
@@ -97,6 +102,7 @@ namespace SlimaPuzzle.Rendering
         public override void Create()
         {
             _crispPass = new MaskPass { renderPassEvent = RenderPassEvent.BeforeRenderingOpaques };
+            _protectPass = new MaskPass { renderPassEvent = RenderPassEvent.BeforeRenderingOpaques };
             _pixelatePass = new PixelatePass { renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing };
         }
 
@@ -131,6 +137,16 @@ namespace SlimaPuzzle.Rendering
                 renderer.EnqueuePass(_crispPass);
             }
 
+            // ⑤-b 保护遮罩（主角）：任何组的线都不许画在这里
+            bool wantProtect = !string.IsNullOrEmpty(settings.protectNameFilter);
+            if (wantProtect)
+            {
+                if (_protectPass.Material == null) _protectPass.CreateMaterial(settings.maskShader, Color.white);
+                _protectPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
+                _protectPass.Setup(BuildFilterGroup("保护（主角）", "", settings.protectNameFilter), _renderers, Color.black);
+                renderer.EnqueuePass(_protectPass);
+            }
+
             // ③④ 每个分组：一张遮罩 + 一次外轮廓描边（同一个 pass 内，顺序确定）
             int index = 0;
             foreach (MaskGroup group in _groups)
@@ -141,7 +157,8 @@ namespace SlimaPuzzle.Rendering
                 GroupPass pass = _groupPasses[index];
                 pass.renderPassEvent = settings.passEvent;
                 pass.Setup(settings, group, _renderers,
-                           index < DebugTints.Length ? DebugTints[index] : DebugTints[index % DebugTints.Length]);
+                           index < DebugTints.Length ? DebugTints[index] : DebugTints[index % DebugTints.Length],
+                           wantProtect ? _protectPass.Mask : null);
                 renderer.EnqueuePass(pass);
                 index++;
             }
@@ -278,6 +295,7 @@ namespace SlimaPuzzle.Rendering
         protected override void Dispose(bool disposing)
         {
             _crispPass?.Dispose();
+            _protectPass?.Dispose();
             _pixelatePass?.Dispose();
             foreach (GroupPass pass in _groupPasses) pass.Dispose();
             _groupPasses.Clear();
@@ -373,6 +391,7 @@ namespace SlimaPuzzle.Rendering
             Material _compositeMaterial;
             RTHandle _mask;
             RTHandle _temp;
+            RTHandle _protectMask;
 
             public GroupPass()
             {
@@ -381,12 +400,13 @@ namespace SlimaPuzzle.Rendering
             }
             bool _loggedMaskInfo;
 
-            public void Setup(Settings settings, MaskGroup group, MeshRenderer[] renderers, Color tint)
+            public void Setup(Settings settings, MaskGroup group, MeshRenderer[] renderers, Color tint, RTHandle protectMask)
             {
                 _settings = settings;
                 _group = group;
                 _renderers = renderers;
                 _tint = tint;
+                _protectMask = protectMask;
 
                 if (_maskMaterial == null) _maskMaterial = CoreUtils.CreateEngineMaterial(settings.maskShader);
                 if (_maskMaterial != null) _maskMaterial.SetColor(MaskColorId, Color.black);
@@ -435,6 +455,9 @@ namespace SlimaPuzzle.Rendering
                     // ---- ④ 用这张遮罩做外轮廓描边 ----
                     // 两条路都接上：材质绑定 + 全局绑定（哪个生效都行）
                     _compositeMaterial.SetTexture(MaskId, _mask.rt);
+                    // 保护遮罩（主角）：没绑上时绑一张全黑贴图 → 等于"不保护"（不会报错）
+                    _compositeMaterial.SetTexture(ProtectMaskId,
+                        _protectMask != null && _protectMask.rt != null ? _protectMask.rt : Texture2D.blackTexture);
                     _compositeMaterial.SetFloat(MaskFarId, renderingData.cameraData.camera.farClipPlane);
                     _maskMaterial.SetFloat(MaskFarId, renderingData.cameraData.camera.farClipPlane);
                     cmd.SetGlobalTexture(MaskId, _mask);
@@ -546,6 +569,7 @@ namespace SlimaPuzzle.Rendering
         static readonly int MaskColorId = Shader.PropertyToID("_MaskColor");
         static readonly int MaskId = Shader.PropertyToID("_SlimaMask");
         static readonly int MaskFarId = Shader.PropertyToID("_MaskFar");
+        static readonly int ProtectMaskId = Shader.PropertyToID("_SlimaProtectMask");
         static readonly int CrispMaskId = Shader.PropertyToID("_SlimaCrispMask");
         static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
