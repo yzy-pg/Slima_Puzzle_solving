@@ -70,6 +70,49 @@ namespace BlockMap
             foreach (var c in _dirtyBuffer) RebuildChunk(c);
         }
 
+        /// <summary>
+        /// 把场景里所有"烘焙发光体"的光叠加进顶点色（像素噪波 + 五层阶梯 + 高饱和过渡 + 光锥散射）。
+        /// 顶点色会被地形材质乘进颜色（toon shader 的 input.color.rgb），所以这是"发光体自己提亮"。
+        /// 在每次重建时调用 → 烘焙结果不会被覆盖；运行时不参与任何实时光照计算。
+        /// </summary>
+        void ApplyBakedLightAreas(List<Vector3> verts, List<Color> cols)
+        {
+            var areas = FindObjectsOfType<BlockMap.Tools.BlockMapBakedLightArea>();
+            if (areas == null || areas.Length == 0) return;
+
+            for (int i = 0; i < verts.Count && i < cols.Count; i++)
+            {
+                Vector3 wp = transform.TransformPoint(verts[i]);
+                Color add = Color.black;
+
+                for (int a = 0; a < areas.Length; a++)
+                {
+                    var area = areas[a];
+                    if (area == null) continue;
+
+                    Vector3 lp = area.transform.InverseTransformPoint(wp);
+                    float len = Mathf.Max(0.01f, area.EffectiveRange);
+                    if (lp.z < 0f || lp.z > len) continue;
+
+                    // 光锥散射：越远光斑越大 → 等价于把采样点按散射倍率收缩
+                    float widen = Mathf.Max(1f, area.ScatterFactorAt(lp.z));
+                    Color c = area.CellLight(wp, new Vector2(lp.x, lp.y) / widen, lp.z, out float level);
+                    if (level <= 0.001f) continue;
+
+                    add += new Color(c.r * level, c.g * level, c.b * level, 1f);
+                }
+
+                if (add.maxColorComponent <= 0.0001f) continue;
+
+                Color src = cols[i];
+                cols[i] = new Color(
+                    Mathf.Clamp01(src.r + add.r * (1f - src.r)),
+                    Mathf.Clamp01(src.g + add.g * (1f - src.g)),
+                    Mathf.Clamp01(src.b + add.b * (1f - src.b)),
+                    src.a);
+            }
+        }
+
         void OnChunkDirty(Vector3Int chunk) { /* 由 LateUpdate 统一处理 */ }
 
         public Material GetMaterial(BlockDefinition def)
@@ -233,6 +276,10 @@ namespace BlockMap
             mesh.indexFormat = verts.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
             mesh.SetVertices(verts);
             mesh.SetUVs(0, uvs);
+            // ★ 发光体（Tools 工具）烤进顶点色：必须在**每次重建**时叠加，
+            //   否则这里随后的 SetColors 会把烘焙结果覆盖掉 —— 表现就是"风格化不显示"。
+            ApplyBakedLightAreas(verts, cols);
+
             mesh.SetColors(cols);
             mesh.subMeshCount = subTris.Count;
             for (int i = 0; i < subTris.Count; i++) mesh.SetTriangles(subTris[i], i);

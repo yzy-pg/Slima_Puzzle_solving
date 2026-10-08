@@ -32,7 +32,7 @@ Material:
     - _Bands: 5
     - _Cull: 2
     - _Cutoff: 0.5
-    - _ExtraLightMode: 0
+    - _ExtraLightMode: 1
     - _LightWrap: 0.1
     - _NoiseMaskInvert: 0
     - _NoiseStrength: 0.85

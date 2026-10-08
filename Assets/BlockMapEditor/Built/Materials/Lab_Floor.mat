@@ -33,7 +33,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _ExtraLightMode: 0
+    - _ExtraLightMode: 1
     - _LightWrap: 0.1
     - _NoiseStrength: 0.85
     - _NoiseWorldSize: 0.1
