@@ -17,7 +17,13 @@ namespace BlockMap.EditorTools
         public static void CreateArea()
         {
             var go = new GameObject("BakedLightArea");
-            go.AddComponent<BlockMapBakedLightArea>();
+            var area = go.AddComponent<BlockMapBakedLightArea>();
+
+            // 编辑器预览灯：立刻能看到范围/强度，方便摆位置。
+            // Play 时由组件自动关闭，不参与任何运行时灯光计算。
+            area.SyncPreviewLight();
+            if (go.transform.localScale == Vector3.one)
+                go.transform.localScale = new Vector3(area.baseSizeHint.x, area.baseSizeHint.y, 8f);
 
             // 不加碰撞体：那样 Unity 会在场景里再画一个绿框，看起来像"两个矩形"
             // 选中它请用下面的「选中场景里所有发光体」菜单，或在 Hierarchy 里点。

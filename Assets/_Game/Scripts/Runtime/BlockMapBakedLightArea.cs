@@ -110,13 +110,54 @@ namespace BlockMap.Tools
             Gizmos.matrix = old;
         }
 
+        [Header("编辑器预览灯（只在编辑时亮，Play 时自动关闭）")]
+        [Tooltip("勾上 = 用一盏真实点光在编辑器里实时预览效果（你能直接看到范围）\n" +
+                 "★ Play 时会被自动关闭：不参与任何运行时灯光计算")]
+        public bool editorPreviewLight = true;
+
+        [Tooltip("预览灯强度（编辑器里看的，与烘焙无关）")]
+        [Range(0.1f, 8f)] public float previewIntensity = 2f;
+
+        /// <summary>按当前设置同步那盏"编辑器预览灯"（菜单新建后也会调它）。</summary>
+        public void SyncPreviewLight()
+        {
+            Light light = GetComponentInChildren<Light>(true);
+
+            if (!editorPreviewLight)
+            {
+                if (light != null) light.enabled = false;
+                return;
+            }
+
+            if (light == null)
+            {
+                var go = new GameObject("PreviewLight");
+                go.transform.SetParent(transform, false);
+                light = go.AddComponent<Light>();
+            }
+
+            light.type = LightType.Point;
+            light.color = brightness.Evaluate(1f);          // 用渐变最亮那一端的颜色
+            light.intensity = previewIntensity;
+            light.range = Mathf.Max(1f, BeamLength);        // 范围 = 发射长度
+            light.transform.localPosition = Vector3.zero;   // 灯就在发光体中心
+            light.shadows = LightShadows.None;
+            light.enabled = true;
+        }
+
         void OnValidate()
         {
             ditherBlock = Mathf.Max(1, ditherBlock);
-            if (transform.lossyScale == Vector3.zero)
-            {
-                transform.localScale = new Vector3(baseSizeHint.x, baseSizeHint.y, 8f);
-            }
+            SyncPreviewLight();
+        }
+
+        // ★ 运行时：关掉预览灯 —— 发光体在 Play 里不参与任何光照计算
+        void Awake() => DisablePreviewLights();
+        void OnEnable() => DisablePreviewLights();
+
+        void DisablePreviewLights()
+        {
+            foreach (Light l in GetComponentsInChildren<Light>(true)) l.enabled = false;
         }
     }
 }
