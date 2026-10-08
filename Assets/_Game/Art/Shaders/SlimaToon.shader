@@ -256,6 +256,17 @@ Shader "Slima/Toon (Cel + Pixel)"
                 float3 normalWS = normalize(input.normalWS);
                 Light mainLight = GetMainLight(input.shadowCoord);
 
+                // ★ 兜底：场景里没有平行光时（地图编辑器烘出来的场景是"空场景 + 几何"，默认没有灯），
+                //   GetMainLight 会返回黑光，NdotL≈0 → 整幅画面都落在最暗那一段，看起来就是"一片灰"。
+                //   这里给一个默认斜上方的光，保证五段阶梯在没有灯的场景里也能看出来。
+                if (dot(mainLight.color, half3(1.0, 1.0, 1.0)) < 0.001)
+                {
+                    mainLight.color = _LightTint.rgb;
+                    mainLight.direction = normalize(float3(0.35, 0.9, 0.25));
+                    mainLight.shadowAttenuation = 1.0;
+                    mainLight.distanceAttenuation = 1.0;
+                }
+
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 

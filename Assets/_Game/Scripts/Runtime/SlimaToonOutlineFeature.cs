@@ -38,14 +38,15 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("描边粗细（以像素块为单位）")]
             [Range(0f, 4f)] public float outlineThickness = 1f;
 
-            [Tooltip("深度阈值：越小线越多。远处物体若满屏是线就调大")]
-            [Range(0.05f, 20f)] public float depthThreshold = 1.5f;
+            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）：邻域落差小于它就不算出边。越小线越多")]
+            [Range(0.05f, 20f)] public float depthThreshold = 0.6f;
         }
 
         public Settings settings = new Settings();
 
         Material _material;
         PixelOutlinePass _pass;
+        bool _loggedOnce;
 
         static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
@@ -65,6 +66,15 @@ namespace SlimaPuzzle.Rendering
             if (cameraType == CameraType.Preview || cameraType == CameraType.Reflection) return;
 
             if (!EnsureMaterial()) return;
+
+            // 第一次生效时打一条日志 —— 用来确认「Feature 到底有没有挂上、有没有在跑」
+            if (!_loggedOnce)
+            {
+                _loggedOnce = true;
+                Debug.Log($"[Slima] Toon Outline 已生效：PixelSize={settings.pixelSize}, " +
+                          $"Pixelate={settings.pixelateAmount}, Outline={settings.outlineThickness}, " +
+                          $"DepthThreshold={settings.depthThreshold}");
+            }
 
             _pass.renderPassEvent = settings.passEvent;
             _pass.Setup(_material, settings);

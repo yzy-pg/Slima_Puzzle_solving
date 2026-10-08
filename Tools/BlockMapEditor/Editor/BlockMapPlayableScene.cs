@@ -32,6 +32,7 @@ namespace BlockMap
             int spawnCount = CountMarkers(world, root.spawnBlockId);
             int exitCount = CountMarkers(world, root.exitBlockId);
             int colliders = Object.FindObjectsOfType<MeshCollider>().Length + Object.FindObjectsOfType<BoxCollider>().Length;
+            bool addedLight = EnsureDirectionalLight();
 
             EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
             EditorSceneManager.SaveScene(world.gameObject.scene);
@@ -61,6 +62,11 @@ namespace BlockMap
                           "（现在会自动生成碰撞体），否则角色会直接掉下去。";
             }
 
+            if (addedLight)
+            {
+                report += "\n✔ 场景里原来没有灯，已补上一盏平行光（卡通 shader 需要主光才能分出五段光影）。";
+            }
+
             Debug.Log("[BlockMap] 可玩关卡已就绪：\n" + report);
             EditorUtility.DisplayDialog("BlockMap", report, "好");
         }
@@ -75,6 +81,43 @@ namespace BlockMap
                 if (def != null && def.id == id) count++;
             }
             return count;
+        }
+
+        /// <summary>场景没灯时补一盏平行光（菜单 ② 烘出来的是空场景，空场景没有灯）。</summary>
+        [MenuItem("Tools/Slima/地图编辑器/给当前场景补一盏平行光", false, 420)]
+        public static void AddDirectionalLightMenu()
+        {
+            if (EnsureDirectionalLight())
+            {
+                EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+                EditorSceneManager.SaveOpenScenes();
+                Debug.Log("[BlockMap] 场景里原来没有灯，已补上一盏平行光");
+                EditorUtility.DisplayDialog("BlockMap", "已补上一盏平行光。\n\n卡通 shader 要靠主光做五段阶梯，" +
+                                                        "没有灯时整幅画面会落在最暗的那一段（看起来一片灰）。", "好");
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("BlockMap", "场景里已经有灯了，不用补。", "好");
+            }
+        }
+
+        /// <summary>
+        /// 保证场景里至少有一盏灯，返回"是否是这次补上的"。
+        /// 菜单 ② 用 NewScene(EmptyScene) 烘场景 —— 空场景没有平行光，而三渲二 shader 靠主光分段，
+        /// 没光时会整片落在最暗段（表现为"地图一片灰"）。
+        /// </summary>
+        public static bool EnsureDirectionalLight()
+        {
+            if (Object.FindObjectsOfType<Light>().Length > 0) return false;
+
+            var lightGo = new GameObject("Directional Light");
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.intensity = 1f;
+            light.color = new Color(1f, 0.96f, 0.9f);
+            light.shadows = LightShadows.Soft;
+            lightGo.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            return true;
         }
     }
 }

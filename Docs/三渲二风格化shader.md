@@ -23,7 +23,11 @@
 3. 参数：
    - `Pixel Size`：像素块大小（默认 4，越大越糊；1 = 不像素化）
    - `Pixelate Amount`：0 = 只描边不做像素化
-   - `Outline Color` / `Outline Thickness`（以像素块为单位）/ `Depth Threshold`（越小线越多，远处满屏线就调大）
+   - `Outline Color`
+   - `Outline Thickness`：描边粗细，以像素块为单位
+   - `Depth Threshold`：**深度落差阈值，单位是世界单位**（1 ≈ 一格方块）。邻域落差小于它就不算边；
+     默认 0.6 → 方块的直角棱和物体轮廓都会出线。越小线越多，远处满屏线就调大
+   - 挂上后 Console 会打印一条 `[Slima] Toon Outline 已生效：…`，用来确认 Feature 真的在跑
 4. 想要**真的低分辨率颗粒**：URP Asset 里 `Render Scale` 调到 0.25~0.5，`Upscaling Filter` 选 **Point**（和 shader 里的像素化叠加会更强）
 
 ## 三、给物体上卡通材质
@@ -50,7 +54,16 @@
   要分组就把分组名写进**带引号的显示名**，例如 `_Bands ("光影｜阶梯段数（5 = 五段）", Range(2, 8)) = 5`
   —— 引号内的中文是安全的，Inspector 里的分组观感一样（注释里的中文也没问题）。
 
-## 五、还没做的
+## 五、排查表（症状 → 原因）
+
+| 症状 | 原因 / 怎么修 |
+|---|---|
+| **整幅画面一片灰**、只剩轮廓 | 场景里**没有主光**。五段阶梯靠主光算，没灯时 `GetMainLight()` 返回黑光 → 全落在最暗段（`_ShadowColor`）。<br>菜单 ② 是用「空场景」烘的，**空场景没有灯** → 现在 ② 会自动补一盏；老场景可以跑菜单 ③ 或「给当前场景补一盏平行光」。shader 里也加了兜底：没有主光时用默认的斜上方光。 |
+| **完全看不到描边** | ① 全屏 Feature 没挂：URP Renderer 资产 → Add Renderer Feature → **Slima Toon Outline**<br>② 挂上了但 `Outline Thickness = 0` 或 `Depth Threshold` 太大<br>③ 看 Console 有没有 `[Slima] Toon Outline 已生效` —— **没有就是没挂上**（挂在 URP Asset 用的那个 Renderer 上） |
+| 描边太多、满屏黑线 | `Depth Threshold` 调大（单位是世界单位，一格方块 ≈ 1） |
+| 像素化没效果 | Feature 的 `Pixelate Amount = 0`，或 `Pixel Size = 1`；物体 shader 的 `Pixel Snap` 也要 > 0 |
+
+## 六、还没做的
 
 - 五段阶梯目前只按**主光**分段；额外光（点光/聚光）要支持的话，得每盏光各做一次量化再加权。
 - 描边只有深度项、没有法线项 → 同一平面内的颜色变化不会出线。对方块场景来说这正好（棱上出线、面上干净）；如果要做"颜色描边"，再接 `_CameraNormalsTexture` 加 Sobel 项即可。

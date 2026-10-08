@@ -94,12 +94,14 @@ Shader "Slima/Toon Outline Post"
 
                 float3 color = SampleSceneColor(sampledUV);
 
-                // ---- ② 描边：在像素格子上对深度做 Sobel ----
+                // ---- ② 描边：看像素格 3×3 邻域的「深度落差」（世界单位）----
+                //   用落差而不是梯度，语义直观：_DepthThreshold = 多大的落差算一条边。
+                //   默认 0.6 ≈ 半格方块 → 方块的直角棱、物体轮廓都会出线；
+                //   斜着看地面时相邻像素那点微小深度变化不会乱出线。
                 if (_OutlineThickness > 0.001 && _DepthThreshold > 0)
                 {
                     float2 texel = _OutlineThickness / virtualRes;
 
-                    // 3x3 深度（用像素格中心采样，避免采到格边界）
                     float d00 = SampleEyeDepth(sampledUV + float2(-texel.x, -texel.y));
                     float d10 = SampleEyeDepth(sampledUV + float2(0.0,      -texel.y));
                     float d20 = SampleEyeDepth(sampledUV + float2(texel.x,  -texel.y));
@@ -110,12 +112,13 @@ Shader "Slima/Toon Outline Post"
                     float d12 = SampleEyeDepth(sampledUV + float2(0.0,       texel.y));
                     float d22 = SampleEyeDepth(sampledUV + float2(texel.x,   texel.y));
 
-                    float gx = (d20 + 2.0 * d21 + d22) - (d00 + 2.0 * d01 + d02);
-                    float gy = (d02 + 2.0 * d12 + d22) - (d00 + 2.0 * d10 + d20);
+                    float dMax = max(max(d00, d10, d20), max(max(d01, dc, d21), max(d02, d12, d22)));
+                    float dMin = min(min(d00, d10, d20), min(min(d01, dc, d21), min(d02, d12, d22)));
+                    float jump = dMax - dMin;
 
-                    // 用中心深度归一化：远处的物体不用更大的阈值就会满屏是线
-                    float edge = sqrt(gx * gx + gy * gy) / max(dc, 1e-3);
-                    float outline = step(_DepthThreshold, edge);
+                    // 远处判据放宽一点，否则远景方块会糊成一排黑边
+                    float threshold = _DepthThreshold * (1.0 + dc * 0.02);
+                    float outline = (jump >= threshold) ? 1.0 : 0.0;
 
                     color = lerp(color, _OutlineColor.rgb, outline * _OutlineColor.a);
                 }

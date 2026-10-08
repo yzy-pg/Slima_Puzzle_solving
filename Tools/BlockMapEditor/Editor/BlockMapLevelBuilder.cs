@@ -233,6 +233,10 @@ namespace BlockMap
                 Debug.Log($"[BlockMap] 成品场景已补：数据 {dataWorld.Count} 格；特殊模型与光源由 BlockMapRuntimeSpawner 生成");
             }
 
+            // 5.5) 空场景是没有灯的 —— 而三渲二卡通 shader 靠主光分五段，
+            //      没光时会整片落在最暗段（看起来就是"地图一片灰"）。这里补一盏平行光。
+            BlockMapPlayableScene.EnsureDirectionalLight();
+
             // 6) 场景标脏并保存 —— 这一步才叫"持久化"
             EditorSceneManager.MarkAllScenesDirty();
             var activeScene = EditorSceneManager.GetActiveScene();
