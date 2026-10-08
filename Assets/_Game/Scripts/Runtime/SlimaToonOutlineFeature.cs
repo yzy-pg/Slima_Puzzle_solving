@@ -84,9 +84,10 @@ namespace SlimaPuzzle.Rendering
             {
                 new MaskGroup { name = "地面",  materialContains = "_Floor",                     thickness = 2f },
                 new MaskGroup { name = "墙面",  materialContains = "_Wall",                      thickness = 2f },
-                new MaskGroup { name = "起点",  nameContains = "Spawn",                          thickness = 2f },
-                new MaskGroup { name = "出口",  nameContains = "Exit",                           thickness = 2f },
-                new MaskGroup { name = "主角",  nameContains = "Player|Slime",                   thickness = 3f },
+                // 起点/出口在屏幕上只有 2~3 像素：线宽 ≈ Thickness × Pixel Size，所以这里必须给 1
+                new MaskGroup { name = "起点",  nameContains = "Spawn",                          thickness = 1f },
+                new MaskGroup { name = "出口",  nameContains = "Exit",                           thickness = 1f },
+                new MaskGroup { name = "主角",  nameContains = "Player|Slime",                   thickness = 2f },
             };
 
             [Header("深度/颜色描边参数")]

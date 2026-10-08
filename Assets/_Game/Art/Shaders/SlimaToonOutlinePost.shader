@@ -196,11 +196,14 @@ Shader "Slima/Toon Outline Post"
                 else if (_OutlineThickness > 0.001 && _EdgeSource > 1.5)
                 {
                     float2 texel = _OutlineThickness / virtualRes;
-                    float mC = SampleMask(sampledUV);
-                    float mMin = min(min(SampleMask(sampledUV + float2(-texel.x, 0.0)),
-                                         SampleMask(sampledUV + float2(texel.x, 0.0))),
-                                     min(SampleMask(sampledUV + float2(0.0, -texel.y)),
-                                         SampleMask(sampledUV + float2(0.0, texel.y))));
+
+                    // ★ 遮罩判定用「原始屏幕像素」(sourceUV)，不用像素化之后的格子中心。
+                    //   否则比一个像素块还小的物件（起点/出口只有 2~3 像素）会被整格判成背景 → 整格涂黑 → 物件消失。
+                    float mC = SampleMask(sourceUV);
+                    float mMin = min(min(SampleMask(sourceUV + float2(-texel.x, 0.0)),
+                                         SampleMask(sourceUV + float2(texel.x, 0.0))),
+                                     min(SampleMask(sourceUV + float2(0.0, -texel.y)),
+                                         SampleMask(sourceUV + float2(0.0, texel.y))));
 
                     if (_DebugMode > 1.5)
                     {
