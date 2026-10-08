@@ -26,8 +26,10 @@ namespace SlimaPuzzle.Rendering
             public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
             [Header("像素化")]
-            [Tooltip("像素块大小（屏幕像素）。越大越糊；1 = 不像素化")]
-            [Range(1f, 16f)] public float pixelSize = 4f;
+            [Tooltip("像素块大小（屏幕像素）。1 = 不像素化。\n" +
+                     "⚠ 它会和物体材质里的「像素化｜顶点像素吸附」叠加，两个都开就会非常糊；\n" +
+                     "建议只留一层：要么只用这里，要么只用 URP Asset 的 Render Scale + Point。")]
+            [Range(1f, 16f)] public float pixelSize = 2f;
 
             [Tooltip("0 = 关闭像素化，只描边")]
             [Range(0f, 1f)] public float pixelateAmount = 1f;

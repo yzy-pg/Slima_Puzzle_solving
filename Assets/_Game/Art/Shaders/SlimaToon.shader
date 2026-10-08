@@ -30,7 +30,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _NoiseWorldSize ("像素噪声｜世界噪声格大小（世界单位，0.5 ≈ 半格方块）", Range(0.05, 2)) = 0.5
         _PixelSize ("像素噪声｜屏幕噪声块大小（只在上一个参数 = 0 时用）", Range(1, 16)) = 4
 
-        _PixelSnap ("像素化｜顶点像素吸附（0 = 关，越大越方）", Range(0, 16)) = 3
+        _PixelSnap ("像素化｜顶点像素吸附（0 = 关；会和全屏像素化叠加，建议只开一层）", Range(0, 16)) = 0
 
         _OutlineColor ("描边｜颜色", Color) = (0, 0, 0, 1)
         _OutlineWidth ("描边｜粗细（屏幕像素，0 = 关掉这个物体的反转壳描边）", Range(0, 8)) = 2

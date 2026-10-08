@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Lab_Floor
   m_Shader: {fileID: 4800000, guid: 080c040c8b7e14141983ea3baa44be00, type: 3}
-  m_Parent: {fileID: 0}
+  m_Parent: {fileID: 2100000, guid: 778a3fa0b4693dc4ea6e1a5243d6e31f, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
@@ -24,12 +24,10 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 1b5d666ba9cadc0448a1618bbce857c0, type: 3}
+        m_Texture: {fileID: 2800000, guid: a70c0c591ccb85f4c8c1030f74daa2a3, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats:
-    - _Cull: 2
-    - _Cutoff: 0.5
+    m_Floats: []
     m_Colors: []
   m_BuildTextureStacks: []
