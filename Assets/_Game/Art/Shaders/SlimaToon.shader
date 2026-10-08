@@ -28,6 +28,8 @@ Shader "Slima/Toon (Cel + Pixel)"
         _LightTint ("光影｜受光色", Color) = (1, 1, 1, 1)
         _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
+        _NoiseStrength ("光影｜阶梯过渡噪声强度（0 = 纯阶梯，0.35 = 像素颗粒过渡）", Range(0, 1)) = 0.35
+        _PixelBlock ("光影｜噪声块大小（屏幕像素，建议和全屏 Pixel Size 一致）", Range(1, 16)) = 2
 
         _PixelSnap ("像素化｜顶点像素吸附（0 = 关；会和全屏像素化叠加，建议只开一层）", Range(0, 16)) = 0
 
@@ -74,6 +76,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _AmbientColor;
                 half   _LightWrap;
                 half   _PixelSnap;
+                half   _NoiseStrength;
+                half   _PixelBlock;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -187,6 +191,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _AmbientColor;
                 half   _LightWrap;
                 half   _PixelSnap;
+                half   _NoiseStrength;
+                half   _PixelBlock;
                 half   _Cull;
                 half   _Cutoff;
                 half4  _OutlineColor;
@@ -260,9 +266,12 @@ Shader "Slima/Toon (Cel + Pixel)"
 
             half4 ToonFragment(Varyings input) : SV_Target
             {
-                // ★ 已删除"像素噪声/世界噪声格"那套：它会把五段阶梯打散成随机噪点，看起来非常怪。
-                //   现在光影严格是"NdotL(+阴影) → 五段硬边"的转换，不再有任何抖动。
-                const float dither = 0.0;
+                // ★ 阶梯过渡噪声：**屏幕空间 + 按像素块量化**（和最后那步全屏像素化同一套网格）。
+                //   之前那版用"世界坐标量化"会在轴对齐的方块上形成重复花纹（看起来非常怪），已废弃；
+                //   屏幕块内噪声取常数 → 是"像素颗粒"而不是渐变，也不会随模型缩放/移动改变图案。
+                float2 screenPixel = input.screenPos.xy / max(input.screenPos.w, 1e-5) * _ScreenParams.xy;
+                float noise = Hash21(floor(screenPixel / max(1.0, _PixelBlock)));
+                float dither = (noise - 0.5) * _NoiseStrength;
 
                 // ③ 五段阶梯
                 float3 normalWS = normalize(input.normalWS);
@@ -282,8 +291,9 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half NdotL = dot(normalWS, mainLight.direction);
                 half wrapped = saturate((NdotL + _LightWrap) / (1.0 + _LightWrap));   // 0=硬边，>0 偏半兰伯特
 
-                // 抖动幅度 ≈ 一段的宽度（现已固定为 0：纯阶梯）
+                // 抖动幅度 = 一段的宽度 × 强度（0.35 → 只在段边界附近抖，主体仍是干净的硬边）
                 float steps = max(2.0, _Bands);
+                dither /= steps;
                 half lit = saturate(wrapped + dither);
 
                 half band = min(floor(lit * steps), steps - 1.0) / (steps - 1.0);       // 5 段 → 0 / .25 / .5 / .75 / 1
