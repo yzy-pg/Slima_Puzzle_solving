@@ -42,6 +42,12 @@ namespace SlimaPuzzle.Rendering
                      "1 = 颜色/亮度落差（默认）—— 不依赖深度纹理，任何情况都能出线。")]
             [Range(0, 1)] public int edgeSource = 1;
 
+            [Tooltip("描边画在哪一侧。\n" +
+                     "0 = 两侧（内外都画，会吃掉物品自己的像素）。\n" +
+                     "1 = 只向外（默认）：只画在背景那一侧（颜色模式=亮侧，深度模式=远侧），物品轮廓不被啃掉。\n" +
+                     "2 = 只向内：只画在物品那一侧。")]
+            [Range(0, 2)] public int outlinePlacement = 1;
+
             [Tooltip("颜色描边阈值（0.01~1，仅当描边依据 = 颜色时有效）。越小线越多、越粗。")]
             [Range(0.01f, 1f)] public float colorThreshold = 0.15f;
 
@@ -104,6 +110,7 @@ namespace SlimaPuzzle.Rendering
         static readonly int PixelateAmountId = Shader.PropertyToID("_PixelateAmount");
         static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
         static readonly int EdgeSourceId = Shader.PropertyToID("_EdgeSource");
+        static readonly int OutlinePlacementId = Shader.PropertyToID("_OutlinePlacement");
         static readonly int ColorThresholdId = Shader.PropertyToID("_ColorThreshold");
 
         public override void Create()
@@ -198,6 +205,7 @@ namespace SlimaPuzzle.Rendering
                 _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
                 _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 3));
                 _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 1));
+                _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");

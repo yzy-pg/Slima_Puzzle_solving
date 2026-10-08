@@ -19,6 +19,7 @@ Shader "Slima/Toon Outline Post"
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
         _DebugMode ("调试模式（0=正常 1=看原始深度 2=看边缘强度 3=看线性深度）", Range(0, 3)) = 0
         _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 · 不依赖深度纹理）", Range(0, 1)) = 1
+        _OutlinePlacement ("描边位置（0=两侧 1=只向外/亮侧 2=只向内/暗侧）", Range(0, 2)) = 1
         _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
     }
 
@@ -54,6 +55,7 @@ Shader "Slima/Toon Outline Post"
                 half  _PixelateAmount;
                 float _DebugMode;
                 float _EdgeSource;
+                float _OutlinePlacement;
                 float _ColorThreshold;
             CBUFFER_END
 
@@ -150,9 +152,10 @@ Shader "Slima/Toon Outline Post"
                     float lx1 = Lum(sampledUV + float2(texel.x,  0.0));
                     float ly0 = Lum(sampledUV + float2(0.0, -texel.y));
                     float ly1 = Lum(sampledUV + float2(0.0,  texel.y));
+                    float lC  = Lum(sampledUV);
 
-                    float lMax = max(max(lx0, lx1), max(ly0, ly1));
-                    float lMin = min(min(lx0, lx1), min(ly0, ly1));
+                    float lMax = max(max(max(lx0, lx1), max(ly0, ly1)), lC);
+                    float lMin = min(min(min(lx0, lx1), min(ly0, ly1)), lC);
                     float lJump = lMax - lMin;
 
                     if (_DebugMode > 1.5)
@@ -162,6 +165,17 @@ Shader "Slima/Toon Outline Post"
                     }
 
                     float lOutline = (lJump >= _ColorThreshold) ? 1.0 : 0.0;
+
+                    // 只描一侧：亮侧 = 背景侧（浅色背景），暗侧 = 物体侧。
+                    // 这样描边画在物品外面，不会吃掉物品自己的像素。
+                    if (_OutlinePlacement > 0.5 && lOutline > 0.5)
+                    {
+                        bool onBright = lC >= lMax - 1e-4;
+                        bool onDark = lC <= lMin + 1e-4;
+                        lOutline = (_OutlinePlacement < 1.5) ? (onBright ? 1.0 : 0.0)
+                                                            : (onDark ? 1.0 : 0.0);
+                    }
+
                     color = lerp(color, _OutlineColor.rgb, lOutline * _OutlineColor.a);
                 }
                 // ---- ②-b 深度落差描边 ----
@@ -200,6 +214,15 @@ Shader "Slima/Toon Outline Post"
                     }
 
                     float outline = (jump >= threshold) ? 1.0 : 0.0;
+
+                    // 只描一侧：远侧 = 背景侧（物体挡在它前面的那侧），近侧 = 物体侧。
+                    if (_OutlinePlacement > 0.5 && outline > 0.5)
+                    {
+                        bool onFar = dc >= dMax - 1e-4;
+                        bool onNear = dc <= dMin + 1e-4;
+                        outline = (_OutlinePlacement < 1.5) ? (onFar ? 1.0 : 0.0)
+                                                           : (onNear ? 1.0 : 0.0);
+                    }
 
                     color = lerp(color, _OutlineColor.rgb, outline * _OutlineColor.a);
                 }
