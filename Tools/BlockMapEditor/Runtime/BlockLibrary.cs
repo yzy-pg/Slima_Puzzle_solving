@@ -145,6 +145,17 @@ namespace BlockMap
                 def.panelTexture = panel;
                 def.frameTexture = frame;
                 def.simpleTexture = simple;
+
+                // ★ 灯：id 含 "Lamp" 的方块自动发光 → 运行时在格子上生成暖色点光源
+                //   （实时光只对"受光材质"有效；地形若还是 BlockUnlit 就不受光，这时用 *_Lit 提亮贴图达到同样观感）
+                if (tid.IndexOf("Lamp", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    def.emitLight = true;
+                    def.lightColor = new Color(1f, 0.86f, 0.6f);
+                    def.lightRange = 7f;
+                    def.lightIntensity = 1.4f;
+                }
+
                 if (IsMarkerBlock(tid))
                 {
                     // 起点 / 终点：是「标记」而不是地形
