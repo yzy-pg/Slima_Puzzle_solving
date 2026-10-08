@@ -200,7 +200,8 @@ namespace SlimaPuzzle.Rendering
             // 调试模式 6（分组填色测试）也要走这条路，否则拿不到每组遮罩
             if (settings.edgeSource >= 2 || settings.debugMode >= 6)
             {
-                LogMatchReport();
+                // 匹配报告只在调试时打（正常游玩时 Console 保持干净）
+                if (settings.debugMode >= 2) LogMatchReport();
                 int groupIndex = 0;
                 foreach (MaskGroup group in EnumerateGroups())
                 {
@@ -453,10 +454,8 @@ namespace SlimaPuzzle.Rendering
             Color _clearColor = Color.white;
             RTHandle _mask;
 
-            /// <summary>上一帧实际画进遮罩的子网格数量（0 = 这一组空，合成时会被跳过）</summary>
+            /// <summary>上一帧实际画进遮罩的子网格数量</summary>
             public int LastDrawCount { get; private set; }
-
-            float _lastLogTime;
 
             public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers,
                               int globalTextureId, Color clearColor)
@@ -479,16 +478,6 @@ namespace SlimaPuzzle.Rendering
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                // 每 2 秒报一次内部状态：用来定位"命中>0 但画出 0" 到底是哪一环空
-                bool report = Time.realtimeSinceStartup - _lastLogTime > 2f;
-                if (report)
-                {
-                    _lastLogTime = Time.realtimeSinceStartup;
-                    Debug.Log($"[Slima] 遮罩 pass「{_group?.name}」执行中：material={(_material != null)}, " +
-                              $"group={(_group != null)}, mask窗口={(_mask != null)}, " +
-                              $"扫描到的渲染器={(_renderers != null ? _renderers.Length : -1)}");
-                }
-
                 if (_material == null || _group == null || _mask == null) return;
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
@@ -515,10 +504,6 @@ namespace SlimaPuzzle.Rendering
                         }
                     }
                     LastDrawCount = drawn;
-                    if (report)
-                    {
-                        Debug.Log($"[Slima] 遮罩 pass「{_group.name}」本帧实际画了 {drawn} 个子网格");
-                    }
 
                     cmd.SetGlobalTexture(_globalTextureId, _mask);
                 }
