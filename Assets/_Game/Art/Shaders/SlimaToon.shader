@@ -26,7 +26,9 @@ Shader "Slima/Toon (Cel + Pixel)"
         _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
 
         _NoiseStrength ("像素噪声｜过渡强度", Range(0, 1)) = 0.65
-        _PixelSize ("像素噪声｜噪声块大小（屏幕像素）", Range(1, 16)) = 4
+        _NoiseSurfaceLock ("像素噪声｜锁在表面（1 = 跟模型走，0 = 钉在屏幕上）", Range(0, 1)) = 1
+        _NoiseWorldSize ("像素噪声｜世界噪声格大小（世界单位，0.5 ≈ 半格方块）", Range(0.05, 2)) = 0.5
+        _PixelSize ("像素噪声｜屏幕噪声块大小（只在上一个参数 = 0 时用）", Range(1, 16)) = 4
 
         _PixelSnap ("像素化｜顶点像素吸附（0 = 关，越大越方）", Range(0, 16)) = 3
 
@@ -74,6 +76,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _LightWrap;
                 half   _NoiseStrength;
                 half   _PixelSize;
+                half   _NoiseSurfaceLock;
+                half   _NoiseWorldSize;
                 half   _PixelSnap;
                 half4  _OutlineColor;
                 half   _OutlineWidth;
@@ -175,6 +179,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half   _LightWrap;
                 half   _NoiseStrength;
                 half   _PixelSize;
+                half   _NoiseSurfaceLock;
+                half   _NoiseWorldSize;
                 half   _PixelSnap;
                 half4  _OutlineColor;
                 half   _OutlineWidth;
@@ -249,8 +255,21 @@ Shader "Slima/Toon (Cel + Pixel)"
             {
                 float2 screenPx = input.screenPos.xy / max(input.screenPos.w, 1e-5) * _ScreenParams.xy;
 
-                // ③-a 像素化噪声：屏幕像素块内为常数
-                float noise = PixelNoise(screenPx, _PixelSize);
+                // ③-a 像素化噪声：
+                //   默认锁在**表面**上（世界坐标量化成固定大小的格子）——
+                //   镜头移动时噪声跟着世界/模型走，不会出现"贴图钉在屏幕上、一移动就滑动"。
+                //   想要老式的屏幕网点/抖动（图案固定在屏幕上），把 _NoiseSurfaceLock 设成 0。
+                float noise;
+                if (_NoiseSurfaceLock > 0.5)
+                {
+                    float3 wp = input.positionWS / max(0.01, _NoiseWorldSize);
+                    // 以 XZ 为主、混一点 Y：纯竖直面（墙）上才不会退化成一条条直线
+                    noise = Hash21(floor(float2(wp.x + wp.y * 0.37, wp.z - wp.y * 0.29)));
+                }
+                else
+                {
+                    noise = PixelNoise(screenPx, _PixelSize);
+                }
 
                 // ③-b 五段阶梯：先给 NdotL 加噪声抖动，再量化成 _Bands 段
                 float3 normalWS = normalize(input.normalWS);
