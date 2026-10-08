@@ -26,6 +26,9 @@ namespace BlockMap
         public bool cameraFollowsPlayer = true;
         public float cameraSize = 8f;
 
+        [Tooltip("相机背景色。临时想白底看轮廓/截图就设白色（原来的深蓝是 0.055, 0.08, 0.12）")]
+        public Color backgroundColor = Color.white;
+
         [Tooltip("相机方位角（度，取 0 / 90 / 180 / 270）。用来对齐你在 3D 编辑器里看地图的方向：\n" +
                  "0 = 相机在 -Z 侧（编辑器默认，屏幕右 = +X、屏幕上 = +Z）\n" +
                  "90 = 相机在 -X 侧　180 = 相机在 +Z 侧　270 = 相机在 +X 侧\n" +
@@ -160,7 +163,7 @@ namespace BlockMap
             camera.nearClipPlane = 0.1f;
             camera.farClipPlane = 400f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.055f, 0.08f, 0.12f);
+            camera.backgroundColor = backgroundColor;
             _camera = camera;
         }
 
