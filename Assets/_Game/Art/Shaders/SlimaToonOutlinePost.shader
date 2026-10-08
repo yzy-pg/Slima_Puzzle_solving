@@ -17,7 +17,7 @@ Shader "Slima/Toon Outline Post"
         _OutlineThickness ("描边粗细（像素块）", Range(0, 16)) = 2
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
-        _DebugMode ("调试模式（0=正常 1=原始深度 2=边缘 3=线性深度 4=清晰遮罩 6=分组填色）", Range(0, 6)) = 0
+        _DebugMode ("调试模式（0正常 1原始深度 2边缘 3眼深度 4清晰遮罩 5填色+描边 6填色 7遮罩读数）", Range(0, 7)) = 0
         _EdgeSource ("描边依据（0=深度落差 1=颜色亮度 2=遮罩分组 · 推荐）", Range(0, 2)) = 2
         _OutlinePlacement ("描边位置（0=两侧 1=只向外/亮侧 2=只向内/暗侧）", Range(0, 2)) = 1
         _ColorThreshold ("颜色描边阈值（越小线越多）", Range(0.01, 1)) = 0.15
@@ -227,7 +227,7 @@ Shader "Slima/Toon Outline Post"
                 //   · 不依赖深度纹理，也不依赖颜色阈值 → 深色地面/暗物体都不会乱出线
                 //   · 天生只画外侧：物品自己的像素永远是黑的，不会被啃
                 //   · 调试 6（分组填色）也要走这一支 —— 所以不能只在 EdgeSource=2 时进入
-                else if (_OutlineThickness > 0.001 && (_EdgeSource > 1.5 || (_DebugMode > 4.5 && _DebugMode < 6.5)))
+                else if (_OutlineThickness > 0.001 && (_EdgeSource > 1.5 || (_DebugMode > 4.5 && _DebugMode < 6.5) || _DebugMode > 6.5))
                 {
                     float2 texel = _OutlineThickness / virtualRes;
 
@@ -238,6 +238,14 @@ Shader "Slima/Toon Outline Post"
                                          SampleMask(sourceUV + float2(texel.x, 0.0))),
                                      min(SampleMask(sourceUV + float2(0.0, -texel.y)),
                                          SampleMask(sourceUV + float2(0.0, texel.y))));
+
+                    // ---- 调试 7：遮罩原样读数（红 = 被判定为"物体"，绿 = 背景）----
+                    //   用来确认遮罩本身对不对：整屏绿 = 遮罩全白（什么都没画出来）；
+                    //   整屏红 = 遮罩全黑（清屏没生效）；红物体 + 绿背景 = 遮罩正确。
+                    if (_DebugMode > 6.5)
+                    {
+                        return half4(1.0 - mC, mC, 0.0, 1);
+                    }
 
                     // ---- 调试 5 / 6：把这一组的物体整体**填色**（不是描边）----
                     //   5 = 填色后继续画描边；6 = 只填色（便于纯看分类）

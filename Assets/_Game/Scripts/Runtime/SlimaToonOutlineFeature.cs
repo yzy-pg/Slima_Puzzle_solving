@@ -116,7 +116,7 @@ namespace SlimaPuzzle.Rendering
                      "4 = 特殊物件专属：品红 = 不参与像素化（保持清晰）。\n" +
                      "6 = 分组填色测试：把每一组的物体整体填成该组的颜色 —— 一眼看出识别范围；\n" +
                      "    完全没被填色的物体 = 没有任何分组识别到它。")]
-            [Range(0, 6)] public int debugMode = 0;
+            [Range(0, 7)] public int debugMode = 0;
         }
 
         public Settings settings = new Settings();
@@ -487,8 +487,9 @@ namespace SlimaPuzzle.Rendering
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Outline Mask")))
                 {
-                    // 白底黑块 = 描边分组；黑底白块 = 不参与像素化的物件（靠 _clearColor + _MaskColor 决定）
-                    CoreUtils.SetRenderTarget(cmd, _mask, ClearFlag.Color | ClearFlag.Depth, _clearColor);
+                    // 明确清屏（不用 CoreUtils 的重载，避免"清屏色没生效"这种歧义）
+                    cmd.SetRenderTarget(_mask);
+                    cmd.ClearRenderTarget(true, true, _clearColor);
 
                     int drawn = 0;
                     if (_renderers != null)
@@ -627,7 +628,7 @@ namespace SlimaPuzzle.Rendering
                 material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
                 material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
                 material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 6));
+                material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 7));
                 material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
                 material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
                 material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
