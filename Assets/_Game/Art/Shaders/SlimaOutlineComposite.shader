@@ -145,7 +145,8 @@ Shader "Slima/Outline Composite"
 
                 // 相机深度图（归一化到同一尺度）。深度图不可用时线性化结果会偏大 → 退化为"总是画线"（不会更糟）
                 float sceneDepth = LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams) / max(1e-3, _MaskFar);
-                float visible = (sceneDepth >= groupDepth - 0.01) ? 1.0 : 0.0;   // 1% 容差
+                // 容差：遮罩 G 通道是 8 位深度，精度约 1/255，太小的容差会把"站在地板上的主角"误判成被挡住
+                float visible = (sceneDepth >= groupDepth - 0.03) ? 1.0 : 0.0;
 
                 float outline = (mC > 0.5 && mMin < 0.5 && visible > 0.5) ? 1.0 : 0.0;
                 float3 color = lerp(SceneColor(uv), _OutlineColor.rgb, outline * _OutlineColor.a);
