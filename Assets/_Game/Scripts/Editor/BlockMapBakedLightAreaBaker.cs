@@ -89,7 +89,9 @@ namespace BlockMap.EditorTools
                 {
                     for (int ly = -halfY; ly <= halfY; ly++)
                     {
-                        float level = area.EvaluateFace(new Vector2(lx, ly));
+                        // 用同一套风格化算法算强度（这里只需要"亮不亮"，颜色由方块贴图决定）
+                        area.CellLight(Vector3.zero, new Vector2(lx, ly), 0f, out float level);
+                        if (level <= 0.001f) continue;
 
                         for (int lz = 0; lz <= beamLen; lz++)
                         {
@@ -148,6 +150,109 @@ namespace BlockMap.EditorTools
                 (_skippedHint(skippedNoVariant) ? "提示：先跑「给所有方块生成提亮版（灯光亮斑，_Lit）」再烘焙 ✓\n\n" : "") +
                 "渐变用 Bayer 抖动变成像素格疏密：越亮的地方点亮的格子越密 ✓\n" +
                 "（需要再编辑发光体时，手动把它身上的 BoxCollider 勾回 Enabled 即可）";
+
+            Debug.Log("[BlockMap] " + msg.Replace("\n", " "));
+            EditorUtility.DisplayDialog("BlockMap", msg, "好");
+        }
+
+        [MenuItem("Tools/Slima/地图编辑器/把发光体烤进地形网格（像素噪波+五层阶梯+高饱和）", false, 448)]
+        public static void BakeIntoMeshes()
+        {
+            BlockWorld world = Object.FindObjectOfType<BlockWorld>();
+            if (world == null)
+            {
+                EditorUtility.DisplayDialog("BlockMap", "当前场景里没有 BlockWorld（请打开已经烘好的关卡场景）。", "好");
+                return;
+            }
+
+            var areas = Object.FindObjectsOfType<BlockMapBakedLightArea>();
+            if (areas.Length == 0)
+            {
+                EditorUtility.DisplayDialog("BlockMap", "场景里没有发光体。先用「新建发光体（矩形渐变，烘焙用）」摆一个。", "好");
+                return;
+            }
+
+            int painted = 0, unreadable = 0, meshes = 0;
+            var filters = Object.FindObjectsOfType<MeshFilter>();
+
+            try
+            {
+                AssetDatabase.StartAssetEditing();
+
+                foreach (MeshFilter mf in filters)
+                {
+                    if (mf == null || mf.GetComponent<MeshRenderer>() == null) continue;
+                    Mesh mesh = mf.sharedMesh;
+                    if (mesh == null || mesh.vertexCount == 0) continue;
+                    if (!mesh.isReadable) { unreadable++; continue; }
+
+                    Vector3[] verts = mesh.vertices;
+                    Color[] cols = mesh.colors;
+                    if (cols == null || cols.Length != verts.Length)
+                    {
+                        cols = new Color[verts.Length];
+                        for (int i = 0; i < cols.Length; i++) cols[i] = Color.white;
+                    }
+
+                    bool changed = false;
+
+                    for (int v = 0; v < verts.Length; v++)
+                    {
+                        Vector3 wp = mf.transform.TransformPoint(verts[v]);
+                        Color add = Color.black;
+
+                        foreach (BlockMapBakedLightArea area in areas)
+                        {
+                            Vector3 lp = area.transform.InverseTransformPoint(wp);
+                            Vector2 face = new Vector2(lp.x, lp.y);
+                            float len = Mathf.Max(0.01f, area.BeamLength);
+                            if (lp.z < 0f || lp.z > len) continue;
+
+                            float beamT = Mathf.Clamp01(lp.z / len);
+                            Color c = area.CellLight(wp, face, beamT, out float level);
+                            if (level <= 0.001f) continue;
+
+                            add += new Color(c.r * level, c.g * level, c.b * level, 0f);
+                        }
+
+                        if (add.maxColorComponent <= 0.0001f) continue;
+
+                        Color src = cols[v];
+                        cols[v] = new Color(
+                            Mathf.Clamp01(src.r + add.r * (1f - src.r)),
+                            Mathf.Clamp01(src.g + add.g * (1f - src.g)),
+                            Mathf.Clamp01(src.b + add.b * (1f - src.b)),
+                            src.a);
+                        changed = true;
+                        painted++;
+                    }
+
+                    if (changed)
+                    {
+                        mesh.colors = cols;
+                        EditorUtility.SetDirty(mesh);
+                        meshes++;
+                    }
+                }
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+
+            EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
+            EditorSceneManager.SaveOpenScenes();
+
+            string msg =
+                $"已把发光体烤进地形网格：\n\n" +
+                $"· 受影响网格：{meshes} 个\n" +
+                $"· 被提亮的顶点：{painted} 个\n" +
+                $"· 无法读取的网格：{unreadable} 个" +
+                (unreadable > 0 ? "（需要在这些网格资产上勾 Read/Write，或重新 ② 烘一次场景）" : "") + "\n\n" +
+                "风格化参数（像素噪波 / 五层阶梯 / 高饱和过渡 / 散射）都在发光体组件上，改完再烤一次即可 ✓\n" +
+                "运行时不参与任何实时光照 ✓";
 
             Debug.Log("[BlockMap] " + msg.Replace("\n", " "));
             EditorUtility.DisplayDialog("BlockMap", msg, "好");

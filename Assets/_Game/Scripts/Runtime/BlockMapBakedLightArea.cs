@@ -54,16 +54,74 @@ namespace BlockMap.Tools
         /// <summary>射出长度（沿本地 +Z）。</summary>
         public float BeamLength => Mathf.Abs(transform.lossyScale.z);
 
-        /// <summary>某点在"发光面"上的归一化亮度 0~1（面内坐标，单位 = 格）。</summary>
-        public float EvaluateFace(Vector2 faceCells)
+        [Header("风格化（和 toon shader 一致）")]
+        [Tooltip("像素噪波强度：把阶梯边界打散成像素颗粒")]
+        [Range(0f, 1f)] public float pixelNoise = 0.35f;
+
+        [Tooltip("噪波格子大小（世界单位，约等于几个屏幕像素）")]
+        [Range(0.005f, 0.5f)] public float noiseCell = 0.06f;
+
+        [Tooltip("阶梯层数（5 = 五层阶梯式光运算）")]
+        [Range(2, 8)] public int bands = 5;
+
+        [Tooltip("高饱和过渡：在 40%~70% 的过渡带里提高颜色饱和度（0 = 关）")]
+        [Range(0f, 1f)] public float saturationBoost = 0.3f;
+
+        [Tooltip("散射范围（格）：向外扩多少格还受光（0 = 严格按矩形）")]
+        [Range(0f, 8f)] public float scatter = 0f;
+
+        [Tooltip("边缘柔和度：0 = 硬边（到边界骤停）；1 = 从边界平滑过渡到中心")]
+        [Range(0f, 1f)] public float edgeSoftness = 0.25f;
+
+        [Tooltip("沿光程衰减：0 = 一路同亮；1 = 到射出末端衰减到 0")]
+        [Range(0f, 1f)] public float beamFalloff = 0f;
+
+        /// <summary>
+        /// 一次算出某处的最终"提亮值"和"颜色"：面内渐变 → 光程衰减 → 散射 → 像素噪波 → 五层阶梯 → 高饱和过渡。
+        /// </summary>
+        public Color CellLight(Vector3 worldPos, Vector2 faceCells, float beamT, out float levelOut)
         {
-            Vector2 half = RectSize * 0.5f;
+            // ① 面内渐变（含散射扩大范围）
+            Vector2 half = RectSize * 0.5f + new Vector2(scatter, scatter);
             float ex = 1f - Mathf.Clamp01(Mathf.Abs(faceCells.x) / Mathf.Max(0.5f, half.x));
             float ey = 1f - Mathf.Clamp01(Mathf.Abs(faceCells.y) / Mathf.Max(0.5f, half.y));
-            float t = Mathf.Min(ex, ey);                       // 面边缘 0，面中心 1
+            float edge = Mathf.Min(ex, ey);
+            if (edge <= 0f) { levelOut = 0f; return Color.black; }
 
-            float lum = brightness.Evaluate(t).grayscale;
-            return Mathf.Clamp01(lum * intensity);
+            float t = edgeSoftness > 0.001f ? Mathf.Clamp01(edge / edgeSoftness) : 1f;
+            float level = brightness.Evaluate(t).grayscale * intensity;
+
+            // ② 沿光程衰减
+            level *= Mathf.Lerp(1f, 1f - Mathf.Clamp01(beamT), beamFalloff);
+
+            // ③ 像素噪波（世界空间的固定格子 → 锁在表面上，不随镜头滑动）
+            float cell = Mathf.Max(0.005f, noiseCell);
+            float n = Hash21(new Vector2(Mathf.Floor(worldPos.x / cell), Mathf.Floor(worldPos.z / cell)));
+            level = Mathf.Clamp01(level + (n - 0.5f) * pixelNoise / Mathf.Max(2f, bands));
+
+            // ④ 五层阶梯式光运算
+            int b = Mathf.Max(2, bands);
+            level = Mathf.Floor(level * b) / (b - 1f);
+            level = Mathf.Clamp01(level);
+
+            // ⑤ 高饱和过渡（40% ~ 70% 带内提饱和）
+            float tt = Mathf.Clamp01((level - 0.4f) / 0.3f);
+            float sat = (1f - tt) * saturationBoost;
+            Color c = brightness.Evaluate(level);
+            float lum = c.grayscale;
+            c = Color.Lerp(new Color(lum, lum, lum, 1f), c, 1f + sat);
+
+            levelOut = level;
+            return c;
+        }
+
+        static float Hash21(Vector2 p)
+        {
+            p = new Vector2(p.x * 123.34f, p.y * 456.21f);
+            p = new Vector2(p.x - Mathf.Floor(p.x), p.y - Mathf.Floor(p.y));
+            float d = Vector2.Dot(p, new Vector2(p.x + 45.32f, p.y + 45.32f));
+            p += new Vector2(d, d);
+            return (p.x * p.y) - Mathf.Floor(p.x * p.y);
         }
 
         /// <summary>该格子是否被点亮（Bayer 4×4 抖动 → 像素颗粒疏密）。</summary>
