@@ -316,6 +316,7 @@ namespace SlimaPuzzle.Rendering
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
                 desc.depthBufferBits = 0;          // 遮罩不做深度测试
                 desc.msaaSamples = 1;
+                desc.colorFormat = RenderTextureFormat.ARGBHalf;   // ★ 半浮点：G 通道存深度，精度要够分辨"叠在一起的物品"
                 RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                                                   name: "_SlimaMask");
             }
@@ -397,6 +398,7 @@ namespace SlimaPuzzle.Rendering
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
                 desc.depthBufferBits = 0;          // 遮罩不做深度测试，不需要深度缓冲
                 desc.msaaSamples = 1;
+                desc.colorFormat = RenderTextureFormat.ARGBHalf;   // ★ 半浮点：G 通道存深度
                 RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                                                   name: "_SlimaGroupMask");
             }
