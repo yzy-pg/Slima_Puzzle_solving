@@ -210,10 +210,11 @@ namespace BlockMap.Tools
             Gizmos.matrix = old;
         }
 
-        [Header("编辑器预览灯（只在编辑时亮，Play 时自动关闭）")]
-        [Tooltip("勾上 = 用一盏真实点光在编辑器里实时预览效果（你能直接看到范围）\n" +
-                 "★ Play 时会被自动关闭：不参与任何运行时灯光计算")]
-        public bool editorPreviewLight = true;
+        [Header("编辑器预览灯（默认关：开着会盖住烘焙效果）")]
+        [Tooltip("勾上 = 用一盏真实聚光灯实时预览位置/方向/范围。\n" +
+                 "⚠ 它是真实灯，会在地上投出平滑光斑，会盖住烘焙出来的像素阶梯/五层阶梯 → 要看烘焙效果请保持关闭。\n" +
+                 "★ Play 时无论如何都会被自动关闭：不参与任何运行时灯光计算")]
+        public bool editorPreviewLight = false;
 
         [Tooltip("预览灯强度（编辑器里看的，与烘焙无关）")]
         [Range(0.1f, 8f)] public float previewIntensity = 2f;
