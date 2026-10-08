@@ -231,7 +231,13 @@ namespace SlimaPuzzle.Rendering
         {
             while (_maskPasses.Count <= index) _maskPasses.Add(new MaskPass());
             while (_compositePasses.Count <= index)
-                _compositePasses.Add(new PixelOutlinePass { renderPassEvent = settings.passEvent });
+            {
+                var composite = new PixelOutlinePass { renderPassEvent = settings.passEvent };
+                // ★ 每个分组一份独立材质实例：共用一份时，命令缓冲里的属性会互相覆盖，
+                //   导致整屏被最后一组的颜色填满（就是"全屏粉红"那个 bug）
+                composite.SetOwnMaterial(settings.shader != null ? settings.shader : Shader.Find("Slima/Toon Outline Post"));
+                _compositePasses.Add(composite);
+            }
         }
 
         /// <summary>每 60 帧重扫一次场景里的 MeshRenderer（烘出来的地形是静态的，道具是运行时生成的）</summary>
@@ -577,6 +583,7 @@ namespace SlimaPuzzle.Rendering
         sealed class PixelOutlinePass : ScriptableRenderPass
         {
             Material _material;
+            Material _ownMaterial;
             Settings _settings;
             float _thicknessOverride = -1f;
             Color _debugTint = Color.red;
@@ -585,6 +592,12 @@ namespace SlimaPuzzle.Rendering
             public PixelOutlinePass()
             {
                 ConfigureInput(ScriptableRenderPassInput.Depth);   // 依据 0 需要深度
+            }
+
+            /// <summary>给这个 pass 一份独立材质（多组共用一份会互相覆盖属性）</summary>
+            public void SetOwnMaterial(Shader shader)
+            {
+                if (shader != null) _ownMaterial = CoreUtils.CreateEngineMaterial(shader);
             }
 
             public void Setup(Material material, Settings settings, float thicknessOverride, Color debugTint)
@@ -606,18 +619,19 @@ namespace SlimaPuzzle.Rendering
             {
                 if (_material == null || _settings == null) return;
 
+                Material material = _ownMaterial != null ? _ownMaterial : _material;
                 float thickness = _thicknessOverride >= 0f ? _thicknessOverride : _settings.outlineThickness;
 
-                _material.SetColor(OutlineColorId, _settings.outlineColor);
-                _material.SetFloat(PixelSizeId, Mathf.Max(1f, _settings.pixelSize));
-                _material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
-                _material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
-                _material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
-                _material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 6));
-                _material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
-                _material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
-                _material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
-                _material.SetColor(DebugTintId, _debugTint);
+                material.SetColor(OutlineColorId, _settings.outlineColor);
+                material.SetFloat(PixelSizeId, Mathf.Max(1f, _settings.pixelSize));
+                material.SetFloat(OutlineThicknessId, Mathf.Max(0f, thickness));
+                material.SetFloat(DepthThresholdId, Mathf.Max(0.05f, _settings.depthThreshold));
+                material.SetFloat(PixelateAmountId, Mathf.Clamp01(_settings.pixelateAmount));
+                material.SetFloat(DebugModeId, Mathf.Clamp(_settings.debugMode, 0, 6));
+                material.SetFloat(EdgeSourceId, Mathf.Clamp(_settings.edgeSource, 0, 2));
+                material.SetFloat(OutlinePlacementId, Mathf.Clamp(_settings.outlinePlacement, 0, 2));
+                material.SetFloat(ColorThresholdId, Mathf.Max(0.001f, _settings.colorThreshold));
+                material.SetColor(DebugTintId, _debugTint);
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Toon Outline");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Toon Outline")))
@@ -633,7 +647,7 @@ namespace SlimaPuzzle.Rendering
 
                         if (_temp != null)
                         {
-                            Blitter.BlitCameraTexture(cmd, source, _temp, _material, 0);
+                            Blitter.BlitCameraTexture(cmd, source, _temp, material, 0);
                             Blitter.BlitCameraTexture(cmd, _temp, source);
                         }
                     }
@@ -645,6 +659,8 @@ namespace SlimaPuzzle.Rendering
 
             public void Dispose()
             {
+                CoreUtils.Destroy(_ownMaterial);
+                _ownMaterial = null;
                 _temp?.Release();
                 _temp = null;
             }

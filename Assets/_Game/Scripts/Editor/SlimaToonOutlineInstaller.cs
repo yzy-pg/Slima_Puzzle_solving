@@ -64,6 +64,14 @@ namespace SlimaPuzzle.Rendering.EditorTools
                         lines.Add($"{Path.GetFileName(path)}：Mask Shader 已补上");
                     }
 
+                    // 1.5) Edge Source 必须是 2（遮罩分组）—— 否则描边走的是"图像亮度边缘"，不是遮罩
+                    if (sourceProp != null && sourceProp.intValue < 2)
+                    {
+                        sourceProp.intValue = 2;
+                        changed = true;
+                        lines.Add($"{Path.GetFileName(path)}：Edge Source 设为 2（遮罩分组）");
+                    }
+
                     // 2) 写入 5 个内置分组：**按名字覆盖字段**（修正写错的），缺的补上
                     if (groupsProp != null)
                     {

@@ -189,7 +189,7 @@ Shader "Slima/Toon Outline Post"
                 // ---- ②-a 颜色/亮度描边（不依赖深度纹理：深度没绑上时用这条也能出线）----
                 //   注意 `_DebugMode < 5.5`：调试 6（分组填色）要留给下面的遮罩分支，
                 //   否则 EdgeSource=1 时会被这一支抢先返回，填色永远看不到。
-                if (_OutlineThickness > 0.001 && _EdgeSource > 0.5 && _DebugMode < 5.5)
+                if (_OutlineThickness > 0.001 && _EdgeSource > 0.5 && _DebugMode < 4.5)
                 {
                     float2 texel = _OutlineThickness / virtualRes;
                     float lx0 = Lum(sampledUV + float2(-texel.x, 0.0));
@@ -227,7 +227,7 @@ Shader "Slima/Toon Outline Post"
                 //   · 不依赖深度纹理，也不依赖颜色阈值 → 深色地面/暗物体都不会乱出线
                 //   · 天生只画外侧：物品自己的像素永远是黑的，不会被啃
                 //   · 调试 6（分组填色）也要走这一支 —— 所以不能只在 EdgeSource=2 时进入
-                else if (_OutlineThickness > 0.001 && (_EdgeSource > 1.5 || _DebugMode > 5.5))
+                else if (_OutlineThickness > 0.001 && (_EdgeSource > 1.5 || (_DebugMode > 4.5 && _DebugMode < 6.5)))
                 {
                     float2 texel = _OutlineThickness / virtualRes;
 
@@ -239,13 +239,13 @@ Shader "Slima/Toon Outline Post"
                                      min(SampleMask(sourceUV + float2(0.0, -texel.y)),
                                          SampleMask(sourceUV + float2(0.0, texel.y))));
 
-                    // ---- 调试 6：把这一组的物体整体**填色**（不是描边）----
-                    //   用途：一眼确认"这一组到底圈住了哪些物体"。每组一个颜色，多组会叠加显示。
+                    // ---- 调试 5 / 6：把这一组的物体整体**填色**（不是描边）----
+                    //   5 = 填色后继续画描边；6 = 只填色（便于纯看分类）
                     //   完全没被填色的物体 = 没有被任何分组识别到 → 该组的过滤条件没匹配上。
-                    if (_DebugMode > 5.5)
+                    if (_DebugMode > 4.5 && _DebugMode < 6.5)
                     {
                         color = lerp(color, _DebugTint.rgb, saturate(1.0 - mC));
-                        return half4(color, 1);
+                        if (_DebugMode > 5.5) return half4(color, 1);
                     }
 
                     if (_DebugMode > 1.5)
