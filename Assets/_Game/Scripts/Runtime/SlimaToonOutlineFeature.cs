@@ -208,13 +208,6 @@ namespace SlimaPuzzle.Rendering
 
                     EnsurePassSlot(groupIndex);
 
-                    // 该组一个子网格都没画出来（过滤条件没匹配上）→ 跳过遮罩与合成，省两次全屏 pass
-                    if (_maskPasses[groupIndex].LastDrawCount == 0 && _passesRanOnce)
-                    {
-                        groupIndex++;
-                        continue;
-                    }
-
                     _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
                     _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers,
                                                   MaskTextureId, Color.white);   // 白底 + 黑物件
@@ -229,7 +222,6 @@ namespace SlimaPuzzle.Rendering
                 _passesRanOnce = true;
                 return;
             }
-
             // ---- 深度 / 颜色模式：单个合成 pass ----
             _pass.renderPassEvent = settings.passEvent;
             _pass.Setup(_material, settings, -1f, DebugTintFor(0));
@@ -464,6 +456,8 @@ namespace SlimaPuzzle.Rendering
             /// <summary>上一帧实际画进遮罩的子网格数量（0 = 这一组空，合成时会被跳过）</summary>
             public int LastDrawCount { get; private set; }
 
+            float _lastLogTime;
+
             public void Setup(Material material, MaskGroup group, MeshRenderer[] renderers,
                               int globalTextureId, Color clearColor)
             {
@@ -485,6 +479,16 @@ namespace SlimaPuzzle.Rendering
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
+                // 每 2 秒报一次内部状态：用来定位"命中>0 但画出 0" 到底是哪一环空
+                bool report = Time.realtimeSinceStartup - _lastLogTime > 2f;
+                if (report)
+                {
+                    _lastLogTime = Time.realtimeSinceStartup;
+                    Debug.Log($"[Slima] 遮罩 pass「{_group?.name}」执行中：material={(_material != null)}, " +
+                              $"group={(_group != null)}, mask窗口={(_mask != null)}, " +
+                              $"扫描到的渲染器={(_renderers != null ? _renderers.Length : -1)}");
+                }
+
                 if (_material == null || _group == null || _mask == null) return;
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Outline Mask");
@@ -511,6 +515,10 @@ namespace SlimaPuzzle.Rendering
                         }
                     }
                     LastDrawCount = drawn;
+                    if (report)
+                    {
+                        Debug.Log($"[Slima] 遮罩 pass「{_group.name}」本帧实际画了 {drawn} 个子网格");
+                    }
 
                     cmd.SetGlobalTexture(_globalTextureId, _mask);
                 }
