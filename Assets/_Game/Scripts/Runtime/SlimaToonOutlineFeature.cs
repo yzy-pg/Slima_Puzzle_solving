@@ -37,11 +37,13 @@ namespace SlimaPuzzle.Rendering
             [Header("描边")]
             public Color outlineColor = Color.black;
 
-            [Tooltip("描边粗细（以像素块为单位）")]
-            [Range(0f, 4f)] public float outlineThickness = 1f;
+            [Tooltip("★ 全屏描边粗细（像素块）。屏幕上的实际宽度 ≈ 这个值 × Pixel Size。\n" +
+                     "⚠ 材质里那个「描边｜粗细」是物体的反转壳描边（给角色用），调它不会影响全屏这条线，地形要设 0。")]
+            [Range(0f, 16f)] public float outlineThickness = 2f;
 
-            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）：邻域落差小于它就不算出边。越小线越多")]
-            [Range(0.05f, 20f)] public float depthThreshold = 0.6f;
+            [Tooltip("深度落差阈值（世界单位，1 ≈ 一格方块）：邻域落差小于它就不算出边。\n" +
+                     "调小 = 出线更多、线也更粗；调大 = 只剩最明显的轮廓。")]
+            [Range(0.05f, 20f)] public float depthThreshold = 0.5f;
         }
 
         public Settings settings = new Settings();

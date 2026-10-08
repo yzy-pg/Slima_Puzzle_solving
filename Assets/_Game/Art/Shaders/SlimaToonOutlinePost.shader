@@ -14,7 +14,7 @@ Shader "Slima/Toon Outline Post"
     {
         _OutlineColor ("描边颜色", Color) = (0, 0, 0, 1)
         _PixelSize ("像素块大小（越大越糊）", Range(1, 16)) = 4
-        _OutlineThickness ("描边粗细（像素块）", Range(0, 4)) = 1
+        _OutlineThickness ("描边粗细（像素块）", Range(0, 16)) = 2
         _DepthThreshold ("深度阈值（越小线越多）", Range(0.05, 20)) = 1.5
         _PixelateAmount ("像素化强度（0 = 只描边）", Range(0, 1)) = 1
     }
@@ -135,8 +135,11 @@ Shader "Slima/Toon Outline Post"
                     float dMin = min(min(min(d00, d10), min(d20, d01)), min(min(dc, d21), min(d02, min(d12, d22))));
                     float jump = dMax - dMin;
 
-                    // 远处判据放宽一点，否则远景方块会糊成一排黑边
-                    float threshold = _DepthThreshold * (1.0 + dc * 0.02);
+                    // ⚠ 正交相机下「1 格方块」的深度落差是恒定的（≈1 世界单位，不随距离缩小），
+                    //   所以这里基本不能按距离放大阈值：之前乘 (1 + dc*0.02) 会把 1 格的浅落差
+                    //   刚好压到阈值线上 → 检测区只剩紧贴棱的 1 个像素 → 调 thickness 也永远不变粗。
+                    //   只保留一个很轻的距离项，兜住透视相机下的远景噪声。
+                    float threshold = _DepthThreshold * (1.0 + dc * 0.003);
                     float outline = (jump >= threshold) ? 1.0 : 0.0;
 
                     color = lerp(color, _OutlineColor.rgb, outline * _OutlineColor.a);
