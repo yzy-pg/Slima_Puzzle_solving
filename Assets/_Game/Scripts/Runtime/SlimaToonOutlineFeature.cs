@@ -189,7 +189,10 @@ namespace SlimaPuzzle.Rendering
                 _crispGroup.layerMask = 0;
 
                 if (_crispMaskPass == null) _crispMaskPass = new MaskPass();
-                _crispMaskPass.renderPassEvent = settings.passEvent;
+                // ★ 遮罩必须**早于**合成执行：同一个 renderPassEvent 下 URP 不保证顺序
+                //   （内部排序不稳定），合成可能先跑 → 读到还没写/已回收的贴图 = 全黑。
+                //   遮罩只画几何、用自己的深度缓冲，所以放在最前面（不透明物体之前）完全安全。
+                _crispMaskPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
                 _crispMaskPass.Setup(_crispMaskMaterial, _crispGroup, _meshRenderers,
                                      CrispMaskTextureId, Color.black);   // 黑底 + 白物件
                 renderer.EnqueuePass(_crispMaskPass);
@@ -208,7 +211,7 @@ namespace SlimaPuzzle.Rendering
 
                     EnsurePassSlot(groupIndex);
 
-                    _maskPasses[groupIndex].renderPassEvent = settings.passEvent;
+                    _maskPasses[groupIndex].renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
                     _maskPasses[groupIndex].Setup(_maskMaterial, group, _meshRenderers,
                                                   MaskTextureId, Color.white);   // 白底 + 黑物件
                     renderer.EnqueuePass(_maskPasses[groupIndex]);
