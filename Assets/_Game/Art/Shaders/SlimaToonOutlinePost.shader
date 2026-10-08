@@ -112,8 +112,9 @@ Shader "Slima/Toon Outline Post"
                     float d12 = SampleEyeDepth(sampledUV + float2(0.0,       texel.y));
                     float d22 = SampleEyeDepth(sampledUV + float2(texel.x,   texel.y));
 
-                    float dMax = max(max(d00, d10, d20), max(max(d01, dc, d21), max(d02, d12, d22)));
-                    float dMin = min(min(d00, d10, d20), min(min(d01, dc, d21), min(d02, d12, d22)));
+                    // ⚠ HLSL 的 max/min 只接受两个参数，必须两两嵌套
+                    float dMax = max(max(max(d00, d10), max(d20, d01)), max(max(dc, d21), max(d02, max(d12, d22))));
+                    float dMin = min(min(min(d00, d10), min(d20, d01)), min(min(dc, d21), min(d02, min(d12, d22))));
                     float jump = dMax - dMin;
 
                     // 远处判据放宽一点，否则远景方块会糊成一排黑边
