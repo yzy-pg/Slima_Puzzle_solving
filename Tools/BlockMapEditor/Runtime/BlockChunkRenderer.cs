@@ -78,15 +78,33 @@ namespace BlockMap
             if (_materials.TryGetValue(def, out var mat) && mat != null) return mat;
 
             // 按方块的渲染方式挑 shader（都放在 Resources 里，保证打包不被剥离）
+            // ★ 不透明地形优先用"受光"的卡通 shader：这样才能读环境光、并被实时灯（Lamp 的点光源）照亮。
+            //   旧版一律用 BlockMap/BlockUnlit（不受光）→ 看起来像 2D 平涂，启动也读不到环境光。
             string shaderName = def.renderMode == BlockRenderMode.Transparent ? "BlockMap/BlockUnlitTransparent"
                               : def.renderMode == BlockRenderMode.Animated ? "BlockMap/BlockAnimated"
-                              : "BlockMap/BlockUnlit";
+                              : "Slima/Toon (Cel + Pixel)";
             var shader = Shader.Find(shaderName);
             if (shader == null) shader = Resources.Load<Shader>(shaderName);
+
+            // 兜底：卡通 shader 不在（或该方块是动画/半透明）→ 回到不受光版本
+            if (shader == null)
+            {
+                string fallback = def.renderMode == BlockRenderMode.Transparent ? "BlockMap/BlockUnlitTransparent"
+                                : def.renderMode == BlockRenderMode.Animated ? "BlockMap/BlockAnimated"
+                                : "BlockMap/BlockUnlit";
+                shader = Shader.Find(fallback);
+                if (shader == null) shader = Resources.Load<Shader>(fallback);
+            }
             if (shader == null) shader = Shader.Find("Unlit/Transparent Cutout");
 
             mat = new Material(shader) { name = "BlockMap_" + def.id };
             mat.mainTexture = def.GetTexture();
+            // 卡通 shader 的接口（[MainTexture] 已把 mainTexture 映射到 _BaseMap，这里显式设一遍更稳）
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", def.GetTexture());
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+            // 地形用"全屏遮罩描边"，所以物体自带的反转壳描边必须关掉；顶点吸附也交给全屏像素化
+            if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0f);
+            if (mat.HasProperty("_PixelSnap")) mat.SetFloat("_PixelSnap", 0f);
             if (mat.HasProperty("_Cutoff")) mat.SetFloat("_Cutoff", def.cutoff);
             if (mat.HasProperty("_Cull")) mat.SetFloat("_Cull", def.doubleSided ? 0f : 2f);
             if (mat.HasProperty("_Frames")) mat.SetFloat("_Frames", Mathf.Max(1, def.animFrames));

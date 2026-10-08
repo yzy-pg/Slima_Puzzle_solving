@@ -28,8 +28,8 @@ namespace BlockMap
         [Tooltip("正交相机视野大小：越小 = 越靠近场景（放大）。默认 5.5（原来是 8，更贴近场景）")]
         public float cameraSize = 5.5f;
 
-        [Tooltip("相机背景色。临时想白底看轮廓/截图就设白色（原来的深蓝是 0.055, 0.08, 0.12）")]
-        public Color backgroundColor = Color.white;
+        [Tooltip("相机背景色。默认暗色（夜晚基调）；想白底截图再改回 (1,1,1)")]
+        public Color backgroundColor = new Color(0.02f, 0.03f, 0.06f);
 
         [Tooltip("相机方位角（度，取 0 / 90 / 180 / 270）。用来对齐你在 3D 编辑器里看地图的方向：\n" +
                  "0 = 相机在 -Z 侧（编辑器默认，屏幕右 = +X、屏幕上 = +Z）\n" +
@@ -48,6 +48,7 @@ namespace BlockMap
         public bool nightMode = false;
         [Tooltip("夜间平行光强度")]
         [Range(0f, 1f)] public float nightSunIntensity = 0.18f;
+        [Tooltip("环境光颜色（Flat 模式 = 暗色天空灯）。越暗，未受灯照处越黑、灯的暖色越明显")]
         public Color nightAmbient = new Color(0.08f, 0.10f, 0.16f);
         public Color nightBackground = new Color(0.02f, 0.03f, 0.06f);
 
@@ -203,20 +204,21 @@ namespace BlockMap
         }
 
         /// <summary>
-        /// 夜间模式：把场景里的平行光调暗、环境光设成冷暗色。
-        /// 这样灯（emitLight 方块生成的点光源）的暖色光斑才看得出来 —— 用来验证"光照也被像素化"。
+        /// 环境光：**默认就用"暗色天空灯"（Flat 环境光）**。
+        /// 旧版什么都不设 → 用 Skybox 的环境光，空场景里会偏亮发白，看起来像 2D 平涂、也读不到"夜晚"感。
+        /// nightMode 额外把平行光调暗（灯的点光才会成为主要光源）。
         /// </summary>
         void ApplyNightMode()
         {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = nightAmbient;
+
             if (!nightMode) return;
 
             foreach (Light light in Object.FindObjectsOfType<Light>())
             {
                 if (light.type == LightType.Directional) light.intensity = nightSunIntensity;
             }
-
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = nightAmbient;
         }
 
         void RefreshHint()
