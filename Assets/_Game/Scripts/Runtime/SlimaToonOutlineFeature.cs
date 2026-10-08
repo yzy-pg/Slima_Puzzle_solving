@@ -372,6 +372,12 @@ namespace SlimaPuzzle.Rendering
             Material _compositeMaterial;
             RTHandle _mask;
             RTHandle _temp;
+
+            public GroupPass()
+            {
+                // 描边要判断"邻域物体有没有被更近的东西挡住" → 需要相机深度图
+                ConfigureInput(ScriptableRenderPassInput.Depth);
+            }
             bool _loggedMaskInfo;
 
             public void Setup(Settings settings, MaskGroup group, MeshRenderer[] renderers, Color tint)
