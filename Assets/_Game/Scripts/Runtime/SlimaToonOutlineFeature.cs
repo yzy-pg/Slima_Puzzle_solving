@@ -199,6 +199,7 @@ namespace SlimaPuzzle.Rendering
             // 调试模式 6（分组填色测试）也要走这条路，否则拿不到每组遮罩
             if (settings.edgeSource >= 2 || settings.debugMode >= 6)
             {
+                LogMatchReport();
                 int groupIndex = 0;
                 foreach (MaskGroup group in EnumerateGroups())
                 {
@@ -297,6 +298,57 @@ namespace SlimaPuzzle.Rendering
             }
 
             return _mergedGroups;
+        }
+
+        int _reportCountdown;
+
+        /// <summary>
+        /// 匹配报告：每组命中了多少个子网格 + 场景里实际有哪些材质名。
+        /// 约 5 秒一次。用来判断"某组没匹配上"到底是过滤条件写错、还是场景里根本没有这类东西。
+        /// </summary>
+        void LogMatchReport()
+        {
+            if (_reportCountdown-- > 0) return;
+            _reportCountdown = 300;
+
+            var report = new System.Text.StringBuilder();
+            report.Append("[Slima] 遮罩匹配报告：\n");
+
+            foreach (MaskGroup group in EnumerateGroups())
+            {
+                int hit = 0;
+                if (_meshRenderers != null)
+                {
+                    foreach (MeshRenderer meshRenderer in _meshRenderers)
+                    {
+                        Material[] materials = meshRenderer.sharedMaterials;
+                        for (int submesh = 0; submesh < materials.Length; submesh++)
+                        {
+                            if (MaskPass.Matches(group, meshRenderer.gameObject, materials[submesh])) hit++;
+                        }
+                    }
+                }
+
+                report.Append($"  · {group.name}｜材质'{group.materialContains}'｜名字'{group.nameContains}'" +
+                              $"｜Layer{(group.layerMask.value != 0 ? "有" : "无")} → 命中 {hit} 个子网格\n");
+            }
+
+            var names = new HashSet<string>();
+            if (_meshRenderers != null)
+            {
+                foreach (MeshRenderer meshRenderer in _meshRenderers)
+                {
+                    Material[] materials = meshRenderer.sharedMaterials;
+                    for (int submesh = 0; submesh < materials.Length; submesh++)
+                        if (materials[submesh] != null) names.Add(materials[submesh].name);
+                }
+            }
+
+            var limited = new List<string>(names);
+            if (limited.Count > 24) limited = limited.GetRange(0, 24);
+            report.Append($"  场景里的材质名（{names.Count} 个，列前 24）：" + string.Join(", ", limited));
+
+            Debug.Log(report.ToString());
         }
 
         static readonly Color[] DebugTints =
@@ -481,7 +533,7 @@ namespace SlimaPuzzle.Rendering
             /// 分组匹配：材质名片段（子网格级）/ 物体名片段（对象级，含父链）/ Layer，
             /// 设置了哪几个就要求同时满足。三个都没设 → 不匹配（防止误把全场都画进遮罩）。
             /// </summary>
-            static bool Matches(MaskGroup group, GameObject target, Material material)
+            public static bool Matches(MaskGroup group, GameObject target, Material material)
             {
                 bool hasLayer = group.layerMask.value != 0;
                 bool hasName = !string.IsNullOrEmpty(group.nameContains);
