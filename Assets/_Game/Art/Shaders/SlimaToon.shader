@@ -337,12 +337,12 @@ Shader "Slima/Toon (Cel + Pixel)"
 
                     half3 rampExtra = lerp(_ShadowColor.rgb, extra.color * _LightTint.rgb, bandExtra);
 
-                    // ★ 抗"线性减淡发灰"：在 40%~60% 的受光过渡带里提升这一盏光的饱和度。
-                    //   公式：饱和度增强 = 20% − (n% − 40%)，n 为受光水平（0..1）
-                    //   → n=40% 时 +20%，n=60% 时 +0%，中间线性过渡
+                    // ★ 抗"线性减淡发灰"：在 40%~70% 的受光过渡带里提升这一盏光的饱和度。
+                    //   公式：饱和度增强 = 30% − (n% − 40%)，n 为受光水平（0..1）
+                    //   → n=40% 时 +30%（峰值），n=70% 时 +0%，中间线性过渡
                     half lumExtra = dot(rampExtra, half3(0.299, 0.587, 0.114));
-                    half transT = saturate((attenExtra - 0.4) / 0.2);     // 0 = 40%，1 = 60%
-                    half satBoost = (1.0 - transT) * 0.2;                 // 20% → 0%
+                    half transT = saturate((attenExtra - 0.4) / 0.3);     // 0 = 40%，1 = 70%
+                    half satBoost = (1.0 - transT) * 0.3;                 // 30% → 0%
                     rampExtra = lerp(lumExtra.xxx, rampExtra, 1.0 + satBoost);
 
                     color += albedo * rampExtra * attenExtra;
