@@ -109,13 +109,21 @@ namespace SlimaPuzzle.Rendering
 
             if (!EnsureMaterial()) return;
 
+            // 每帧入队前再声明一次"我要深度"（ConfigureInput 是累加的，重复调用无害）：
+            // 这样即使管线已经建好，pass 的输入需求也一定被登记。
+            _pass.RequestDepth();
+
             // 第一次生效时打一条日志 —— 用来确认「Feature 到底有没有挂上、有没有在跑」
             if (!_loggedOnce)
             {
                 _loggedOnce = true;
+                var pipeline = GraphicsSettings.currentRenderPipeline;
                 Debug.Log($"[Slima] Toon Outline 已生效：PixelSize={settings.pixelSize}, " +
                           $"Pixelate={settings.pixelateAmount}, Outline={settings.outlineThickness}, " +
-                          $"DepthThreshold={settings.depthThreshold}");
+                          $"DepthThreshold={settings.depthThreshold} | " +
+                          $"管线={pipeline?.name ?? "（默认）"} | " +
+                          $"相机需要深度纹理={renderingData.cameraData.requiresDepthTexture} " +
+                          $"（这行如果是 False，描边一定不出线）");
             }
 
             _pass.renderPassEvent = settings.passEvent;
@@ -160,6 +168,9 @@ namespace SlimaPuzzle.Rendering
                 _material = material;
                 _settings = settings;
             }
+
+            /// <summary>让外部（Feature）也能声明"这个 pass 需要深度"。</summary>
+            public void RequestDepth() => ConfigureInput(ScriptableRenderPassInput.Depth);
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {

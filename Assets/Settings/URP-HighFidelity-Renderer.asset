@@ -19,9 +19,9 @@ MonoBehaviour:
     pixelSize: 1.88
     pixelateAmount: 1
     outlineColor: {r: 0, g: 0, b: 0, a: 1}
-    outlineThickness: 12.67
-    depthThreshold: 0.5
-    debugMode: 2
+    outlineThickness: 16
+    depthThreshold: 0.05
+    debugMode: 0
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
   m_ObjectHideFlags: 0
