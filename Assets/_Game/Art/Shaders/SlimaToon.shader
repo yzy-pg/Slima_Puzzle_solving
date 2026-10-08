@@ -14,27 +14,25 @@ Shader "Slima/Toon (Cel + Pixel)"
 {
     Properties
     {
-        [MainTexture] _BaseMap ("基础贴图", 2D) = "white" {}
-        [MainColor]   _BaseColor ("基础颜色", Color) = (1,1,1,1)
+        [MainTexture] _BaseMap ("贴图", 2D) = "white" {}
+        [MainColor]   _BaseColor ("颜色", Color) = (1, 1, 1, 1)
 
-        [Header(光影阶梯)]
-        _Bands ("阶梯段数（5 = 五段）", Range(2, 8)) = 5
-        _ShadowColor ("阴影色", Color) = (0.42, 0.47, 0.60, 1)
-        _LightTint ("受光色", Color) = (1, 1, 1, 1)
-        _AmbientColor ("环境色", Color) = (0.16, 0.18, 0.24, 1)
-        _LightWrap ("光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
+        // 注意：[Header(中文)] 会让 ShaderLab 解析器报错（属性参数只吃 ASCII）。
+        // 所以这里用「分组｜名字」写进带引号的显示名 —— 中文放在引号里是安全的，Inspector 排序效果一样。
+        _Bands ("光影｜阶梯段数（5 = 五段）", Range(2, 8)) = 5
+        _ShadowColor ("光影｜阴影色", Color) = (0.42, 0.47, 0.60, 1)
+        _LightTint ("光影｜受光色", Color) = (1, 1, 1, 1)
+        _AmbientColor ("光影｜环境色", Color) = (0.16, 0.18, 0.24, 1)
+        _LightWrap ("光影｜光照包裹（0=硬，1=半兰伯特）", Range(0, 1)) = 0.15
 
-        [Header(像素化噪声过渡)]
-        _NoiseStrength ("噪声过渡强度", Range(0, 1)) = 0.65
-        _PixelSize ("噪声像素块大小（屏幕像素）", Range(1, 16)) = 4
+        _NoiseStrength ("像素噪声｜过渡强度", Range(0, 1)) = 0.65
+        _PixelSize ("像素噪声｜噪声块大小（屏幕像素）", Range(1, 16)) = 4
 
-        [Header(画面像素化)]
-        _PixelSnap ("顶点像素吸附（0 = 关，越大越方）", Range(0, 16)) = 3
+        _PixelSnap ("像素化｜顶点像素吸附（0 = 关，越大越方）", Range(0, 16)) = 3
 
-        [Header(描边)]
-        _OutlineColor ("描边颜色", Color) = (0, 0, 0, 1)
-        _OutlineWidth ("描边粗细（屏幕像素）", Range(0, 8)) = 2
-        _OutlineNoise ("描边噪声（手绘感）", Range(0, 1)) = 0
+        _OutlineColor ("描边｜颜色", Color) = (0, 0, 0, 1)
+        _OutlineWidth ("描边｜粗细（屏幕像素）", Range(0, 8)) = 2
+        _OutlineNoise ("描边｜噪声（手绘感）", Range(0, 1)) = 0
     }
 
     SubShader
