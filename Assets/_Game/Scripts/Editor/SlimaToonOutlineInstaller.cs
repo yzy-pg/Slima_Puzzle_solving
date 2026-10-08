@@ -64,22 +64,27 @@ namespace SlimaPuzzle.Rendering.EditorTools
                         lines.Add($"{Path.GetFileName(path)}：Mask Shader 已补上");
                     }
 
-                    // 2) 补齐 5 个内置分组
+                    // 2) 写入 5 个内置分组：**按名字覆盖字段**（修正写错的），缺的补上
                     if (groupsProp != null)
                     {
                         for (int g = 0; g < BuiltinGroupNames.Length; g++)
                         {
-                            bool exists = false;
+                            int found = -1;
                             for (int k = 0; k < groupsProp.arraySize; k++)
                             {
                                 SerializedProperty nameProp = groupsProp.GetArrayElementAtIndex(k)
                                     .FindPropertyRelative("name");
-                                if (nameProp != null && nameProp.stringValue == BuiltinGroupNames[g]) { exists = true; break; }
+                                if (nameProp != null && nameProp.stringValue == BuiltinGroupNames[g]) { found = k; break; }
                             }
-                            if (exists) continue;
 
-                            groupsProp.arraySize++;
-                            SerializedProperty item = groupsProp.GetArrayElementAtIndex(groupsProp.arraySize - 1);
+                            if (found < 0)
+                            {
+                                groupsProp.arraySize++;
+                                found = groupsProp.arraySize - 1;
+                                lines.Add($"{Path.GetFileName(path)}：新增「{BuiltinGroupNames[g]}」组");
+                            }
+
+                            SerializedProperty item = groupsProp.GetArrayElementAtIndex(found);
                             item.FindPropertyRelative("name").stringValue = BuiltinGroupNames[g];
                             item.FindPropertyRelative("materialContains").stringValue = BuiltinMaterialFilters[g];
                             item.FindPropertyRelative("nameContains").stringValue = BuiltinNameFilters[g];
@@ -87,7 +92,6 @@ namespace SlimaPuzzle.Rendering.EditorTools
                             item.FindPropertyRelative("thickness").floatValue = BuiltinThickness[g];
                             item.FindPropertyRelative("enabled").boolValue = true;
                             changed = true;
-                            lines.Add($"{Path.GetFileName(path)}：补了「{BuiltinGroupNames[g]}」组");
                         }
                     }
 
@@ -112,7 +116,7 @@ namespace SlimaPuzzle.Rendering.EditorTools
 
             string message = touched == 0
                 ? "所有 Renderer 里的分组都齐了（或没装 Feature），没有需要补的。"
-                : $"已更新 {touched} 个 Renderer：\n\n" + string.Join("\n", lines);
+                : $"已更新 {touched} 个 Renderer（内置分组按名字重置为正确字段）：\n\n" + string.Join("\n", lines);
 
             Debug.Log("[Slima] 补齐描边分组：" + message.Replace("\n", " | "));
             EditorUtility.DisplayDialog("Slima 描边分组", message +

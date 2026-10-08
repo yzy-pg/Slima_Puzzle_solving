@@ -405,7 +405,7 @@ namespace SlimaPuzzle.Rendering
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
                 desc.depthBufferBits = 24;      // 组内物体之间要正确遮挡
                 desc.msaaSamples = 1;
-                RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Point, TextureWrapMode.Clamp,
+                RenderingUtils.ReAllocateIfNeeded(ref _mask, desc, FilterMode.Bilinear, TextureWrapMode.Clamp,
                                                   name: "_SlimaOutlineMask");
             }
 

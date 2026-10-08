@@ -123,7 +123,8 @@ Shader "Slima/Toon Outline Post"
 
             float SampleMask(float2 uv)
             {
-                return SAMPLE_TEXTURE2D_X(_SlimaMask, sampler_SlimaMask, uv).r;
+                // 线性采样：遮罩边缘不再逐像素跳变（描边噪点的主要来源）
+                return SAMPLE_TEXTURE2D_X(_SlimaMask, sampler_LinearClamp, uv).r;
             }
 
             // 不参与像素化的物件遮罩：1 = 该像素保持清晰，0 = 正常像素化
@@ -132,7 +133,7 @@ Shader "Slima/Toon Outline Post"
 
             float SampleCrisp(float2 uv)
             {
-                return SAMPLE_TEXTURE2D_X(_SlimaCrispMask, sampler_SlimaCrispMask, uv).r;
+                return SAMPLE_TEXTURE2D_X(_SlimaCrispMask, sampler_LinearClamp, uv).r;
             }
 
             half4 Frag(Varyings input) : SV_Target
