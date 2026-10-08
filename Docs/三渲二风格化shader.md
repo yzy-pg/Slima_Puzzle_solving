@@ -45,6 +45,10 @@
 - 贴图要关 Mipmap、用 Point，否则像素化会被模糊掉。
 - 全屏描边依赖深度（Feature 内部已 `ConfigureInput(Depth)`）；默认插在 `BeforeRenderingPostProcessing`，如果有别的后处理需要调整顺序，改 Feature 面板的 `Pass Event`。
 - 这套只针对 **URP**；如果换回 Built-in 需要重写。
+- ⚠️ **ShaderLab 的 `[Header(...)]` 属性里不能写中文**：属性参数是按 token 解析的，非 ASCII 会让解析器报
+  `Parse error: syntax error, unexpected $undefined, expecting TVAL_ID or TVAL_VARREF`。
+  要分组就把分组名写进**带引号的显示名**，例如 `_Bands ("光影｜阶梯段数（5 = 五段）", Range(2, 8)) = 5`
+  —— 引号内的中文是安全的，Inspector 里的分组观感一样（注释里的中文也没问题）。
 
 ## 五、还没做的
 
