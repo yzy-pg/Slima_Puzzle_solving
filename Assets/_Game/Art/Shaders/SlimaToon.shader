@@ -325,8 +325,10 @@ Shader "Slima/Toon (Cel + Pixel)"
                     half nlExtra = dot(normalWS, extra.direction);
                     half wrappedExtra = saturate((nlExtra + _LightWrap) / (1.0 + _LightWrap));
 
-                    // ★ 每盏额外光用自己的衰减当噪声遮罩（atten=1 表示这盏光照到这里）
-                    half extraMask = lerp(attenExtra, 1.0 - attenExtra, _NoiseMaskInvert);
+                    // ★ Lamp 的噪声遮罩：按你的要求**不做渐变** —— 只要这盏灯照到（atten > 0）就统一为 1，
+                    //   照不到就是 0。这样"灯范围内"全是满强度颗粒，不再随距离衰减、也不会弱到看不见。
+                    half extraMask = step(0.001, attenExtra);
+                    extraMask = lerp(extraMask, 1.0 - extraMask, _NoiseMaskInvert);
                     half ditherExtra = (noise - 0.5) * _NoiseStrength * extraMask / steps;
                     half litExtra = saturate(wrappedExtra + ditherExtra);
                     half bandExtra = min(floor(litExtra * steps), steps - 1.0) / (steps - 1.0);
