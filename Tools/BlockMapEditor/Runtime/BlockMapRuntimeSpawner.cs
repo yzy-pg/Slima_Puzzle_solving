@@ -28,6 +28,15 @@ namespace BlockMap
                  "  只有侧面亮，看起来像「只照一个方向」。地板中心在 y=+0.5、上表面即 +1.0，所以默认给 1.5。")]
         public float lightHeightOffset = 1.5f;
 
+        [Tooltip("ture = 聚光（沿方块「正面」照射，方向由地图编辑器里的方块朝向决定）；false = 点光（全向）")]
+        public bool lampAsSpot = true;
+
+        [Tooltip("聚光的照射倾角：0 = 沿正面水平射；45 = 斜下；90 = 正上方（「正面朝上」）")]
+        [Range(0f, 90f)] public float lightTiltDegrees = 60f;
+
+        [Tooltip("聚光锥角（度）。越大越像柔光池，越小越像手电")]
+        [Range(10f, 179f)] public float spotAngle = 90f;
+
         [Tooltip("重建节流：两次重建之间至少间隔的秒数（避免连续刷方块时反复重建）")]
         public float rebuildInterval = 0.2f;
 
@@ -108,7 +117,7 @@ namespace BlockMap
                     _spawned.Add(go);
                 }
 
-                // ② 发光方块：在格子上放点光源
+                // ② 发光方块：在格子上放灯
                 if (def.emitLight && lights < maxLights)
                 {
                     string lightName = $"Light_{def.id}_{kv.Key.x}_{kv.Key.y}_{kv.Key.z}";
@@ -127,10 +136,28 @@ namespace BlockMap
                     lgo.transform.position = center + Vector3.up * lightHeightOffset;
 
                     var l = lgo.AddComponent<Light>();
-                    l.type = LightType.Point;
                     l.color = def.lightColor;
                     l.range = def.lightRange;
                     l.intensity = def.lightIntensity;
+
+                    // ★ 照射方向跟随方块"正面"（dir 来自地图编辑器，和门/道具共用同一套朝向）。
+                    //   要改照射方向 → 在地图编辑器里旋转这个 Lamp 方块即可；
+                    //   想让它朝正上方 → 把 lightTiltDegrees 设成 90。
+                    if (lampAsSpot)
+                    {
+                        l.type = LightType.Spot;
+                        l.spotAngle = spotAngle;
+                        l.innerSpotAngle = spotAngle * 0.5f;
+
+                        float yaw = _world.GetDir(kv.Key) * 90f;
+                        lgo.transform.rotation = Quaternion.Euler(0f, yaw, 0f)
+                                               * Quaternion.Euler(-lightTiltDegrees, 0f, 0f);
+                    }
+                    else
+                    {
+                        l.type = LightType.Point;
+                        lgo.transform.rotation = Quaternion.identity;
+                    }
 
                     lgo.AddComponent<BlockMapSpawned>();
                     _spawned.Add(lgo);
