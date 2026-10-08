@@ -43,6 +43,14 @@ namespace BlockMap
         [Tooltip("把相机位置吸附到屏幕像素网格（默认关）。开了像素化网格会更稳，但可能出现逐帧抖动/频闪")]
         public bool snapCameraToPixelGrid = false;
 
+        [Header("夜间模式（用来测试灯的照明）")]
+        [Tooltip("勾上：平行光调暗 + 环境光变冷暗 + 背景近黑 —— 这时灯的暖色光斑才看得出来")]
+        public bool nightMode = false;
+        [Tooltip("夜间平行光强度")]
+        [Range(0f, 1f)] public float nightSunIntensity = 0.18f;
+        public Color nightAmbient = new Color(0.08f, 0.10f, 0.16f);
+        public Color nightBackground = new Color(0.02f, 0.03f, 0.06f);
+
         BlockWorld _world;
         Camera _camera;
         Vector3Int _spawnCell;
@@ -188,8 +196,27 @@ namespace BlockMap
             camera.nearClipPlane = 0.1f;
             camera.farClipPlane = 400f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = backgroundColor;
+            camera.backgroundColor = nightMode ? nightBackground : backgroundColor;
             _camera = camera;
+
+            ApplyNightMode();
+        }
+
+        /// <summary>
+        /// 夜间模式：把场景里的平行光调暗、环境光设成冷暗色。
+        /// 这样灯（emitLight 方块生成的点光源）的暖色光斑才看得出来 —— 用来验证"光照也被像素化"。
+        /// </summary>
+        void ApplyNightMode()
+        {
+            if (!nightMode) return;
+
+            foreach (Light light in Object.FindObjectsOfType<Light>())
+            {
+                if (light.type == LightType.Directional) light.intensity = nightSunIntensity;
+            }
+
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = nightAmbient;
         }
 
         void RefreshHint()
