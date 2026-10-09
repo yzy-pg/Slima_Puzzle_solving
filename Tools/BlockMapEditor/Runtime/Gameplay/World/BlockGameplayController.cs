@@ -42,6 +42,8 @@ namespace BlockMap.Gameplay
             public bool latched;
             public bool active;
             public GameplayBlockView view;
+            public int blockIndex;
+            public int direction;
         }
 
         readonly Dictionary<Vector3Int, RuntimeState> _states = new Dictionary<Vector3Int, RuntimeState>();
@@ -178,9 +180,11 @@ namespace BlockMap.Gameplay
         {
             if (actor == null) return false;
             Vector3Int cell = actor.Mover.Cell;
+            if (_party != null && _party.HasOtherSolidAt(actor, cell)) return false;
             GameplayBlockProfile profile = GetProfileAt(cell);
             if (profile != null && profile.blocksMovement && !(profile.Kind == GameplayBlockKind.Door && IsActivated(cell)))
                 return false;
+            if (profile == null && BlocksMovement(cell, true)) return false;
             return HasSupport(cell + Vector3Int.down);
         }
 
@@ -221,13 +225,23 @@ namespace BlockMap.Gameplay
             }
         }
 
-        public bool TryInteract(SlimeActor actor)
+        public bool TryGetInteraction(SlimeActor actor, out SlimeInteraction interaction)
         {
-            if (actor == null || actor.State.form == SlimeForm.Gas) return false;
+            interaction = default;
+            if (actor == null || actor.State.form == SlimeForm.Gas || (_party != null && _party.IsBusy)) return false;
+
+            if (_party != null && _party.CanFuseFacing(actor))
+            {
+                interaction = new SlimeInteraction(SlimeInteractionKind.Fuse, actor.Mover.Cell);
+                return true;
+            }
 
             GameplayBlockProfile current = GetProfileAt(actor.Mover.Cell);
-            if (current != null && current.Kind == GameplayBlockKind.Splitter)
-                return _party != null && _party.TrySplit(actor);
+            if (current != null && current.Kind == GameplayBlockKind.Splitter && _party != null && _party.CanSplit(actor))
+            {
+                interaction = new SlimeInteraction(SlimeInteractionKind.Split, actor.Mover.Cell);
+                return true;
+            }
 
             int facing = actor.Mover.Facing;
             int[] order = { facing, GridDirection.Left(facing), GridDirection.Right(facing), GridDirection.Back(facing) };
@@ -236,13 +250,26 @@ namespace BlockMap.Gameplay
                 Vector3Int cell = actor.Mover.Cell + GridDirection.ToVector(direction);
                 GameplayBlockProfile profile = GetProfileAt(cell);
                 if (profile == null || profile.Kind != GameplayBlockKind.Lever) continue;
-                RuntimeState state = StateAt(cell);
-                state.toggled = !state.toggled;
-                _optics?.MarkDirty();
-                Changed?.Invoke();
+                interaction = new SlimeInteraction(SlimeInteractionKind.Lever, cell);
                 return true;
             }
             return false;
+        }
+
+        public bool TryInteract(SlimeActor actor)
+        {
+            if (!TryGetInteraction(actor, out SlimeInteraction interaction)) return false;
+            switch (interaction.Kind)
+            {
+                case SlimeInteractionKind.Fuse: return _party.TryFuseFacing(actor);
+                case SlimeInteractionKind.Split: return _party.TrySplit(actor);
+                default:
+                    RuntimeState state = StateAt(interaction.Cell);
+                    state.toggled = !state.toggled;
+                    _optics?.MarkDirty();
+                    Changed?.Invoke();
+                    return true;
+            }
         }
 
         public bool TryDestroyFacing(SlimeActor actor)
@@ -385,10 +412,13 @@ namespace BlockMap.Gameplay
             _states.Clear();
             _worldDirty = false;
 
-            if (_viewRoot != null) DestroySafe(_viewRoot.gameObject);
-            var container = new GameObject("GameplayBlocks");
-            container.transform.SetParent(transform, false);
-            _viewRoot = container.transform;
+            if (!preserveState && _viewRoot != null) DestroySafe(_viewRoot.gameObject);
+            if (!preserveState || _viewRoot == null)
+            {
+                var container = new GameObject("GameplayBlocks");
+                container.transform.SetParent(transform, false);
+                _viewRoot = container.transform;
+            }
 
             bool hasBounds = false;
             int minX = 0, maxX = 0, minZ = 0, maxZ = 0;
@@ -413,15 +443,35 @@ namespace BlockMap.Gameplay
                 GameplayBlockProfile profile = definition != null ? BlockGameplayCatalog.Get(definition.id) : null;
                 if (profile == null) continue;
 
-                RuntimeState state = preserveState && previous.TryGetValue(cell, out RuntimeState old)
-                    ? new RuntimeState { toggled = old.toggled, latched = old.latched, active = old.active }
-                    : new RuntimeState();
-                state.view = GameplayPrototypeFactory.Create(definition, profile, cell, _world.GetDir(cell), _viewRoot);
+                int direction = _world.GetDir(cell);
+                RuntimeState state;
+                if (preserveState && previous.TryGetValue(cell, out RuntimeState old) &&
+                    old.blockIndex == item.Value && old.direction == direction && old.view != null)
+                {
+                    state = old;
+                }
+                else
+                {
+                    state = new RuntimeState { blockIndex = item.Value, direction = direction };
+                    state.view = GameplayPrototypeFactory.Create(definition, profile, cell, direction, _viewRoot);
+                }
                 _states[cell] = state;
             }
+            if (preserveState) RemoveChangedViews(previous);
             _minXZ = hasBounds ? new Vector2Int(minX, minZ) : Vector2Int.zero;
             _maxXZ = hasBounds ? new Vector2Int(maxX, maxZ) : Vector2Int.zero;
             _optics?.MarkDirty();
+        }
+
+        void RemoveChangedViews(Dictionary<Vector3Int, RuntimeState> previous)
+        {
+            foreach (KeyValuePair<Vector3Int, RuntimeState> item in previous)
+            {
+                if (_states.TryGetValue(item.Key, out RuntimeState current) && current == item.Value) continue;
+                if (item.Value.view == null) continue;
+                item.Value.view.gameObject.SetActive(false);
+                DestroySafe(item.Value.view.gameObject);
+            }
         }
 
         static string SourceKey(string type, Vector3Int cell) => $"{type}:{cell.x}:{cell.y}:{cell.z}";

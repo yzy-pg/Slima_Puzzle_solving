@@ -17,6 +17,7 @@ namespace BlockMap.Gameplay
         float _cellSize;
         float _viewYaw;
         int _activeIndex;
+        SlimeGridMover _fusionMover;
 
         public event Action Changed;
         public event Action RestartRequested;
@@ -24,6 +25,7 @@ namespace BlockMap.Gameplay
 
         public IReadOnlyList<SlimeActor> Actors => _actors;
         public SlimeActor ActiveActor => _actors.Count == 0 ? null : _actors[Mathf.Clamp(_activeIndex, 0, _actors.Count - 1)];
+        public bool IsBusy => AnyActorMoving();
 
         public void Initialize(
             BlockGameplayController gameplay,
@@ -58,6 +60,7 @@ namespace BlockMap.Gameplay
 
         public void RestartParty()
         {
+            _fusionMover = null;
             for (int i = _actors.Count - 1; i >= 0; i--)
                 if (_actors[i] != null) Destroy(_actors[i].gameObject);
             _actors.Clear();
@@ -85,6 +88,7 @@ namespace BlockMap.Gameplay
             int limit = Mathf.Max(1, BlockGameplaySettings.Current.blueSlideLimit);
             for (int i = 1; i < limit; i++)
             {
+                if (CanFusePair(actor, FindAt(next))) break;
                 GameplayBlockProfile floor = _gameplay.GetProfileAt(next);
                 if (floor != null && floor.Kind == GameplayBlockKind.RedFloor) break;
 
@@ -112,17 +116,28 @@ namespace BlockMap.Gameplay
             if (actor.State.form != SlimeForm.Solid || actor.State.element != SlimeElement.Blue)
                 mover.StopAfterCurrentStep();
 
-            FuseAt(cell);
+            bool manualFusion = mover == _fusionMover;
+            if (manualFusion) _fusionMover = null;
+            if (manualFusion || (actor.State.form == SlimeForm.Solid && actor.State.element == SlimeElement.Blue))
+            {
+                if (HasOtherSolidAt(actor, cell)) mover.StopAfterCurrentStep();
+                FuseAt(cell);
+            }
             if (_gameplay.IsExit(cell)) ExitReached?.Invoke();
             Changed?.Invoke();
         }
 
-        public bool TrySplit(SlimeActor source)
+        public bool CanSplit(SlimeActor source)
         {
             if (source == null || source.State.form != SlimeForm.Solid ||
                 source.State.size != SlimeSize.Large || _actors.Count >= 2)
                 return false;
 
+            return CollectSplitCells(source).Count > 0;
+        }
+
+        List<Vector3Int> CollectSplitCells(SlimeActor source)
+        {
             int facing = source.Mover.Facing;
             int[] localOrder =
             {
@@ -138,7 +153,13 @@ namespace BlockMap.Gameplay
                 Vector3Int candidate = source.Mover.Cell + GridDirection.ToVector(direction);
                 if (_gameplay.CanEnter(source, candidate, direction, false)) _routeBuffer.Add(candidate);
             }
-            if (_routeBuffer.Count == 0) return false;
+            return _routeBuffer;
+        }
+
+        public bool TrySplit(SlimeActor source)
+        {
+            if (!CanSplit(source)) return false;
+            int facing = source.Mover.Facing;
 
             Vector3Int original = source.Mover.Cell;
             SlimeState smallState = source.State.Copy();
@@ -155,6 +176,37 @@ namespace BlockMap.Gameplay
             Changed?.Invoke();
             return true;
         }
+
+        public bool HasOtherSolidAt(SlimeActor source, Vector3Int cell)
+        {
+            foreach (SlimeActor actor in _actors)
+                if (actor != null && actor != source && actor.State.form == SlimeForm.Solid && actor.Mover.Cell == cell)
+                    return true;
+            return false;
+        }
+
+        public bool CanFuseFacing(SlimeActor source)
+        {
+            if (source == null || IsBusy) return false;
+            Vector3Int target = source.Mover.Cell + GridDirection.ToVector(source.Mover.Facing);
+            return CanFusePair(source, FindAt(target)) &&
+                   _gameplay.CanEnter(source, target, source.Mover.Facing, false);
+        }
+
+        public bool TryFuseFacing(SlimeActor source)
+        {
+            if (!CanFuseFacing(source)) return false;
+            Vector3Int target = source.Mover.Cell + GridDirection.ToVector(source.Mover.Facing);
+            if (!source.Mover.TryMoveTo(target)) return false;
+            _fusionMover = source.Mover;
+            Changed?.Invoke();
+            return true;
+        }
+
+        static bool CanFusePair(SlimeActor first, SlimeActor second) =>
+            first != null && second != null && first != second &&
+            first.State.form == SlimeForm.Solid && second.State.form == SlimeForm.Solid &&
+            first.State.size == SlimeSize.Small && second.State.size == SlimeSize.Small;
 
         public SlimeActor FindAt(Vector3Int cell)
         {
@@ -208,8 +260,7 @@ namespace BlockMap.Gameplay
             if (occupied != null && occupied != actor)
             {
                 bool gasPassesThrough = actor.State.form == SlimeForm.Gas || occupied.State.form == SlimeForm.Gas;
-                bool mayFuse = actor.State.form == SlimeForm.Solid && occupied.State.form == SlimeForm.Solid &&
-                               actor.State.size == SlimeSize.Small && occupied.State.size == SlimeSize.Small;
+                bool mayFuse = actor.State.element == SlimeElement.Blue && CanFusePair(actor, occupied);
                 if (!gasPassesThrough && !mayFuse) return false;
             }
             return _gameplay.CanEnter(actor, cell, actor.Mover.Facing, allowPush);
@@ -232,7 +283,8 @@ namespace BlockMap.Gameplay
             SlimeActor removed = survivor == first ? second : first;
             survivor.SetState(SlimeRules.Fuse(first.State, second.State));
             _actors.Remove(removed);
-            Destroy(removed.gameObject);
+            if (Application.isPlaying) Destroy(removed.gameObject);
+            else DestroyImmediate(removed.gameObject);
             _activeIndex = Mathf.Max(0, _actors.IndexOf(survivor));
             RefreshControl();
         }
@@ -291,7 +343,7 @@ namespace BlockMap.Gameplay
         bool AnyActorMoving()
         {
             foreach (SlimeActor actor in _actors)
-                if (actor != null && actor.Mover.IsMoving) return true;
+                if (actor != null && actor.Mover.HasPendingMovement) return true;
             return false;
         }
     }

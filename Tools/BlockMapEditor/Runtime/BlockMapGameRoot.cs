@@ -25,6 +25,10 @@ namespace BlockMap
         [Header("相机")]
         public bool cameraFollowsPlayer = true;
 
+        [Tooltip("勾选后本关覆盖全局配置中的相机阻尼时间")]
+        public bool overrideCameraSmoothTime;
+        [Min(0f)] public float cameraSmoothTime = 0.25f;
+
         [Tooltip("正交相机视野大小：越小 = 越靠近场景（放大）。默认 5.5（原来是 8，更贴近场景）")]
         public float cameraSize = 5.5f;
 
@@ -70,6 +74,9 @@ namespace BlockMap
         BlockGameplayController _gameplay;
         SlimePartyController _party;
         string _initialWorldJson;
+        Vector3 _cameraFocus;
+        Vector3 _cameraVelocity;
+        bool _cameraFocusInitialized;
 
         public SlimePartyController Party => _party;
         public bool Won => _won;
@@ -104,6 +111,14 @@ namespace BlockMap
             BlockMapGameplayHud hud = GetComponent<BlockMapGameplayHud>();
             if (hud == null) hud = gameObject.AddComponent<BlockMapGameplayHud>();
             hud.Initialize(this, _party);
+
+            BlockMapInteractionHud interactions = GetComponent<BlockMapInteractionHud>();
+            if (interactions == null) interactions = gameObject.AddComponent<BlockMapInteractionHud>();
+            interactions.Initialize(this, _party, _gameplay);
+
+            BlockMapMechanismHud numbers = GetComponent<BlockMapMechanismHud>();
+            if (numbers == null) numbers = gameObject.AddComponent<BlockMapMechanismHud>();
+            numbers.Initialize(_world);
         }
 
         void Update()
@@ -116,6 +131,7 @@ namespace BlockMap
             if (_camera == null) return;
             SlimeActor active = _party != null ? _party.ActiveActor : null;
             Vector3 target = cameraFollowsPlayer && active != null ? active.transform.position : LevelCenter();
+            target = SmoothCameraFocus(target);
             Vector3 desired = target + CameraOffsetWorld();
 
             // ★ 像素吸附（默认关闭）：把相机位置量化到"一个屏幕像素"的整数倍。
@@ -137,6 +153,20 @@ namespace BlockMap
 
             _camera.transform.position = desired;
             _camera.transform.LookAt(target);
+        }
+
+        Vector3 SmoothCameraFocus(Vector3 target)
+        {
+            float duration = overrideCameraSmoothTime ? cameraSmoothTime : BlockGameplaySettings.Current.cameraSmoothTime;
+            if (!_cameraFocusInitialized || duration <= 0f)
+            {
+                _cameraFocus = target;
+                _cameraVelocity = Vector3.zero;
+                _cameraFocusInitialized = true;
+            }
+            else
+                _cameraFocus = Vector3.SmoothDamp(_cameraFocus, target, ref _cameraVelocity, duration);
+            return _cameraFocus;
         }
 
         void OnDestroy()
@@ -171,6 +201,7 @@ namespace BlockMap
             _world.FromJson(_initialWorldJson);
             _gameplay?.ResetState();
             _party?.RestartParty();
+            _cameraFocusInitialized = false;
             _won = false;
         }
 

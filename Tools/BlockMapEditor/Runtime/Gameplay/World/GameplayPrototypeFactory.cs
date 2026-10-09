@@ -178,7 +178,11 @@ namespace BlockMap.Gameplay
             item.transform.localRotation = Quaternion.Euler(localEuler);
             item.transform.localScale = localScale;
             Collider collider = item.GetComponent<Collider>();
-            if (collider != null) UnityEngine.Object.Destroy(collider);
+            if (collider != null)
+            {
+                if (Application.isPlaying) UnityEngine.Object.Destroy(collider);
+                else UnityEngine.Object.DestroyImmediate(collider);
+            }
 
             Renderer renderer = item.GetComponent<Renderer>();
             if (renderer != null)

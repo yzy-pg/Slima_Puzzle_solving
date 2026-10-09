@@ -10,5 +10,15 @@
   "showEmitterDirectionIndicator": true,
   "emitterIndicatorHeight": 1.05,
   "emitterIndicatorLength": 0.70,
-  "emitterIndicatorWidth": 0.10
+  "emitterIndicatorWidth": 0.10,
+  "_comment_camera": "cameraSmoothTime：相机阻尼时间（秒），0 为立即跟随。单关可在 BlockMapGameRoot 勾选 overrideCameraSmoothTime 后覆盖。",
+  "cameraSmoothTime": 0.25,
+  "_comment_ui": "interactionBubbleSize：气泡像素尺寸；interactionBubbleHeight：道具气泡离格子底部的高度；activeMarkerHeight：倒三角离角色模型顶部的高度。气态恢复常态不可用时显示暗色带斜杠 E。",
+  "interactionBubbleSize": 38.0,
+  "interactionBubbleHeight": 0.65,
+  "activeMarkerHeight": 0.24,
+  "_comment_numbers": "showMechanismNumbers：是否显示关联编号；mechanismLabelHeight：编号离格子底部的高度；mechanismLabelGap：门上多个编号的像素间距。编号自动保存到地图 mechanismNumber，不改变 linkId 触发规则。",
+  "showMechanismNumbers": true,
+  "mechanismLabelHeight": 1.35,
+  "mechanismLabelGap": 6.0
 }

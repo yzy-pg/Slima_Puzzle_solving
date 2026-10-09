@@ -20,6 +20,13 @@ namespace BlockMap.Gameplay
             public float emitterIndicatorHeight = 1.05f;
             public float emitterIndicatorLength = 0.70f;
             public float emitterIndicatorWidth = 0.10f;
+            public float cameraSmoothTime = 0.25f;
+            public float interactionBubbleSize = 38f;
+            public float interactionBubbleHeight = 0.65f;
+            public float activeMarkerHeight = 0.24f;
+            public bool showMechanismNumbers = true;
+            public float mechanismLabelHeight = 1.35f;
+            public float mechanismLabelGap = 6f;
         }
 
         const string ResourcePath = "BlockMap/GameplaySettings";

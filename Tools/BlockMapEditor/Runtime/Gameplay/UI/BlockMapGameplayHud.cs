@@ -17,6 +17,7 @@ namespace BlockMap.Gameplay
         void OnGUI()
         {
             if (_root == null) return;
+            DrawActiveMarker();
             if (!string.IsNullOrEmpty(_root.Hint))
             {
                 GUI.Box(new Rect(Screen.width * 0.5f - 260f, 20f, 520f, 48f), GUIContent.none);
@@ -30,7 +31,6 @@ namespace BlockMap.Gameplay
             GUI.Label(new Rect(30f, 70f, 300f, 22f), ActiveStateText());
             GUI.Label(new Rect(30f, 93f, 300f, 22f), $"史莱姆数量：{(_party != null ? _party.Actors.Count : 0)} / 2");
 
-            DrawActiveMarker();
             if (!_root.Won) return;
 
             var style = new GUIStyle(GUI.skin.box) { fontSize = 28, alignment = TextAnchor.MiddleCenter };
@@ -50,11 +50,10 @@ namespace BlockMap.Gameplay
         void DrawActiveMarker()
         {
             SlimeActor actor = _party != null ? _party.ActiveActor : null;
-            Camera camera = Camera.main;
-            if (actor == null || camera == null) return;
-            Vector3 screen = camera.WorldToScreenPoint(actor.transform.position + Vector3.up * 1.35f);
-            if (screen.z <= 0f) return;
-            GUI.Label(new Rect(screen.x - 10f, Screen.height - screen.y - 12f, 24f, 24f), "▼");
+            if (actor == null) return;
+            Vector3 anchor = actor.OverlayAnchor + Vector3.up * BlockGameplaySettings.Current.activeMarkerHeight;
+            if (!GameplayOverlayDrawing.TryProject(anchor, out Vector2 screen)) return;
+            GameplayOverlayDrawing.DrawActiveTriangle(screen);
         }
     }
 }

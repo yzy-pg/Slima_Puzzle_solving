@@ -9,7 +9,7 @@ namespace BlockMap
     /// 连续的同种方块按 chunk 归组 —— 每个 chunk 生成一个 GameObject/Mesh，所以"同种连续方块"
     /// 既可以看成一片（同一个 chunk 网格），也可以看成分块（多个 chunk 对象），两种理解都成立。
     /// </summary>
-    public class BlockWorld : MonoBehaviour, ISerializationCallbackReceiver
+    public partial class BlockWorld : MonoBehaviour, ISerializationCallbackReceiver
     {
         [Tooltip("chunk 边长（方块数）。16 = 一个 Mesh 最多覆盖 16³ 格")]
         public int chunkSize = 16;
@@ -42,6 +42,7 @@ namespace BlockMap
             //   表现就是"第一次能跑，第二次报没有起点/终点"。
             if (_blocks.Count == 0) return;
 
+            EnsureMechanismNumbers();
             _serializedBlocks.Clear();
             foreach (var kv in _blocks)
             {
@@ -54,6 +55,7 @@ namespace BlockMap
                     z = kv.Key.z,
                     r = GetDir(kv.Key),
                     linkId = GetLinkId(kv.Key),
+                    mechanismNumber = GetMechanismNumber(kv.Key),
                     id = def.id
                 });
             }
@@ -74,6 +76,7 @@ namespace BlockMap
             _blocks.Clear();
             _dir.Clear();
             _linkIds.Clear();
+            _mechanismNumbers.Clear();
 
             int restored = 0;
             for (int i = 0; i < _serializedBlocks.Count; i++)
@@ -92,9 +95,11 @@ namespace BlockMap
                 _blocks[pos] = index;
                 if (entry.r != 0) SetDir(pos, entry.r);
                 SetLinkIdRaw(pos, entry.linkId);
+                SetMechanismNumberRaw(pos, entry.mechanismNumber);
                 restored++;
             }
 
+            EnsureMechanismNumbers();
             Debug.Log($"[BlockMap] 已从场景恢复 {restored} 个方块（含朝向）", this);
             foreach (var c in AllChunks()) MarkDirty(c);
             MarkDirty(Vector3Int.zero);
@@ -170,9 +175,11 @@ namespace BlockMap
             int before = GetIndex(pos);
             if (before == index) return;
             string beforeLink = GetLinkId(pos);
-            RecordEdit(pos, before, index, beforeLink, string.Empty);
+            int number = CreateMechanismNumber(index);
+            RecordEdit(pos, before, index, beforeLink, string.Empty, number);
             _blocks[pos] = index;
             _linkIds.Remove(pos);
+            SetMechanismNumberRaw(pos, number);
             MarkNeighborhoodDirty(pos);
             NotifyChanged();
         }
@@ -182,10 +189,11 @@ namespace BlockMap
             if (!InBounds(pos)) return;
             int before = GetIndex(pos);
             if (before < 0) return;
-            RecordEdit(pos, before, -1, GetLinkId(pos), string.Empty);
+            RecordEdit(pos, before, -1, GetLinkId(pos), string.Empty, 0);
             _blocks.Remove(pos);
             _dir.Remove(pos);                                  // 删方块时一起清掉朝向
             _linkIds.Remove(pos);
+            _mechanismNumbers.Remove(pos);
             MarkNeighborhoodDirty(pos);
             NotifyChanged();
         }
@@ -198,12 +206,15 @@ namespace BlockMap
 
             int dir = GetDir(from);
             string linkId = GetLinkId(from);
+            int number = GetMechanismNumber(from);
             _blocks.Remove(from);
             _dir.Remove(from);
             _linkIds.Remove(from);
+            _mechanismNumbers.Remove(from);
             _blocks[to] = index;
             if (dir != 0) _dir[to] = (byte)dir;
             SetLinkIdRaw(to, linkId);
+            SetMechanismNumberRaw(to, number);
             MarkNeighborhoodDirty(from);
             MarkNeighborhoodDirty(to);
             NotifyChanged();
@@ -216,6 +227,8 @@ namespace BlockMap
             _dir.Clear();
             _linkIds.Clear();
             _blocks.Clear();
+            _mechanismNumbers.Clear();
+            _nextMechanismNumber = 1;
             _undo.Clear();
             _redo.Clear();
             _serializedBlocks.Clear();      // 显式清空 = 持久化数据一起清（FromJson 紧接着会重新填上）
@@ -231,6 +244,8 @@ namespace BlockMap
             public int after;
             public string beforeLink;
             public string afterLink;
+            public int beforeNumber;
+            public int afterNumber;
         }
 
         readonly List<List<Edit>> _undo = new List<List<Edit>>();
@@ -256,7 +271,7 @@ namespace BlockMap
             _pendingStroke = null;
         }
 
-        void RecordEdit(Vector3Int pos, int before, int after, string beforeLink, string afterLink)
+        void RecordEdit(Vector3Int pos, int before, int after, string beforeLink, string afterLink, int afterNumber = -1)
         {
             if (_pendingStroke == null) return;                 // 不在笔画里（读档/程序生成）就不记录
             _pendingStroke.Add(new Edit
@@ -265,7 +280,9 @@ namespace BlockMap
                 before = before,
                 after = after,
                 beforeLink = beforeLink,
-                afterLink = afterLink
+                afterLink = afterLink,
+                beforeNumber = GetMechanismNumber(pos),
+                afterNumber = afterNumber < 0 ? GetMechanismNumber(pos) : afterNumber
             });
         }
 
@@ -275,7 +292,7 @@ namespace BlockMap
             var stroke = _undo[_undo.Count - 1];
             _undo.RemoveAt(_undo.Count - 1);
             for (int i = stroke.Count - 1; i >= 0; i--)
-                ApplyRaw(stroke[i].pos, stroke[i].before, stroke[i].beforeLink);
+                ApplyRaw(stroke[i].pos, stroke[i].before, stroke[i].beforeLink, stroke[i].beforeNumber);
             _redo.Add(stroke);
         }
 
@@ -284,22 +301,24 @@ namespace BlockMap
             if (_redo.Count == 0) return;
             var stroke = _redo[_redo.Count - 1];
             _redo.RemoveAt(_redo.Count - 1);
-            foreach (var e in stroke) ApplyRaw(e.pos, e.after, e.afterLink);
+            foreach (var e in stroke) ApplyRaw(e.pos, e.after, e.afterLink, e.afterNumber);
             _undo.Add(stroke);
         }
 
-        void ApplyRaw(Vector3Int pos, int index, string linkId)
+        void ApplyRaw(Vector3Int pos, int index, string linkId, int mechanismNumber)
         {
             if (index < 0)
             {
                 _blocks.Remove(pos);
                 _dir.Remove(pos);
                 _linkIds.Remove(pos);
+                _mechanismNumbers.Remove(pos);
             }
             else
             {
                 _blocks[pos] = index;
                 SetLinkIdRaw(pos, linkId);
+                SetMechanismNumberRaw(pos, mechanismNumber);
             }
             MarkNeighborhoodDirty(pos);                          // 脏 chunk 由渲染器下一帧重建
             NotifyChanged();
@@ -353,12 +372,19 @@ namespace BlockMap
             public int x, y, z, r;
             public string id;
             public string linkId;
+            public int mechanismNumber;
         }
-        [Serializable] public class SaveData { public int chunkSize = 16; public List<SaveEntry> blocks = new List<SaveEntry>(); }
+        [Serializable] public class SaveData
+        {
+            public int chunkSize = 16;
+            public int nextMechanismNumber = 1;
+            public List<SaveEntry> blocks = new List<SaveEntry>();
+        }
 
         public string ToJson()
         {
-            var data = new SaveData { chunkSize = chunkSize };
+            EnsureMechanismNumbers();
+            var data = new SaveData { chunkSize = chunkSize, nextMechanismNumber = _nextMechanismNumber };
             foreach (var kv in _blocks)
             {
                 var def = BlockLibrary.Get(kv.Value);
@@ -370,7 +396,8 @@ namespace BlockMap
                     z = kv.Key.z,
                     r = GetDir(kv.Key),
                     id = def.id,
-                    linkId = GetLinkId(kv.Key)
+                    linkId = GetLinkId(kv.Key),
+                    mechanismNumber = GetMechanismNumber(kv.Key)
                 });
             }
             return JsonUtility.ToJson(data, true);
@@ -385,6 +412,7 @@ namespace BlockMap
             _blocks.Clear();
             _linkIds.Clear();
             if (data.chunkSize > 0) chunkSize = data.chunkSize;
+            _nextMechanismNumber = Mathf.Max(1, data.nextMechanismNumber);
 
             // 同步持久化镜像：烘好的场景保存时会把这份数据一起写进场景
             _serializedBlocks.Clear();
@@ -402,7 +430,9 @@ namespace BlockMap
                 _blocks[p] = idx;
                 if (e.r != 0) SetDir(p, e.r);          // 老存档没有 r → 0，自动兼容
                 SetLinkIdRaw(p, e.linkId);             // 老存档没有 linkId → 空，自动兼容
+                SetMechanismNumberRaw(p, e.mechanismNumber);
             }
+            EnsureMechanismNumbers();
             foreach (var c in AllChunks()) MarkDirty(c);
             MarkDirty(Vector3Int.zero);
             NotifyChanged();

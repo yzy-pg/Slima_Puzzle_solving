@@ -13,6 +13,18 @@ namespace BlockMap.Gameplay
         public bool IsControlled { get; private set; }
         public int Weight => _state?.Weight ?? 0;
 
+        public Vector3 OverlayAnchor
+        {
+            get
+            {
+                float top = transform.position.y + 0.8f;
+                if (_renderers != null)
+                    foreach (Renderer item in _renderers)
+                        if (item != null && item.enabled) top = Mathf.Max(top, item.bounds.max.y);
+                return new Vector3(transform.position.x, top, transform.position.z);
+            }
+        }
+
         public void Initialize(SlimeState state, ISlimeMovementPlanner planner, float cellSize, float viewYaw)
         {
             _renderers = GetComponentsInChildren<Renderer>(true);

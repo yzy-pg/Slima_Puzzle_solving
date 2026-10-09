@@ -21,6 +21,7 @@ namespace BlockMap.Gameplay
         public Vector3Int Cell { get; private set; }
         public int Facing { get; private set; }
         public bool IsMoving { get; private set; }
+        public bool HasPendingMovement => IsMoving || _route.Count > 0;
         public bool InputEnabled { get; set; } = true;
         public ISlimeMovementPlanner Planner { get; set; }
 
@@ -58,6 +59,14 @@ namespace BlockMap.Gameplay
         }
 
         public void StopAfterCurrentStep() => _route.Clear();
+
+        public bool TryMoveTo(Vector3Int cell)
+        {
+            if (HasPendingMovement) return false;
+            _route.Add(cell);
+            BeginNextStep();
+            return true;
+        }
 
         public void SetVisualHeight(float height)
         {

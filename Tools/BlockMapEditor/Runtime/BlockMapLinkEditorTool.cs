@@ -19,6 +19,7 @@ namespace BlockMap
         Vector2 _groupScroll;
         string _activeGroup = string.Empty;
         string _message = string.Empty;
+        readonly BlockMechanismLabels _mechanismLabels = new BlockMechanismLabels();
 
         public bool LinkMode { get; private set; }
 
@@ -204,7 +205,8 @@ namespace BlockMap
             GUILayout.EndScrollView();
 
             GUILayout.Label(_message, new GUIStyle(GUI.skin.label) { wordWrap = true });
-            GUILayout.Label("保存地图时 linkId 会随每个物件写入 JSON");
+            GUILayout.Label("机关独立编号；门显示同组机关的全部编号");
+            GUILayout.Label("保存地图时关联组与编号一起写入 JSON");
         }
 
         string GroupSummary(string groupId)
@@ -223,31 +225,9 @@ namespace BlockMap
 
         void DrawWorldLabels()
         {
-            Camera camera = Camera.main;
-            if (camera == null || _world == null) return;
-
-            GUIStyle style = new GUIStyle(GUI.skin.box)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontStyle = FontStyle.Bold,
-                fontSize = 12
-            };
-
-            foreach (KeyValuePair<Vector3Int, int> block in _world.Blocks)
-            {
-                string linkId = _world.GetLinkId(block.Key);
-                if (linkId.Length == 0) continue;
-
-                Vector3 worldPosition = block.Key + new Vector3(0.5f, 1.35f, 0.5f);
-                Vector3 screenPosition = camera.WorldToScreenPoint(worldPosition);
-                if (screenPosition.z <= 0f) continue;
-
-                Rect labelRect = new Rect(screenPosition.x - 29f, Screen.height - screenPosition.y - 12f, 58f, 24f);
-                Color previous = GUI.backgroundColor;
-                GUI.backgroundColor = BlockLinkRules.ColorFor(linkId);
-                GUI.Box(labelRect, linkId, style);
-                GUI.backgroundColor = previous;
-            }
+            if (_world == null) return;
+            _mechanismLabels.Refresh(_world);
+            GameplayOverlayDrawing.DrawMechanismLabels(_mechanismLabels.Labels);
         }
 
         bool IsPointerOverAnyPanel()
