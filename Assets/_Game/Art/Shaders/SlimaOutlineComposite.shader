@@ -147,10 +147,16 @@ Shader "Slima/Outline Composite"
                 groupDepth = min(groupDepth, my1.r < 0.5 ? my1.g : 1.0);
 
                 // 相机深度图（归一化到同一尺度）。深度图不可用时线性化结果会偏大 → 退化为"总是画线"（不会更糟）
-                float sceneDepth = LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams) / max(1e-3, _MaskFar);
+                float rawDepth = SampleSceneDepth(uv);
+                float eyeDepth = unity_OrthoParams.w > 0.5 ? LinearDepthToEyeDepth(rawDepth) :
+                    LinearEyeDepth(rawDepth, _ZBufferParams);
+                float sceneDepth = eyeDepth / max(1e-3, _MaskFar);
                 // 容差：遮罩是半浮点格式（精度足够），用很小的容差即可分辨"叠在一起"的物品
                 //   （主角站在出口上差 ~1 单位 → 归一化后 ~0.0025，所以容差必须小于它）
-                float visible = (sceneDepth >= groupDepth - 0.002) ? 1.0 : 0.0;
+                // Tolerance is in world units, not a fraction of the far clip plane.
+                // A far plane of 1000 previously allowed outlines to bleed through 2m of geometry.
+                float depthTolerance = max(0.01, groupDepth * _MaskFar * 0.001) / max(1e-3, _MaskFar);
+                float visible = (sceneDepth >= groupDepth - depthTolerance) ? 1.0 : 0.0;
 
                 float outline = (mC > 0.5 && mMin < 0.5 && visible > 0.5) ? 1.0 : 0.0;
 

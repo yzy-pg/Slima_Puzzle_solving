@@ -63,11 +63,30 @@ namespace BlockMap
         public bool mountOnWall = false;
 
         [Header("发光")]
+        [Tooltip("自发光遮罩：与颜色贴图使用相同 UV；自动包边方块指定对应的 8×8 图集。黑色不发光。")]
+        public Texture2D emissionMap;
+        [ColorUsage(false, true)] public Color emissionColor = Color.white;
+        [Min(0f)] public float emissionStrength;
         [Tooltip("勾上 = 运行时在这些格子生成点光源，照亮周围")]
         public bool emitLight = false;
         public Color lightColor = Color.white;
         [Tooltip("光照范围")] public float lightRange = 8f;
         [Tooltip("光照强度")] public float lightIntensity = 1f;
+        [Tooltip("相对方块中心（或替代模型原点）的发光位置；关闭时沿用生成器的统一高度。")]
+        public bool useLocalLightPosition;
+        public Vector3 lightLocalPosition = new Vector3(0f, 1.5f, 0f);
+
+        public bool IsLamp => !string.IsNullOrEmpty(id) &&
+            id.EndsWith("_Lamp", System.StringComparison.OrdinalIgnoreCase);
+
+        public Vector3 GetLightPosition(Vector3 cellCenter, int direction, float fallbackHeight)
+        {
+            if (!useLocalLightPosition) return cellCenter + Vector3.up * fallbackHeight;
+            Quaternion rotation = Quaternion.Euler(0f, direction * 90f, 0f) *
+                (previewPrefab != null ? previewPrefab.transform.rotation : Quaternion.identity);
+            Vector3 origin = mountOnWall ? cellCenter - rotation * Vector3.forward * 0.5f : cellCenter;
+            return origin + rotation * lightLocalPosition;
+        }
 
         Texture2D _runtimeAtlas;
 

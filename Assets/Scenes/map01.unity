@@ -933,12 +933,12 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 939823657}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 10
   m_Type: 0
   m_Shape: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 3.33
+  m_Intensity: 8
   m_Range: 36
   m_SpotAngle: 70.9
   m_InnerSpotAngle: 21.6245
@@ -1409,19 +1409,19 @@ MonoBehaviour:
   intensity: 2
   ditherBlock: 1
   litSuffix: _Lit
-  rectangularFalloff: 1
-  pixelNoise: 0.693
-  noiseCell: 0.5
-  bands: 8
+  rectangularFalloff: 0
+  pixelNoise: 0.365
+  noiseCell: 0.263
+  bands: 5
   saturationBoost: 1
-  scatter: 7.54
-  edgeSoftness: 0.196
-  beamFalloff: 0.057793062
+  scatter: 1
+  edgeSoftness: 0.8
+  beamFalloff: 0.5
   rangeOverride: 36
   spotAngleOverride: 70.9
   innerConeRatio: 0.305
-  editorPreviewLight: 1
-  previewIntensity: 3.33
+  editorPreviewLight: 0
+  previewIntensity: 8
 --- !u!4 &1149199370
 Transform:
   m_ObjectHideFlags: 0
@@ -1431,8 +1431,8 @@ Transform:
   m_GameObject: {fileID: 1149199368}
   serializedVersion: 2
   m_LocalRotation: {x: 0.11022394, y: -0, z: -0, w: 0.9939068}
-  m_LocalPosition: {x: 123, y: 1.445, z: 139.712}
-  m_LocalScale: {x: 1.2662, y: 1, z: 1.9039}
+  m_LocalPosition: {x: 123.89, y: 1.41, z: 139.7}
+  m_LocalScale: {x: 0.42459485, y: 0.33533, z: 0.6384348}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 939823658}

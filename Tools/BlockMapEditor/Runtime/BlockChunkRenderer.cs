@@ -113,8 +113,8 @@ namespace BlockMap
             }
         }
 
-        /// <summary>销毁 chunk 物体：编辑模式下必须用 DestroyImmediate，否则报 "Destroy may not be called from edit mode"。</summary>
-        static void DestroySafe(GameObject go)
+        /// <summary>销毁 chunk 对象和运行时网格；编辑模式使用 DestroyImmediate。</summary>
+        static void DestroySafe(Object go)
         {
             if (go == null) return;
 #if UNITY_EDITOR
@@ -155,7 +155,11 @@ namespace BlockMap
             // 卡通 shader 的接口（[MainTexture] 已把 mainTexture 映射到 _BaseMap，这里显式设一遍更稳）
             if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", def.GetTexture());
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
-            // 地形用"全屏遮罩描边"，所以物体自带的反转壳描边必须关掉；顶点吸附也交给全屏像素化
+            if (mat.HasProperty("_EmissionMap")) mat.SetTexture("_EmissionMap",
+                def.emissionMap != null ? def.emissionMap : Texture2D.blackTexture);
+            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", def.emissionColor);
+            if (mat.HasProperty("_EmissionStrength")) mat.SetFloat("_EmissionStrength", def.emissionStrength);
+            // 地形由独立的全屏遮罩描边；关闭反转壳和顶点吸附，光照方格由 Shader 单独采样。
             if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0f);
             if (mat.HasProperty("_PixelSnap")) mat.SetFloat("_PixelSnap", 0f);
             if (mat.HasProperty("_Cutoff")) mat.SetFloat("_Cutoff", def.cutoff);
@@ -293,6 +297,7 @@ namespace BlockMap
             mesh.SetColors(cols);
             mesh.subMeshCount = subTris.Count;
             for (int i = 0; i < subTris.Count; i++) mesh.SetTriangles(subTris[i], i);
+            mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
             if (!_chunks.TryGetValue(chunk, out var go) || go == null)
@@ -305,7 +310,7 @@ namespace BlockMap
             }
 
             var mf = go.GetComponent<MeshFilter>();
-            if (mf.sharedMesh != null) Destroy(mf.sharedMesh);
+            if (mf.sharedMesh != null) DestroySafe(mf.sharedMesh);
             mf.sharedMesh = mesh;
 
             var mr = go.GetComponent<MeshRenderer>();

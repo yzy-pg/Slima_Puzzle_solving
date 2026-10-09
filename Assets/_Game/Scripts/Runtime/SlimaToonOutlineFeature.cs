@@ -69,9 +69,11 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("清晰范围外扩像素数：让特殊物件外面的描边也清晰")]
             [Range(0f, 32f)] public float crispDilate = 3f;
 
-            [Header("永远压住线条的物件（保证角色清晰）")]
+            [Header("描边保护（角色与灯方块）")]
             [Tooltip("名字过滤器（多个用 | 分隔）。这些物件所在处**任何组都不会画线** —— 主角用这个")]
             public string protectNameFilter = "Player|Slime";
+            [Tooltip("按子网格材质保护灯方块，避免地板等分组的描边覆盖灯面。留空关闭。")]
+            public string protectMaterialFilter = "_Lamp";
 
             [Header("遮罩分组（每组 = 一个整体对象）")]
             public List<MaskGroup> maskGroups = new List<MaskGroup>
@@ -138,12 +140,14 @@ namespace SlimaPuzzle.Rendering
             }
 
             // ⑤-b 保护遮罩（主角）：任何组的线都不许画在这里
-            bool wantProtect = !string.IsNullOrEmpty(settings.protectNameFilter);
+            bool wantProtect = !string.IsNullOrEmpty(settings.protectNameFilter) ||
+                !string.IsNullOrEmpty(settings.protectMaterialFilter);
             if (wantProtect)
             {
                 if (_protectPass.Material == null) _protectPass.CreateMaterial(settings.maskShader, Color.white);
                 _protectPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
-                _protectPass.Setup(BuildFilterGroup("保护（主角）", "", settings.protectNameFilter), _renderers, Color.black);
+                _protectPass.Setup(BuildFilterGroup("保护（主角 / 灯面）", "", settings.protectNameFilter),
+                    _renderers, Color.black, settings.protectMaterialFilter);
                 renderer.EnqueuePass(_protectPass);
             }
 
@@ -308,6 +312,7 @@ namespace SlimaPuzzle.Rendering
         {
             Material _material;
             MaskGroup _group;
+            string _materialFilter;
             MeshRenderer[] _renderers;
             Color _clearColor = Color.white;
             RTHandle _mask;
@@ -322,9 +327,10 @@ namespace SlimaPuzzle.Rendering
                 _material.SetColor(MaskColorId, maskColor);
             }
 
-            public void Setup(MaskGroup group, MeshRenderer[] renderers, Color clearColor)
+            public void Setup(MaskGroup group, MeshRenderer[] renderers, Color clearColor, string materialFilter = null)
             {
                 _group = group;
+                _materialFilter = materialFilter;
                 _renderers = renderers;
                 _clearColor = clearColor;
             }
@@ -358,7 +364,9 @@ namespace SlimaPuzzle.Rendering
                             if (mats == null) continue;
                             for (int submesh = 0; submesh < mats.Length; submesh++)
                             {
-                                if (!Matches(_group, renderer.gameObject, mats[submesh])) continue;
+                                bool materialProtected = !string.IsNullOrEmpty(_materialFilter) && mats[submesh] != null &&
+                                    MatchesAny(_materialFilter, mats[submesh].name);
+                                if (!Matches(_group, renderer.gameObject, mats[submesh]) && !materialProtected) continue;
                                 cmd.DrawRenderer(renderer, _material, submesh, 0);
                             }
                         }

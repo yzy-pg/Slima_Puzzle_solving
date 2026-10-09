@@ -210,10 +210,12 @@ namespace BlockMap
             // 没有美术的玩法块会得到一个运行时灰盒定义，策划仍可直接在地编里使用。
             BlockGameplayCatalog.AddDefinitions(_blocks, _byId);
 
-            // 先按"是否交互道具"分组，再按 id 排 —— 编辑器面板里两类方块不会混在一起
+            // 静态地形、交互模型、_Lamp 灯具分别分组，组内按 id 排序。
             _blocks.Sort((a, b) =>
             {
-                int c = a.interactive.CompareTo(b.interactive);
+                int groupA = a.IsLamp ? 2 : (a.interactive || a.previewPrefab != null ? 1 : 0);
+                int groupB = b.IsLamp ? 2 : (b.interactive || b.previewPrefab != null ? 1 : 0);
+                int c = groupA.CompareTo(groupB);
                 return c != 0 ? c : string.CompareOrdinal(a.id, b.id);
             });
 

@@ -62,6 +62,7 @@ namespace BlockMap
         Vector2 _mapListScroll;                  // 地图列表滚动位置
         bool _expandStatic = true;               // "静态墙面"分组是否展开
         bool _expandProps = true;                // "交互道具/模型"分组是否展开              // 方块库下拉是否展开
+        bool _expandLamps = true;
         Vector2 _blockListScroll;                // 方块库列表滚动位置
         Vector2 _panelScroll;                    // 整个面板的滚动位置
         bool _planeErase;
@@ -472,6 +473,7 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
         static string ModeTag(BlockDefinition def)
         {
             if (def == null) return "";
+            if (def.IsLamp) return "[灯]";
             if (def.previewPrefab != null) return "[模型]";
             if (def.renderMode == BlockRenderMode.Transparent) return "[透]";
             if (def.renderMode == BlockRenderMode.Animated) return "[动]";
@@ -630,30 +632,32 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             if (_showBlockList)
             {
             bool headerDrawn = false;
-            bool lastGroup = false;
+            int lastGroup = -1;
             for (int i = 0; i < defs.Count; i++)
             {
                 var def = defs[i];
 
-                // 分栏：非交互（静态墙面）在前，交互道具在后（BlockLibrary 已按此排序）
-                                bool groupIsInteractive = def.interactive || def.previewPrefab != null;
-                if (!headerDrawn || groupIsInteractive != lastGroup)
+                // 与 BlockLibrary 的地形、模型、_Lamp 三组排序一致。
+                int group = def.IsLamp ? 2 : (def.interactive || def.previewPrefab != null ? 1 : 0);
+                if (!headerDrawn || group != lastGroup)
                 {
                     GUILayout.Space(4);
-                    bool expanded = groupIsInteractive ? _expandProps : _expandStatic;
+                    bool expanded = group == 2 ? _expandLamps : (group == 1 ? _expandProps : _expandStatic);
                     if (GUILayout.Button((expanded ? "▾ " : "▸ ") +
-                        (groupIsInteractive ? "交互道具 / 模型（不烘进静态几何）" : "静态墙面（普通方块）"), GUILayout.Height(22)))
+                        (group == 2 ? "灯具 _Lamp（发光方块）" :
+                            (group == 1 ? "交互道具 / 模型（不烘进静态几何）" : "静态墙面（普通方块）")), GUILayout.Height(22)))
                     {
-                        if (groupIsInteractive) _expandProps = !_expandProps;
+                        if (group == 2) _expandLamps = !_expandLamps;
+                        else if (group == 1) _expandProps = !_expandProps;
                         else _expandStatic = !_expandStatic;
                     }
-                    lastGroup = groupIsInteractive;
+                    lastGroup = group;
                     headerDrawn = true;
                 }
                 // 该分组处于折叠状态 -> 跳过它的方块按钮
-                if (!(groupIsInteractive ? _expandProps : _expandStatic))
+                if (!(group == 2 ? _expandLamps : (group == 1 ? _expandProps : _expandStatic)))
                 {
-                    lastGroup = groupIsInteractive;
+                    lastGroup = group;
                     continue;
                 }
 

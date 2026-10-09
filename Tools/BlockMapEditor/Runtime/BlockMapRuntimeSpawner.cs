@@ -134,7 +134,7 @@ namespace BlockMap
 
                     var lgo = new GameObject(lightName);
                     lgo.transform.SetParent(parent, false);
-                    lgo.transform.position = center + Vector3.up * lightHeightOffset;
+                    lgo.transform.position = def.GetLightPosition(center, _world.GetDir(kv.Key), lightHeightOffset);
 
                     var l = lgo.AddComponent<Light>();
                     l.color = def.lightColor;
