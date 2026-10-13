@@ -1,0 +1,30 @@
+{
+  "family": "Slima Pixel UI",
+  "ui_coverage": 142,
+  "faces": [
+    {
+      "style": "Regular",
+      "characters": 35111,
+      "bytes": 6574608,
+      "sha256": "297c4ce1a3236873262bcd2f5646bb3c097a9bdc81f3d5ef6740220a9ae4406d"
+    },
+    {
+      "style": "Bold",
+      "characters": 35111,
+      "bytes": 6170356,
+      "sha256": "9cdbe16a2ec1d972af7cec8f518d72bf06cac0ca47b1af82722241ea7246e230"
+    },
+    {
+      "style": "Italic",
+      "characters": 35111,
+      "bytes": 7966800,
+      "sha256": "e56fcf8baa9ceb38d90edb4dd3680210ce440daa41062be4d7d2feded56283b6"
+    },
+    {
+      "style": "BoldItalic",
+      "characters": 35111,
+      "bytes": 7718140,
+      "sha256": "4ebde73ea6c70d7a55102799544f19275714ca0b145b621f54391b4e8cf8143a"
+    }
+  ]
+}

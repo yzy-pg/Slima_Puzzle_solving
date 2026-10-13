@@ -15,7 +15,9 @@ void ResolveLightSettings(inout float4 settings, inout float4 noiseSettings)
     if (_SlimaLightSettingsEnabled < 0.5 || settings.y < 2.0)
     {
         settings.yzw = float3(_Bands, _NoiseStrength, _Brightness);
-        noiseSettings = float4(_NoiseWorldSize, _NoisePixelSize, _NoiseSpace, _NoiseSeed);
+        // A light can refine its sampling grid while keeping the surface's bands.
+        if (_SlimaLightSettingsEnabled < 0.5 || noiseSettings.x <= 0.0)
+            noiseSettings = float4(_NoiseWorldSize, 0, 0, _NoiseSeed);
     }
 }
 
@@ -27,31 +29,12 @@ float2 SurfaceNoisePlane(float3 positionWS, float3 normalWS)
 }
 
 // Sample lighting at a cell's center, not separately inside every fragment.
-// The screen cell ray intersects the fragment's surface plane; flat BlockMap
-// faces then have one distance/shadow sample per square, even in perspective.
-float3 PixelLightSamplePosition(float3 positionWS, float3 normalWS, float2 screenPx,
+// Cells are anchored to world axes, independent of camera position and projection.
+float3 PixelLightSamplePosition(float3 positionWS, float3 normalWS,
     float4 settings, float4 noiseSettings)
 {
     ResolveLightSettings(settings, noiseSettings);
     if (settings.x > 0.5) return positionWS;
-    if (noiseSettings.z > 0.5)
-    {
-        float size = max(1.0, floor(noiseSettings.y + 0.5));
-        float2 uv = (floor(screenPx / size) + 0.5) * size / _ScaledScreenParams.xy;
-        #if UNITY_REVERSED_Z
-            float nearDepth = 1.0;
-            float farDepth = 0.0;
-        #else
-            float nearDepth = UNITY_NEAR_CLIP_VALUE;
-            float farDepth = 1.0;
-        #endif
-        float3 origin = ComputeWorldSpacePosition(uv, nearDepth, UNITY_MATRIX_I_VP);
-        float3 end = ComputeWorldSpacePosition(uv, farDepth, UNITY_MATRIX_I_VP);
-        float3 ray = end - origin;
-        float denominator = dot(ray, normalWS);
-        if (abs(denominator) < 0.00001) return positionWS;
-        return origin + ray * (dot(positionWS - origin, normalWS) / denominator);
-    }
     float size = max(0.002, noiseSettings.x);
     float2 plane = SurfaceNoisePlane(positionWS, normalWS);
     float2 delta = (floor(plane / size) + 0.5) * size - plane;
@@ -65,16 +48,10 @@ float3 PixelLightSamplePosition(float3 positionWS, float3 normalWS, float2 scree
     return positionWS + offset;
 }
 
-float SurfacePixelNoise(float3 positionWS, float3 normalWS, float2 screenPx, float4 noiseSettings)
+float SurfacePixelNoise(float3 positionWS, float3 normalWS, float4 noiseSettings)
 {
-    float2 cell;
-    if (noiseSettings.z > 0.5)
-        cell = floor(screenPx / max(1.0, floor(noiseSettings.y + 0.5)));
-    else
-    {
-        // Project onto the dominant surface plane: square cells on floors AND walls.
-        cell = floor(SurfaceNoisePlane(positionWS, normalWS) / max(0.002, noiseSettings.x));
-    }
+    // Project onto the dominant surface plane: square cells on floors AND walls.
+    float2 cell = floor(SurfaceNoisePlane(positionWS, normalWS) / max(0.002, noiseSettings.x));
     return Hash21(cell + noiseSettings.w * float2(17.17, 43.71));
 }
 
@@ -87,7 +64,7 @@ float MapBandBrightness(float t)
     return lerp(_Band3, _Band4, p - 3.0);
 }
 
-float EvaluateToonLight(float raw, float3 positionWS, float3 normalWS, float2 screenPx,
+float EvaluateToonLight(float raw, float3 positionWS, float3 normalWS,
     float4 settings, float4 noiseSettings)
 {
     ResolveLightSettings(settings, noiseSettings);
@@ -99,7 +76,7 @@ float EvaluateToonLight(float raw, float3 positionWS, float3 normalWS, float2 sc
     if (settings.x < 0.5)
     {
         float bands = clamp(floor(settings.y + 0.5), 2.0, 8.0);
-        float noise = SurfacePixelNoise(positionWS, normalWS, screenPx, noiseSettings);
+        float noise = SurfacePixelNoise(positionWS, normalWS, noiseSettings);
         // Jitter spans at most ONE bin. Away from a boundary it cannot change the band.
         float jitter = (noise - 0.5) * saturate(settings.z) / bands;
         t = min(floor(saturate(t + jitter) * bands), bands - 1.0) / (bands - 1.0);

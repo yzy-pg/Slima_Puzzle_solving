@@ -56,6 +56,7 @@ namespace BlockMap
                     r = GetDir(kv.Key),
                     linkId = GetLinkId(kv.Key),
                     mechanismNumber = GetMechanismNumber(kv.Key),
+                    mechanismColor = GetMechanismColorHex(kv.Key),
                     id = def.id
                 });
             }
@@ -77,6 +78,7 @@ namespace BlockMap
             _dir.Clear();
             _linkIds.Clear();
             _mechanismNumbers.Clear();
+            _mechanismColors.Clear();
 
             int restored = 0;
             for (int i = 0; i < _serializedBlocks.Count; i++)
@@ -96,6 +98,7 @@ namespace BlockMap
                 if (entry.r != 0) SetDir(pos, entry.r);
                 SetLinkIdRaw(pos, entry.linkId);
                 SetMechanismNumberRaw(pos, entry.mechanismNumber);
+                SetMechanismColorRaw(pos, entry.mechanismColor);
                 restored++;
             }
 
@@ -179,6 +182,7 @@ namespace BlockMap
             RecordEdit(pos, before, index, beforeLink, string.Empty, number);
             _blocks[pos] = index;
             _linkIds.Remove(pos);
+            _mechanismColors.Remove(pos);
             SetMechanismNumberRaw(pos, number);
             MarkNeighborhoodDirty(pos);
             NotifyChanged();
@@ -194,6 +198,7 @@ namespace BlockMap
             _dir.Remove(pos);                                  // 删方块时一起清掉朝向
             _linkIds.Remove(pos);
             _mechanismNumbers.Remove(pos);
+            _mechanismColors.Remove(pos);
             MarkNeighborhoodDirty(pos);
             NotifyChanged();
         }
@@ -207,14 +212,17 @@ namespace BlockMap
             int dir = GetDir(from);
             string linkId = GetLinkId(from);
             int number = GetMechanismNumber(from);
+            string color = GetMechanismColorHex(from);
             _blocks.Remove(from);
             _dir.Remove(from);
             _linkIds.Remove(from);
             _mechanismNumbers.Remove(from);
+            _mechanismColors.Remove(from);
             _blocks[to] = index;
             if (dir != 0) _dir[to] = (byte)dir;
             SetLinkIdRaw(to, linkId);
             SetMechanismNumberRaw(to, number);
+            SetMechanismColorRaw(to, color);
             MarkNeighborhoodDirty(from);
             MarkNeighborhoodDirty(to);
             NotifyChanged();
@@ -229,6 +237,7 @@ namespace BlockMap
             _blocks.Clear();
             _mechanismNumbers.Clear();
             _nextMechanismNumber = 1;
+            _mechanismColors.Clear();
             _undo.Clear();
             _redo.Clear();
             _serializedBlocks.Clear();      // 显式清空 = 持久化数据一起清（FromJson 紧接着会重新填上）
@@ -246,6 +255,8 @@ namespace BlockMap
             public string afterLink;
             public int beforeNumber;
             public int afterNumber;
+            public string beforeColor;
+            public string afterColor;
         }
 
         readonly List<List<Edit>> _undo = new List<List<Edit>>();
@@ -271,7 +282,7 @@ namespace BlockMap
             _pendingStroke = null;
         }
 
-        void RecordEdit(Vector3Int pos, int before, int after, string beforeLink, string afterLink, int afterNumber = -1)
+        void RecordEdit(Vector3Int pos, int before, int after, string beforeLink, string afterLink, int afterNumber = -1, string afterColor = null)
         {
             if (_pendingStroke == null) return;                 // 不在笔画里（读档/程序生成）就不记录
             _pendingStroke.Add(new Edit
@@ -282,7 +293,9 @@ namespace BlockMap
                 beforeLink = beforeLink,
                 afterLink = afterLink,
                 beforeNumber = GetMechanismNumber(pos),
-                afterNumber = afterNumber < 0 ? GetMechanismNumber(pos) : afterNumber
+                afterNumber = afterNumber < 0 ? GetMechanismNumber(pos) : afterNumber,
+                beforeColor = GetMechanismColorHex(pos),
+                afterColor = afterColor ?? (before == after ? GetMechanismColorHex(pos) : string.Empty)
             });
         }
 
@@ -292,7 +305,7 @@ namespace BlockMap
             var stroke = _undo[_undo.Count - 1];
             _undo.RemoveAt(_undo.Count - 1);
             for (int i = stroke.Count - 1; i >= 0; i--)
-                ApplyRaw(stroke[i].pos, stroke[i].before, stroke[i].beforeLink, stroke[i].beforeNumber);
+                ApplyRaw(stroke[i].pos, stroke[i].before, stroke[i].beforeLink, stroke[i].beforeNumber, stroke[i].beforeColor);
             _redo.Add(stroke);
         }
 
@@ -301,11 +314,11 @@ namespace BlockMap
             if (_redo.Count == 0) return;
             var stroke = _redo[_redo.Count - 1];
             _redo.RemoveAt(_redo.Count - 1);
-            foreach (var e in stroke) ApplyRaw(e.pos, e.after, e.afterLink, e.afterNumber);
+            foreach (var e in stroke) ApplyRaw(e.pos, e.after, e.afterLink, e.afterNumber, e.afterColor);
             _undo.Add(stroke);
         }
 
-        void ApplyRaw(Vector3Int pos, int index, string linkId, int mechanismNumber)
+        void ApplyRaw(Vector3Int pos, int index, string linkId, int mechanismNumber, string color)
         {
             if (index < 0)
             {
@@ -313,12 +326,14 @@ namespace BlockMap
                 _dir.Remove(pos);
                 _linkIds.Remove(pos);
                 _mechanismNumbers.Remove(pos);
+                _mechanismColors.Remove(pos);
             }
             else
             {
                 _blocks[pos] = index;
                 SetLinkIdRaw(pos, linkId);
                 SetMechanismNumberRaw(pos, mechanismNumber);
+                SetMechanismColorRaw(pos, color);
             }
             MarkNeighborhoodDirty(pos);                          // 脏 chunk 由渲染器下一帧重建
             NotifyChanged();
@@ -373,6 +388,7 @@ namespace BlockMap
             public string id;
             public string linkId;
             public int mechanismNumber;
+            public string mechanismColor;
         }
         [Serializable] public class SaveData
         {
@@ -397,7 +413,8 @@ namespace BlockMap
                     r = GetDir(kv.Key),
                     id = def.id,
                     linkId = GetLinkId(kv.Key),
-                    mechanismNumber = GetMechanismNumber(kv.Key)
+                    mechanismNumber = GetMechanismNumber(kv.Key),
+                    mechanismColor = GetMechanismColorHex(kv.Key)
                 });
             }
             return JsonUtility.ToJson(data, true);
@@ -431,6 +448,7 @@ namespace BlockMap
                 if (e.r != 0) SetDir(p, e.r);          // 老存档没有 r → 0，自动兼容
                 SetLinkIdRaw(p, e.linkId);             // 老存档没有 linkId → 空，自动兼容
                 SetMechanismNumberRaw(p, e.mechanismNumber);
+                SetMechanismColorRaw(p, e.mechanismColor);
             }
             EnsureMechanismNumbers();
             foreach (var c in AllChunks()) MarkDirty(c);

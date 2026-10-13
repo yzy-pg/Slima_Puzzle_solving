@@ -56,8 +56,17 @@ namespace SlimaPuzzle.Rendering
                 if (light != null && light.TryGetComponent(out SlimaToonLight control) && control.isActiveAndEnabled)
                 {
                     lightSettings = control.ModeSettings;
-                    noiseSettings = control.NoiseSettings;
+                    if (control.overrideMaterialSettings) noiseSettings = control.NoiseSettings;
                 }
+                if (light == null || noiseSettings.x > 0f) return;
+                if (light.name == "Slime Glow")
+                {
+                    var actor = light.GetComponentInParent<BlockMap.Gameplay.SlimeActor>();
+                    if (actor != null) noiseSettings.x = Mathf.Max(0.002f, actor.glowPixelSize);
+                }
+                else if (light.name.StartsWith("Light_", System.StringComparison.Ordinal) &&
+                    light.name.IndexOf("_Lamp_", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    noiseSettings.x = 0.025f;
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

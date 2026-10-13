@@ -100,13 +100,26 @@ namespace BlockMap
                             preview.AddComponent<BlockMapSpawned>();
                         _spawned.Add(preview);
                     }
-                    continue;
+                    // Gameplay owns the view, but emissive gameplay blocks still need lights.
+                    if (!def.emitLight) continue;
                 }
 
                 Vector3 center = (Vector3)kv.Key + Vector3.one * 0.5f;
 
+                // Independent of maxLights: lamps and emissive gameplay blocks share the halo.
+                // Keep edit-time baked scenes free of transient billboard objects.
+                if (Application.isPlaying && (def.IsLamp || def.emitLight) && def.lampHalo)
+                {
+                    var halo = new GameObject($"Halo_{def.id}_{kv.Key.x}_{kv.Key.y}_{kv.Key.z}");
+                    halo.transform.SetParent(parent, false);
+                    halo.transform.position = center + Quaternion.Euler(0, _world.GetDir(kv.Key) * 90f, 0) * def.lampHaloLocalOffset;
+                    halo.AddComponent<BlockMapSpawned>();
+                    halo.AddComponent<BlockMapLampHalo>().Configure(def);
+                    _spawned.Add(halo);
+                }
+
                 // ① 特殊模型：直接实例化 Prefab（门 / 箱子 / 家具 / 树…）
-                if (def.previewPrefab != null)
+                if (profile == null && def.previewPrefab != null)
                 {
                     int dir = _world.GetDir(kv.Key);
                     Quaternion rot = Quaternion.Euler(0f, dir * 90f, 0f) * def.previewPrefab.transform.rotation;
@@ -115,6 +128,10 @@ namespace BlockMap
                     var go = Instantiate(def.previewPrefab, pos, rot, parent);
                     go.name = $"Spawned_{def.id}_{kv.Key.x}_{kv.Key.y}_{kv.Key.z}";
                     go.AddComponent<BlockMapSpawned>();
+                    var gameRoot = GetComponent<BlockMapGameRoot>();
+                    if (gameRoot != null)
+                        foreach (Renderer item in go.GetComponentsInChildren<Renderer>(true))
+                            gameRoot.ApplyAtmosphereTo(item);
                     _spawned.Add(go);
                 }
 
@@ -167,6 +184,8 @@ namespace BlockMap
             }
 
             _lastVersion = _world.Version;
+            if (!gameplayOwnsViews)
+                BlockLinkVisuals.Apply(_world, parent.GetComponentsInChildren<GameplayBlockView>(true));
             _nextRebuild = Time.realtimeSinceStartup + Mathf.Max(0f, rebuildInterval);
         }
 
@@ -183,6 +202,8 @@ namespace BlockMap
             {
                 GameObject go = leftovers[i].gameObject;
                 if (go.GetComponent<Light>() != null) continue;   // 灯：保留
+                if (go.GetComponent<BlockMapLampHalo>() != null &&
+                    !go.transform.IsChildOf(container != null ? container : transform)) continue;
                 DestroySafe(go);
             }
         }
@@ -190,6 +211,8 @@ namespace BlockMap
         static void DestroySafe(GameObject go)
         {
             if (go == null) return;
+            // Hide retiring runtime lights before name lookup can reuse a pending destruction.
+            if (go.GetComponent<BlockMapLampHalo>() != null || go.GetComponent<Light>() != null) go.SetActive(false);
             if (Application.isPlaying) Destroy(go);
             else DestroyImmediate(go);
         }

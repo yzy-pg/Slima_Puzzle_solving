@@ -79,6 +79,7 @@ namespace BlockMap
         [Tooltip("画一圈红框并显示 IMGUI 坐标系信息，用来排查 UI 偏移/不可视")]
         public bool showDebugBounds = true;
         bool _showPanel = true;
+        bool _warnedUnsupportedHeight;
 
         /// <summary>
         /// 面板上「新地图名字」输入框的内容，故意和 slotName（当前正在编辑的那张）分开。
@@ -102,6 +103,7 @@ namespace BlockMap
             _cam = FindCamera();
             _linkEditor = GetComponent<BlockMapLinkEditorTool>();
             _slotNameInput = slotName;
+            WarnLegacyHeightCells();
         }
 
         void OnDestroy()
@@ -266,6 +268,12 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             CursorCell = cell;                         // 虚影画在"真正会落下的那一格"
             if (!HasCursor) return;
 
+            if (!_planeErase && cell.y >= 2)
+            {
+                WarnUnsupportedHeight();
+                return;
+            }
+
             if (strokeCell == _lastCell) return;       // 同一列在这一笔里只落一次（与抬升无关）
             _lastCell = strokeCell;
             // ★ 逻辑物件（门 / 机关 / 起点 / 终点…）无视笔刷大小，永远只作用一格 ——
@@ -344,6 +352,11 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
                         // 高度锁：笔刷也压成一层。否则 3³/5³ 笔刷会往上下层溢出，
                         // 表现就是"开了高度锁还能在有方块的地方继续往上加"。
                         if (lockHeight) p = new Vector3Int(p.x, lockedY, p.z);
+                        if (index >= 0 && p.y >= 2)
+                        {
+                            WarnUnsupportedHeight();
+                            continue;
+                        }
                         if (index < 0)
                         {
                             if (_world.IsSolid(p)) { _world.Remove(p); changed = true; }
@@ -426,6 +439,7 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
 
         public void Save()
         {
+            WarnLegacyHeightCells();
             File.WriteAllText(SavePath, _world.ToJson());
             Toast("已保存 → " + SavePath);
             Debug.Log("[BlockMap] 保存到 " + SavePath);
@@ -435,8 +449,28 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
         {
             if (!File.Exists(SavePath)) { Toast("没有这个存档：" + SavePath); return; }
             _world.FromJson(File.ReadAllText(SavePath));
+            WarnLegacyHeightCells();
             if (_renderer != null) _renderer.RebuildAll();
             Toast("已读取 ← " + SavePath);
+        }
+
+        void WarnUnsupportedHeight()
+        {
+            if (_warnedUnsupportedHeight) return;
+            _warnedUnsupportedHeight = true;
+            Toast("新关卡不再使用 y≥2；旧地图内容保留，请检查后再决定是否调整");
+            Debug.LogWarning("[BlockMap] 新放置已限制在 y < 2；旧地图 y≥2 内容未删除。", this);
+        }
+
+        void WarnLegacyHeightCells()
+        {
+            if (_world == null) return;
+            int count = 0;
+            foreach (var block in _world.Blocks) if (block.Key.y >= 2) count++;
+            if (count == 0) return;
+            string message = $"地图保留 {count} 个 y≥2 方块；此高度已废弃，请关卡策划检查。数据未自动修改。";
+            Toast(message);
+            Debug.LogWarning("[BlockMap] " + message, this);
         }
 
         /// <summary>
@@ -458,6 +492,7 @@ _planeErase = eraseMode || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCo
             EnsureRefs();
             if (!File.Exists(SavePath)) return false;
             _world.FromJson(File.ReadAllText(SavePath));
+            WarnLegacyHeightCells();
             if (_renderer != null) _renderer.RebuildAll();
             return true;
         }

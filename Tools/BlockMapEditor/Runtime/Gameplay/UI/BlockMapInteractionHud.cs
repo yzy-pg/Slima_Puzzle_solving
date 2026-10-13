@@ -21,11 +21,7 @@ namespace BlockMap.Gameplay
             if (_root == null || _root.Won || _party == null || _gameplay == null || _party.IsBusy) return;
             SlimeActor actor = _party.ActiveActor;
             if (actor == null) return;
-            if (actor.State.form == SlimeForm.Gas)
-            {
-                DrawAboveActor(actor, "E", _gameplay.CanSolidify(actor));
-                return;
-            }
+            if (actor.State.form == SlimeForm.Gas) return; // legacy-only form; no new gas interaction is exposed.
             if (!_gameplay.TryGetInteraction(actor, out SlimeInteraction interaction)) return;
             if (interaction.Kind == SlimeInteractionKind.Fuse) DrawAboveActor(actor, "F", true);
             else DrawAboveDevice(interaction.Cell);
@@ -41,11 +37,11 @@ namespace BlockMap.Gameplay
             GameplayOverlayDrawing.DrawKeyBubble(screen, key, available);
         }
 
-        static void DrawAboveDevice(Vector3Int cell)
+        static void DrawAboveDevice(Vector3Int cell, string key = "F")
         {
             Vector3 anchor = cell + new Vector3(0.5f, BlockGameplaySettings.Current.interactionBubbleHeight, 0.5f);
             if (GameplayOverlayDrawing.TryProject(anchor, out Vector2 screen))
-                GameplayOverlayDrawing.DrawKeyBubble(screen, "F", true);
+                GameplayOverlayDrawing.DrawKeyBubble(screen, key, true);
         }
     }
 }

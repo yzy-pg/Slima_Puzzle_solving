@@ -12,16 +12,20 @@ namespace BlockMap
         public int GetMechanismNumber(Vector3Int cell) =>
             _mechanismNumbers.TryGetValue(cell, out int number) ? number : 0;
 
-        /// <summary>旧地图按固定坐标顺序补号；已有编号不会随删除或重排变化。</summary>
+        /// <summary>为所有当前机关源分配连续编号；旧号仅用于稳定排序，删除后自动压紧编号。</summary>
         public void EnsureMechanismNumbers()
         {
-            var cells = new List<Vector3Int>(_blocks.Keys);
-            cells.Sort(CompareCells);
-            foreach (Vector3Int cell in cells)
+            var cells = new List<Vector3Int>();
+            foreach (Vector3Int cell in _blocks.Keys)
+                if (IsMechanismSource(_blocks[cell])) cells.Add(cell);
+            cells.Sort((first, second) =>
             {
-                if (GetMechanismNumber(cell) > 0 || !IsMechanismSource(_blocks[cell])) continue;
-                SetMechanismNumberRaw(cell, _nextMechanismNumber++);
-            }
+                int byNumber = GetMechanismNumber(first).CompareTo(GetMechanismNumber(second));
+                return byNumber != 0 ? byNumber : CompareCells(first, second);
+            });
+            _mechanismNumbers.Clear();
+            for (int i = 0; i < cells.Count; i++) _mechanismNumbers[cells[i]] = i + 1;
+            _nextMechanismNumber = cells.Count + 1;
         }
 
         int CreateMechanismNumber(int blockIndex) =>

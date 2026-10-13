@@ -54,9 +54,9 @@ Material:
     - _NoiseMaskInvert: 0
     - _NoisePixelSize: 4
     - _NoiseSeed: 0
-    - _NoiseSpace: 1
+    - _NoiseSpace: 0
     - _NoiseStrength: 0.85
-    - _NoiseWorldSize: 0.06
+    - _NoiseWorldSize: 0.025
     - _OutlineNoise: 0
     - _OutlineWidth: 0
     - _PixelSnap: 0

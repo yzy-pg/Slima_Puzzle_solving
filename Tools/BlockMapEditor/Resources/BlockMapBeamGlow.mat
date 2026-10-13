@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockMapBeamGlow
+  m_Shader: {fileID: 4800000, guid: 61f5bbd7c3d84887b346376aac83c3b4, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2990
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FalloffTex:
+        m_Texture: {fileID: 2800000, guid: 7df0e23fc9a34b4580c85e30a21cc901, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: a27a6cc08f304a338e96f6637ba8c178, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _ParticleMode: 0
+    - _GlowMode: 1
+    - _GlowWidth: 5
+    - _GlowIntensity: 1.2
+    - _ScreenPixelSize: 2
+    - _NoiseThreshold: 0.46
+    - _GlowEdge: 0.78
+    - _NoiseScale: 0.3
+    - _NoiseStrength: 0.8
+    - _NoiseTransparency: 0.85
+    - _Opacity: 1
+    - _EdgeNoiseStrength: 0.25
+    - _SrcBlend: 5
+    - _DstBlend: 1
+    m_Colors: []
+  m_BuildTextureStacks: []

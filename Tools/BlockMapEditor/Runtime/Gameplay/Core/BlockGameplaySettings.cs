@@ -13,8 +13,9 @@ namespace BlockMap.Gameplay
             public float hopHeight = 0.14f;
             public float gasVisualHeight = 1f;
             public int blueSlideLimit = 64;
+            public float blueSlideHeldDurationMultiplier = 0.55f;
             public int beamRange = 64;
-            public float beamWidth = 0.08f;
+            public float beamWidth = 0.10f;
             public float doorAnimationDuration = 0.35f;
             public bool showEmitterDirectionIndicator = true;
             public float emitterIndicatorHeight = 1.05f;

@@ -1759,7 +1759,7 @@ MonoBehaviour:
   playerPrefab: {fileID: 0}
   cellSize: 1
   cameraFollowsPlayer: 1
-  cameraSize: 8
+  cameraSize: 4.5
   cameraYaw: 0
   cameraOffset: {x: 0, y: 18, z: -16}
 --- !u!115 &1009043201

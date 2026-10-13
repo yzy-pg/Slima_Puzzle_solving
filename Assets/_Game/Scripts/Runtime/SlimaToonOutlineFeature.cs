@@ -22,6 +22,8 @@ namespace SlimaPuzzle.Rendering
     /// </summary>
     public sealed class SlimaToonOutlineFeature : ScriptableRendererFeature
     {
+        // Finish scene compositing before URP draws transparent beams and particles (event 450).
+        const RenderPassEvent SceneCompositeEvent = (RenderPassEvent)((int)RenderPassEvent.BeforeRenderingTransparents - 1);
         /// <summary>一个描边分组 = 一个"整体对象"：同组物体合成一张遮罩，只描这个整体的外轮廓</summary>
         [System.Serializable]
         public sealed class MaskGroup
@@ -53,8 +55,8 @@ namespace SlimaPuzzle.Rendering
             [Tooltip("留空会自动找 Slima/Outline Mask")]
             public Shader maskShader;
 
-            [Tooltip("描边/填色插在哪个阶段（要在透明物体之后、后处理之前）")]
-            public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+            [Tooltip("场景描边/填色的阶段；过晚的旧设置会自动提前到透明物体之前")]
+            public RenderPassEvent passEvent = SceneCompositeEvent;
 
             public Color outlineColor = Color.black;
 
@@ -105,7 +107,7 @@ namespace SlimaPuzzle.Rendering
         {
             _crispPass = new MaskPass { renderPassEvent = RenderPassEvent.BeforeRenderingOpaques };
             _protectPass = new MaskPass { renderPassEvent = RenderPassEvent.BeforeRenderingOpaques };
-            _pixelatePass = new PixelatePass { renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing };
+            _pixelatePass = new PixelatePass { renderPassEvent = SceneCompositeEvent };
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -152,14 +154,15 @@ namespace SlimaPuzzle.Rendering
             }
 
             // ③④ 每个分组：一张遮罩 + 一次外轮廓描边（同一个 pass 内，顺序确定）
+            RenderPassEvent sceneEvent = (RenderPassEvent)Mathf.Min((int)settings.passEvent, (int)SceneCompositeEvent);
             int index = 0;
             foreach (MaskGroup group in _groups)
             {
                 while (_groupPasses.Count <= index)
-                    _groupPasses.Add(new GroupPass { renderPassEvent = settings.passEvent });
+                    _groupPasses.Add(new GroupPass { renderPassEvent = sceneEvent });
 
                 GroupPass pass = _groupPasses[index];
-                pass.renderPassEvent = settings.passEvent;
+                pass.renderPassEvent = sceneEvent;
                 pass.Setup(settings, group, _renderers,
                            index < DebugTints.Length ? DebugTints[index] : DebugTints[index % DebugTints.Length],
                            wantProtect ? _protectPass.Mask : null);
@@ -170,7 +173,7 @@ namespace SlimaPuzzle.Rendering
             // ⑤ 最后一步：像素化（清晰遮罩里的像素除外）
             if (settings.debugMode == 0)
             {
-                _pixelatePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+                _pixelatePass.renderPassEvent = SceneCompositeEvent;
                 _pixelatePass.Setup(settings, wantCrisp ? _crispPass.Mask : null);
                 renderer.EnqueuePass(_pixelatePass);
             }

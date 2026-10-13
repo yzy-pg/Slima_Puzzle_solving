@@ -40,6 +40,7 @@ namespace BlockMap.Gameplay
             }
 
             if (profile.Kind == GameplayBlockKind.BeamEmitter &&
+                root.GetComponentInChildren<GameplayMechanismArt>(true) == null &&
                 BlockGameplaySettings.Current.showEmitterDirectionIndicator)
             {
                 BuildEmitterDirectionIndicator(root.transform, profile.BeamColor);
@@ -50,6 +51,7 @@ namespace BlockMap.Gameplay
             {
                 BlockMapDoor door = root.GetComponentInChildren<BlockMapDoor>(true);
                 if (door == null) door = root.AddComponent<BlockMapDoor>();
+                if (door.hinge == null) CreateDoorSlide(root.transform, door);
                 door.toggleKey = KeyCode.None;
                 door.clickToToggle = false;
                 door.duration = BlockGameplaySettings.Current.doorAnimationDuration;
@@ -62,6 +64,34 @@ namespace BlockMap.Gameplay
             if (view == null) view = root.AddComponent<GameplayBlockView>();
             view.Initialize(cell, profile);
             return view;
+        }
+
+        static void CreateDoorSlide(Transform root, BlockMapDoor door)
+        {
+            Bounds bounds = default;
+            bool first = true;
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>())
+            {
+                Bounds local = renderer.localBounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 corner = local.center + Vector3.Scale(local.extents,
+                        new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    Vector3 point = root.InverseTransformPoint(renderer.transform.TransformPoint(corner));
+                    if (first) { bounds = new Bounds(point, Vector3.zero); first = false; }
+                    else bounds.Encapsulate(point);
+                }
+            }
+            var hinge = new GameObject("DoorSlide").transform;
+            hinge.SetParent(root, false);
+            hinge.localPosition = Vector3.zero;
+            door.slideDistance = Mathf.Max(.1f, bounds.size.x + .06f);
+            for (int i = root.childCount - 1; i >= 0; i--)
+            {
+                Transform child = root.GetChild(i);
+                if (child != hinge) child.SetParent(hinge, true);
+            }
+            door.SetHinge(hinge);
         }
 
         public static GameObject CreateMarker(string name, Vector3Int cell, Color color, Transform parent)
@@ -82,7 +112,8 @@ namespace BlockMap.Gameplay
             switch (profile.shape?.ToLowerInvariant())
             {
                 case "floor":
-                    AddPrimitive(root, PrimitiveType.Cube, "Floor", new Vector3(0f, 0.06f, 0f), new Vector3(0.92f, 0.12f, 0.92f), color, texture);
+                    AddPrimitive(root, PrimitiveType.Cube, "Floor", new Vector3(0f, 0.06f, 0f), new Vector3(0.92f, 0.12f, 0.92f), color, texture,
+                        emissionDefinition: definition);
                     break;
                 case "control":
                     AddPrimitive(root, PrimitiveType.Cylinder, "ControlBase", new Vector3(0f, 0.08f, 0f), new Vector3(0.42f, 0.08f, 0.42f), color, texture);
@@ -97,7 +128,7 @@ namespace BlockMap.Gameplay
                     AddPrimitive(root, PrimitiveType.Cylinder, "Machine", new Vector3(0f, 0.35f, 0f), new Vector3(0.42f, 0.35f, 0.42f), color, texture);
                     break;
                 case "door":
-                    AddPrimitive(root, PrimitiveType.Cube, "Door", new Vector3(0f, 0.5f, 0f), new Vector3(0.18f, 1f, 0.9f), color, texture);
+                    AddPrimitive(root, PrimitiveType.Cube, "Door", new Vector3(0f, 0.5f, 0f), new Vector3(0.9f, 1f, 0.18f), color, texture);
                     break;
                 default:
                     AddPrimitive(root, PrimitiveType.Cube, "Obstacle", new Vector3(0f, 0.5f, 0f), new Vector3(0.88f, 0.88f, 0.88f), color, texture);
@@ -169,7 +200,8 @@ namespace BlockMap.Gameplay
             Color color,
             Texture texture,
             Vector3 localEuler = default,
-            bool unlit = false)
+            bool unlit = false,
+            BlockDefinition emissionDefinition = null)
         {
             GameObject item = GameObject.CreatePrimitive(type);
             item.name = name;
@@ -187,12 +219,21 @@ namespace BlockMap.Gameplay
             Renderer renderer = item.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Shader shader = unlit
+                bool emissiveFloor = emissionDefinition != null && emissionDefinition.emissionStrength > 0;
+                Shader shader = emissiveFloor ? Shader.Find("Slima/Toon (Cel + Pixel)") : unlit
                     ? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color")
                     : Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
                 var material = new Material(shader) { color = color, mainTexture = texture };
                 if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
-                if (material.HasProperty("_EmissionColor"))
+                if (emissiveFloor)
+                {
+                    material.SetTexture("_EmissionMap", emissionDefinition.emissionMap);
+                    material.SetColor("_EmissionColor", emissionDefinition.emissionColor);
+                    material.SetFloat("_EmissionStrength", emissionDefinition.emissionStrength);
+                    material.SetFloat("_OutlineWidth", 0f);
+                    material.SetFloat("_PixelSnap", 0f);
+                }
+                else if (material.HasProperty("_EmissionColor"))
                 {
                     material.EnableKeyword("_EMISSION");
                     material.SetColor("_EmissionColor", color * 1.4f);

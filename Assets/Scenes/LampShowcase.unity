@@ -266,9 +266,7 @@ MonoBehaviour:
   overrideMaterialSettings: 1
   bands: 5
   transitionWidth: 0.85
-  noiseSpace: 1
-  worldPixelSize: 0.06
-  screenPixelSize: 4
+  worldPixelSize: 0.025
   noiseSeed: 0
   brightness: 1
 --- !u!114 &101442177
@@ -410,9 +408,7 @@ MonoBehaviour:
   overrideMaterialSettings: 1
   bands: 5
   transitionWidth: 0.85
-  noiseSpace: 1
-  worldPixelSize: 0.06
-  screenPixelSize: 4
+  worldPixelSize: 0.025
   noiseSeed: 0
   brightness: 1
 --- !u!114 &297450069
@@ -961,9 +957,7 @@ MonoBehaviour:
   overrideMaterialSettings: 1
   bands: 5
   transitionWidth: 0.85
-  noiseSpace: 1
-  worldPixelSize: 0.06
-  screenPixelSize: 4
+  worldPixelSize: 0.025
   noiseSeed: 0
   brightness: 1
 --- !u!114 &1109895237
@@ -1090,9 +1084,7 @@ MonoBehaviour:
   overrideMaterialSettings: 1
   bands: 5
   transitionWidth: 0.85
-  noiseSpace: 1
-  worldPixelSize: 0.06
-  screenPixelSize: 4
+  worldPixelSize: 0.025
   noiseSeed: 0
   brightness: 1
 --- !u!114 &1342053331
@@ -1435,9 +1427,7 @@ MonoBehaviour:
   overrideMaterialSettings: 1
   bands: 5
   transitionWidth: 0.85
-  noiseSpace: 1
-  worldPixelSize: 0.06
-  screenPixelSize: 4
+  worldPixelSize: 0.025
   noiseSeed: 0
   brightness: 1
 --- !u!114 &1874172564

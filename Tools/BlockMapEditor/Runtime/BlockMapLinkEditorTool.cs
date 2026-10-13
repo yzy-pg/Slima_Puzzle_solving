@@ -10,7 +10,7 @@ namespace BlockMap
     public sealed class BlockMapLinkEditorTool : MonoBehaviour
     {
         const float PanelWidth = 270f;
-        const float ExpandedHeight = 330f;
+        const float ExpandedHeight = 370f;
         const float CollapsedHeight = 42f;
 
         BlockWorld _world;
@@ -20,6 +20,11 @@ namespace BlockMap
         string _activeGroup = string.Empty;
         string _message = string.Empty;
         readonly BlockMechanismLabels _mechanismLabels = new BlockMechanismLabels();
+        bool _colorMode;
+        bool _hasColorSelection;
+        Vector3Int _colorCell;
+        Color _selectedColor = Color.gray;
+        readonly string[] _rgbText = { "128", "128", "128" };
 
         public bool LinkMode { get; private set; }
 
@@ -46,6 +51,7 @@ namespace BlockMap
             if (!Input.GetMouseButtonDown(0) || IsPointerOverAnyPanel()) return;
             if (Input.GetMouseButton(1) || Input.GetMouseButton(2) || Input.GetKey(KeyCode.LeftAlt)) return;
             if (!_editor.TryGetHoveredOccupiedCell(out Vector3Int cell)) return;
+            if (_colorMode) { SelectColorCell(cell); return; }
 
             bool unlink = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             if (unlink) Unlink(cell);
@@ -61,6 +67,7 @@ namespace BlockMap
         void SetLinkMode(bool enabled)
         {
             LinkMode = enabled;
+            if (enabled) _colorMode = false;
             _message = enabled ? "先点机关创建组，再点门或其他机关加入该组" : string.Empty;
             _editor?.ShowMessage(enabled ? "进入机关关联模式（Esc 或 L 退出）" : "退出机关关联模式");
         }
@@ -166,12 +173,17 @@ namespace BlockMap
             GUILayout.BeginArea(_panelRect, GUI.skin.box);
             if (!LinkMode)
             {
+                GUILayout.BeginHorizontal();
                 if (GUILayout.Button("机关关联 (L)")) SetLinkMode(true);
+                if (GUILayout.Button("RGB 颜色")) { SetLinkMode(true); _colorMode = true; }
+                GUILayout.EndHorizontal();
                 GUILayout.EndArea();
                 return;
             }
 
-            DrawPanel();
+            _colorMode = GUILayout.Toolbar(_colorMode ? 1 : 0, new[] { "机关关联", "RGB 颜色" }) == 1;
+            if (_colorMode) DrawColorPanel();
+            else DrawPanel();
             GUILayout.EndArea();
             DrawWorldLabels();
         }
@@ -209,6 +221,74 @@ namespace BlockMap
             GUILayout.Label("保存地图时关联组与编号一起写入 JSON");
         }
 
+        void SelectColorCell(Vector3Int cell)
+        {
+            if (!TryGetLinkableKind(cell, out var kind, out _) || !BlockLinkVisuals.CanEditColor(kind))
+            { _message = "请选择门、压力板、按钮或拉杆"; return; }
+            _colorCell = cell; _hasColorSelection = true;
+            _selectedColor = _world.TryGetMechanismColor(cell, out var saved) ? saved : Color.gray;
+            foreach (var view in _world.GetComponentsInChildren<GameplayBlockView>())
+            {
+                if (view.Cell != cell) continue;
+                var control = view.GetComponentInChildren<GameplayControlArt>();
+                var renderer = control != null ? control.colorParts[0] : view.GetComponentInChildren<Renderer>();
+                if (renderer == null) break;
+                var block = new MaterialPropertyBlock(); renderer.GetPropertyBlock(block);
+                if (block.GetFloat("_LinkColorCount") > 0) _selectedColor = block.GetColor("_BaseColor");
+                break;
+            }
+            for (int i = 0; i < 3; i++) _rgbText[i] = Mathf.RoundToInt(_selectedColor[i] * 255f).ToString();
+            _message = string.Empty;
+        }
+
+        void DrawColorPanel()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("<b>机关 RGB 颜色</b>", new GUIStyle(GUI.skin.label) { richText = true });
+            if (GUILayout.Button("退出", GUILayout.Width(54f))) SetLinkMode(false);
+            GUILayout.EndHorizontal();
+            GUILayout.Label("左键点击地图中的物件来选择");
+            string name = string.Empty;
+            GameplayBlockKind kind = GameplayBlockKind.None;
+            bool selected = _hasColorSelection && TryGetLinkableKind(_colorCell, out kind, out name) && BlockLinkVisuals.CanEditColor(kind);
+            GUILayout.Label(selected ? name + "  " + _colorCell : "尚未选择门或机关");
+            var swatch = GUILayoutUtility.GetRect(1f, 30f, GUILayout.ExpandWidth(true));
+            Color oldColor = GUI.color; GUI.color = _selectedColor;
+            GUI.DrawTexture(swatch, Texture2D.whiteTexture); GUI.color = oldColor;
+            for (int i = 0; i < 3; i++) DrawRgbChannel(i);
+            GUILayout.Label("#" + ColorUtility.ToHtmlStringRGB(_selectedColor));
+            bool oldEnabled = GUI.enabled; GUI.enabled = selected;
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("应用颜色"))
+            {
+                BlockLinkVisuals.SetEditorColor(_world, _colorCell, _selectedColor);
+                _message = "颜色已保存到地图；F5 保存文件";
+            }
+            if (GUILayout.Button("恢复默认"))
+            {
+                BlockLinkVisuals.SetEditorColor(_world, _colorCell, null);
+                SelectColorCell(_colorCell); _message = "已恢复默认颜色";
+            }
+            GUILayout.EndHorizontal(); GUI.enabled = oldEnabled;
+            var wrap = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUILayout.Label("门换色会同步关联机关；单独修改机关颜色，门自动显示对应色带。", wrap);
+            GUILayout.Label("支持 Ctrl+Z / Ctrl+Y 撤销与重做；颜色随地图保存。", wrap);
+            GUILayout.Label(_message, wrap);
+        }
+
+        void DrawRgbChannel(int index)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new[] { "R", "G", "B" }[index], GUILayout.Width(18f));
+            int previous = Mathf.RoundToInt(_selectedColor[index] * 255f);
+            int value = Mathf.RoundToInt(GUILayout.HorizontalSlider(previous, 0, 255));
+            if (value != previous) _rgbText[index] = value.ToString();
+            _rgbText[index] = GUILayout.TextField(_rgbText[index], 3, GUILayout.Width(42f));
+            if (int.TryParse(_rgbText[index], out int entered)) value = Mathf.Clamp(entered, 0, 255);
+            _selectedColor[index] = value / 255f;
+            GUILayout.EndHorizontal();
+        }
+
         string GroupSummary(string groupId)
         {
             int sources = 0;
@@ -238,7 +318,7 @@ namespace BlockMap
 
         void UpdatePanelRect()
         {
-            float height = LinkMode ? ExpandedHeight : CollapsedHeight;
+            float height = LinkMode ? (_colorMode ? 395f : ExpandedHeight) : CollapsedHeight;
             _panelRect = new Rect(Mathf.Max(8f, Screen.width - PanelWidth - 8f), 8f, PanelWidth, height);
         }
 

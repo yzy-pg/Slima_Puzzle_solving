@@ -5545,7 +5545,7 @@ MonoBehaviour:
   playerPrefab: {fileID: 0}
   cellSize: 1
   cameraFollowsPlayer: 1
-  cameraSize: 5.5
+  cameraSize: 4.5
   backgroundColor: {r: 0.02, g: 0.03, b: 0.06, a: 1}
   cameraYaw: 0
   cameraOffset: {x: 0, y: 12, z: -10.5}

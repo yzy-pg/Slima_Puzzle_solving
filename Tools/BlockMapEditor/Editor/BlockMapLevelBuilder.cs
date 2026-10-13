@@ -128,7 +128,7 @@ namespace BlockMap
                             if (AssetImporter.GetAtPath(tp) is TextureImporter ti)
                             {
                                 ti.textureCompression = TextureImporterCompression.Uncompressed;
-                                ti.filterMode = FilterMode.Point;
+                                ti.filterMode = def.GeneratedAtlasFilter;
                                 ti.wrapMode = TextureWrapMode.Clamp;
                                 ti.mipmapEnabled = false;
                                 ti.SaveAndReimport();

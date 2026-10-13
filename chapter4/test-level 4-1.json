@@ -1,0 +1,2697 @@
+{
+    "chunkSize": 16,
+    "nextMechanismNumber": 52,
+    "blocks": [
+        {
+            "x": 120,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 136,
+            "r": 0,
+            "id": "Spawn",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 137,
+            "r": 2,
+            "id": "ReceiverBlue_A",
+            "linkId": "G003",
+            "mechanismNumber": 3
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 119,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Heater_02",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Heater_02",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Heater_02",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Door_B",
+            "linkId": "G003",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "EmitterWhiteWall",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Door_B",
+            "linkId": "G002",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Heater_02",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Heater_02",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 137,
+            "r": 2,
+            "id": "Lab_Laser_04",
+            "linkId": "G004",
+            "mechanismNumber": 44
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 137,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 132,
+            "r": 3,
+            "id": "EmitterWhiteWall",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 136,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 133,
+            "r": 3,
+            "id": "FluorescentScreen_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 130,
+            "r": 0,
+            "id": "Breakable",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 136,
+            "r": 3,
+            "id": "Lab_Laser_05",
+            "linkId": "G002",
+            "mechanismNumber": 16
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 131,
+            "r": 3,
+            "id": "Lab_Laser_04",
+            "linkId": "G005",
+            "mechanismNumber": 22
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Laser_04",
+            "linkId": "G003",
+            "mechanismNumber": 29
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 129,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 130,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Door_B",
+            "linkId": "G005",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 128,
+            "r": 3,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 132,
+            "r": 3,
+            "id": "Splitter",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 2,
+            "z": 72,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 121,
+            "r": 2,
+            "id": "Door_B",
+            "linkId": "G004",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 123,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 131,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 122,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 126,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 125,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 124,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 124,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 125,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 126,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 125,
+            "r": 1,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 126,
+            "r": 1,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 126,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 125,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 124,
+            "r": 2,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 123,
+            "r": 2,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 145,
+            "y": 0,
+            "z": 141,
+            "r": 2,
+            "id": "Door_B",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Splitter",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 120,
+            "r": 0,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 121,
+            "r": 0,
+            "id": "Lab_Lever",
+            "linkId": "G005",
+            "mechanismNumber": 46
+        },
+        {
+            "x": 136,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Lever",
+            "linkId": "",
+            "mechanismNumber": 47
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Laser_05",
+            "linkId": "",
+            "mechanismNumber": 51
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 124,
+            "r": 1,
+            "id": "Lab_Wall_06",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 126,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 125,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 124,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 123,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 123,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 127,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 126,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 125,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 124,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 123,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 123,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 126,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 125,
+            "r": 1,
+            "id": "Lab_Floor_14",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 74,
+            "r": 1,
+            "id": "Door_B",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 124,
+            "r": 2,
+            "id": "Door_B",
+            "linkId": "",
+            "mechanismNumber": 0
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 125,
+            "r": 2,
+            "id": "Exit",
+            "linkId": "",
+            "mechanismNumber": 0
+        }
+    ]
+}

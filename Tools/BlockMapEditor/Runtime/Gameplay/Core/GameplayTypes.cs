@@ -15,10 +15,12 @@ namespace BlockMap.Gameplay
         DamageFloor,
         Destructible,
         BeamEmitter,
-        BeamReceiver
+        BeamReceiver,
+        Button
     }
 
     public enum SlimeElement { Neutral, Red, Blue }
+    // Gas is retained for legacy save compatibility; new gameplay no longer creates it.
     public enum SlimeForm { Solid, Gas }
     public enum SlimeSize { Large, Small }
     public enum BeamColor { White, Red, Blue, Purple }
@@ -61,6 +63,7 @@ namespace BlockMap.Gameplay
         public bool blocksMovement;
         public bool pushable;
         public bool interactive = true;
+        public bool invertSignal;
 
         public GameplayBlockKind Kind => Enum.TryParse(kind, true, out GameplayBlockKind result)
             ? result
@@ -111,16 +114,10 @@ namespace BlockMap.Gameplay
                 (first.element == SlimeElement.Red && second.element == SlimeElement.Blue) ||
                 (first.element == SlimeElement.Blue && second.element == SlimeElement.Red);
 
-            if (oppositeColors)
-            {
-                result.form = SlimeForm.Gas;
-                result.element = SlimeElement.Neutral;
-            }
+            if (oppositeColors) result.element = SlimeElement.Neutral;
             else
             {
-                result.form = first.form == SlimeForm.Gas || second.form == SlimeForm.Gas
-                    ? SlimeForm.Gas
-                    : SlimeForm.Solid;
+                result.form = SlimeForm.Solid;
                 result.element = first.element != SlimeElement.Neutral ? first.element : second.element;
             }
 

@@ -6,7 +6,9 @@ namespace BlockMap.Gameplay
     public interface ISlimeMovementPlanner
     {
         bool TryBuildRoute(SlimeGridMover mover, int direction, List<Vector3Int> route);
+        bool CanEnterQueuedStep(SlimeGridMover mover, Vector3Int target);
         void OnCellEntered(SlimeGridMover mover, Vector3Int cell);
+        float GetStepDuration(SlimeGridMover mover, int direction, float normalDuration);
     }
 
     /// <summary>只负责输入和格间动画；所有通行规则由 ISlimeMovementPlanner 提供。</summary>
@@ -22,6 +24,7 @@ namespace BlockMap.Gameplay
         public int Facing { get; private set; }
         public bool IsMoving { get; private set; }
         public bool HasPendingMovement => IsMoving || _route.Count > 0;
+        public bool HasQueuedRoute => _route.Count > 0;
         public bool InputEnabled { get; set; } = true;
         public ISlimeMovementPlanner Planner { get; set; }
 
@@ -30,6 +33,7 @@ namespace BlockMap.Gameplay
         Vector3 _stepTarget;
         float _progress;
         float _visualHeight;
+        bool _interactionMotion;
 
         void Awake()
         {
@@ -42,6 +46,7 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
+            if (Time.timeScale == 0f || _interactionMotion) return;
             if (IsMoving) AdvanceStep();
             else if (_route.Count > 0) BeginNextStep();
             else if (InputEnabled) TryStartRoute();
@@ -50,6 +55,7 @@ namespace BlockMap.Gameplay
         public void Teleport(Vector3Int cell, int facing)
         {
             _route.Clear();
+            _interactionMotion = false;
             Cell = cell;
             Facing = ((facing % 4) + 4) % 4;
             IsMoving = false;
@@ -60,10 +66,27 @@ namespace BlockMap.Gameplay
 
         public void StopAfterCurrentStep() => _route.Clear();
 
+        public void BeginInteractionMotion()
+        {
+            _route.Clear();
+            _interactionMotion = true;
+            IsMoving = true;
+            InputEnabled = false;
+            ResetVisualPosition();
+        }
+
         public bool TryMoveTo(Vector3Int cell)
         {
             if (HasPendingMovement) return false;
             _route.Add(cell);
+            BeginNextStep();
+            return true;
+        }
+
+        public bool QueueRoute(IList<Vector3Int> route)
+        {
+            if (route == null || route.Count == 0 || HasPendingMovement) return false;
+            for (int i = 0; i < route.Count; i++) _route.Add(route[i]);
             BeginNextStep();
             return true;
         }
@@ -76,22 +99,33 @@ namespace BlockMap.Gameplay
 
         void TryStartRoute()
         {
-            int direction = ReadDirection();
-            if (direction < 0) return;
-
-            int yawSteps = Mathf.RoundToInt(viewYaw / 90f) & 3;
-            direction = (direction + yawSteps) & 3;
-            Facing = direction;
-            transform.rotation = Quaternion.Euler(0f, Facing * 90f, 0f);
+            if (!FaceInputDirection()) return;
+            int direction = Facing;
 
             _route.Clear();
             if (Planner == null || !Planner.TryBuildRoute(this, direction, _route)) return;
             if (_route.Count > 0) BeginNextStep();
         }
 
+        public bool FaceInputDirection()
+        {
+            int direction = ReadDirection();
+            if (direction < 0 || HasPendingMovement) return false;
+            int yawSteps = Mathf.RoundToInt(viewYaw / 90f) & 3;
+            Facing = (direction + yawSteps) & 3;
+            transform.rotation = Quaternion.Euler(0f, Facing * 90f, 0f);
+            return true;
+        }
+
         void BeginNextStep()
         {
             if (_route.Count == 0) return;
+            if (Planner != null && !Planner.CanEnterQueuedStep(this, _route[0]))
+            {
+                _route.Clear();
+                IsMoving = false;
+                return;
+            }
             _stepStart = transform.position;
             _stepTarget = CenterOf(_route[0]);
             _route.RemoveAt(0);
@@ -101,7 +135,11 @@ namespace BlockMap.Gameplay
 
         void AdvanceStep()
         {
-            _progress += Time.deltaTime / Mathf.Max(0.01f, stepDuration);
+            Vector3Int delta = CellOf(_stepTarget) - CellOf(_stepStart);
+            int direction = Mathf.Abs(delta.x) > Mathf.Abs(delta.z)
+                ? (delta.x > 0 ? 1 : 3) : (delta.z > 0 ? 0 : 2);
+            float duration = Planner != null ? Planner.GetStepDuration(this, direction, stepDuration) : stepDuration;
+            _progress += Time.deltaTime / Mathf.Max(0.01f, duration);
             float t = Mathf.Clamp01(_progress);
             transform.position = Vector3.Lerp(_stepStart, _stepTarget, t);
 

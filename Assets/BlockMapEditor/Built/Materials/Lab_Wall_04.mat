@@ -28,12 +28,24 @@ Material:
         m_Texture: {fileID: 2800000, guid: dfa685c0124376c4198034e49a1bf60e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _BurnNoiseTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LinkPalette:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: dfa685c0124376c4198034e49a1bf60e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SlimeEyeMap:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -45,6 +57,8 @@ Material:
     - _Band4: 1
     - _Bands: 5
     - _Brightness: 1
+    - _BurnEnabled: 0
+    - _BurnProgress: 0
     - _Cull: 2
     - _Cutoff: 0.5
     - _EmissionStrength: 0
@@ -55,6 +69,7 @@ Material:
     - _LightInputMin: 0
     - _LightWrap: 0.1
     - _LightingMode: 0
+    - _LinkColorCount: 0
     - _NoiseMaskInvert: 0
     - _NoisePixelSize: 3
     - _NoiseSeed: 0
@@ -68,11 +83,21 @@ Material:
     - _PixelSize: 4
     - _PixelSnap: 0
     - _ShadowInfluence: 1
+    - _SlimeEyes: 0
+    - _SlimeFireFlow: 0
+    - _SlimeSnowCap: 0
+    - _SubsurfaceStrength: 0
+    - _SubsurfaceThickness: 0.45
     m_Colors:
     - _AmbientColor: {r: 0.15999997, g: 0.17999998, b: 0.23999995, a: 1}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BurnHeight: {r: 0, g: 1, b: 0, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _LightTint: {r: 1, g: 1, b: 1, a: 1}
+    - _LinkAxis: {r: 1, g: 0, b: 0, a: 0}
+    - _LinkRange: {r: 0, g: 1, b: 0, a: 0}
+    - _OpticFaceMask: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShadowColor: {r: 0.41999996, g: 0.4699999, b: 0.6, a: 1}
+    - _SubsurfaceColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

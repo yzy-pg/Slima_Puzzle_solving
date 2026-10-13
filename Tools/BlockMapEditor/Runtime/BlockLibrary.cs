@@ -19,7 +19,7 @@ namespace BlockMap
         ///   · 运行时由 BlockMapGameRoot 读格位：起点放角色、终点当通关判定，并画一个可见标记
         /// 想让它们有真实外观：把 Resources/BlockModels/&lt;id&gt;.prefab 放进去即可（会自动接上并优先使用）。
         /// </summary>
-        public static readonly string[] MarkerBlockIds = { "Spawn", "Exit" };
+        public static readonly string[] MarkerBlockIds = { "Spawn", "Spawn_Synchronous", "Spawn_Asynchronous", "Exit" };
 
         public static bool IsMarkerBlock(string id)
         {
@@ -179,6 +179,9 @@ namespace BlockMap
 
                 if (_byId.TryGetValue(mid, out var existed))
                 {
+                    // Dedicated artwork prefabs take precedence over an older imported model with the same ID.
+                    if (existed.previewPrefab != null && existed.previewPrefab.GetComponent<GameplayMechanismArt>() != null &&
+                        go.GetComponent<GameplayMechanismArt>() == null) continue;
                     existed.previewPrefab = go;
                     existed.interactive = true;
                     continue;
@@ -210,6 +213,29 @@ namespace BlockMap
             // 没有美术的玩法块会得到一个运行时灰盒定义，策划仍可直接在地编里使用。
             BlockGameplayCatalog.AddDefinitions(_blocks, _byId);
 
+            // These marker variants select how the two split slimes respond to movement input.
+            BlockDefinition spawn = Get("Spawn");
+            foreach (string markerId in new[] { "Spawn_Synchronous", "Spawn_Asynchronous" })
+            {
+                if (_byId.ContainsKey(markerId)) continue;
+                var marker = ScriptableObject.CreateInstance<BlockDefinition>();
+                marker.id = markerId;
+                marker.displayName = markerId == "Spawn_Synchronous" ? "同步出生点" : "异步出生点";
+                marker.simpleTexture = spawn != null ? spawn.simpleTexture : CreateMarkerTexture();
+                if (spawn != null)
+                {
+                    marker.panelTexture = spawn.panelTexture;
+                    marker.frameTexture = spawn.frameTexture;
+                    marker.atlasOverride = spawn.atlasOverride;
+                }
+                marker.interactive = true;
+                marker.renderMode = BlockRenderMode.Transparent;
+                marker.tint = markerId == "Spawn_Synchronous"
+                    ? new Color(0.25f, 0.9f, 0.55f, 0.65f) : new Color(0.2f, 0.75f, 1f, 0.65f);
+                _blocks.Add(marker);
+                _byId.Add(markerId, marker);
+            }
+
             // 静态地形、交互模型、_Lamp 灯具分别分组，组内按 id 排序。
             _blocks.Sort((a, b) =>
             {
@@ -221,6 +247,17 @@ namespace BlockMap
 
             if (_blocks.Count == 0)
                 Register(CreateFallbackBlock());
+        }
+
+        static Texture2D CreateMarkerTexture()
+        {
+            var texture = new Texture2D(8, 8, TextureFormat.RGBA32, false);
+            var pixels = new Color32[64];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32(255, 80, 220, 140);
+            texture.SetPixels32(pixels);
+            texture.filterMode = FilterMode.Point;
+            texture.Apply();
+            return texture;
         }
 
         /// <summary>一个方块都没有时，用程序生成一个带自动包边的示例方块，保证工具开箱可用。</summary>

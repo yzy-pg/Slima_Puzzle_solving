@@ -1220,6 +1220,9 @@ MonoBehaviour:
   container: {fileID: 1649519402}
   maxLights: 32
   lightHeightOffset: 0.5
+  lampAsSpot: 0
+  lightTiltDegrees: 60
+  spotAngle: 90
   rebuildInterval: 0.2
 --- !u!114 &1649519401
 MonoBehaviour:
@@ -1242,540 +1245,631 @@ MonoBehaviour:
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 147
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 123
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 136
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 136
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 136
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 136
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 1
     z: 88
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 137
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 138
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 139
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 140
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 141
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 147
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 148
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 127
     y: 0
     z: 147
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 126
     y: 0
     z: 148
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 125
     y: 0
     z: 148
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 147
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 128
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 145
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 129
     y: 0
     z: 146
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 144
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 143
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 0
     z: 142
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 2
     z: 84
     r: 0
     id: Lab_Floor
     linkId: 
+    mechanismNumber: 0
   - x: 124
     y: 1
     z: 140
     r: 0
     id: Exit
     linkId: 
+    mechanismNumber: 0
   - x: 130
     y: 1
     z: 140
     r: 0
     id: Spawn
     linkId: 
+    mechanismNumber: 0
+  _nextMechanismNumber: 1
 --- !u!4 &1649519402
 Transform:
   m_ObjectHideFlags: 0
@@ -1814,10 +1908,17 @@ MonoBehaviour:
   playerPrefab: {fileID: 0}
   cellSize: 1
   cameraFollowsPlayer: 1
-  cameraSize: 5.5
+  overrideCameraSmoothTime: 0
+  cameraSmoothTime: 0.25
+  cameraSize: 4.5
   backgroundColor: {r: 1, g: 1, b: 1, a: 1}
   cameraYaw: 0
   cameraOffset: {x: 0, y: 12, z: -10.5}
+  snapCameraToPixelGrid: 0
+  nightMode: 0
+  nightSunIntensity: 0.18
+  nightAmbient: {r: 0.08, g: 0.1, b: 0.16, a: 1}
+  nightBackground: {r: 0.02, g: 0.03, b: 0.06, a: 1}
 --- !u!43 &1679059368
 Mesh:
   m_ObjectHideFlags: 0

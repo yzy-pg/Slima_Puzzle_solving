@@ -93,7 +93,8 @@ Shader "Slima/Outline Composite"
 
             half4 Frag(Varyings input) : SV_Target
             {
-                float2 uv = input.uv * _BlitScaleBias.xy + _BlitScaleBias.zw;
+                // Masks use viewport UVs. SceneColor applies the source RTHandle scale once.
+                float2 uv = input.uv;
                 float2 texel = _OutlineThickness * (_PixelatePass > 0.5 ? _PixelSize : 1.0) / _ScreenParams.xy;
 
                 // ---------------- 最终像素化这一步 ----------------
