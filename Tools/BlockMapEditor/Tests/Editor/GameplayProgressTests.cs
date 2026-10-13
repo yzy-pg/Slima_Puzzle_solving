@@ -37,7 +37,10 @@ namespace BlockMap.Gameplay.Tests
         [Test]
         public void JsonRoundTripRestoresSplitActorsControlAndWorldChanges()
         {
+            _world.Set(new Vector3Int(2, 1, 3), BlockLibrary.IndexOf("Splitter"));
+            RefreshGameplay();
             Assert.That(_party.TrySplit(_party.ActiveActor), Is.True);
+            _party.AdvanceSplitAnimation(_party.splitterCutDuration + _party.splitterJumpDuration + .01f);
             _party.Actors[0].SetState(new SlimeState
             { size = SlimeSize.Small, element = SlimeElement.Blue, opticsMode = BlueOpticsMode.ReflectRight });
             _party.Actors[1].SetState(new SlimeState { size = SlimeSize.Small, form = SlimeForm.Gas });

@@ -30,6 +30,7 @@ namespace BlockMap.Gameplay
         Vector3 _stepTarget;
         float _progress;
         float _visualHeight;
+        bool _interactionMotion;
 
         void Awake()
         {
@@ -42,7 +43,7 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
-            if (Time.timeScale == 0f) return;
+            if (Time.timeScale == 0f || _interactionMotion) return;
             if (IsMoving) AdvanceStep();
             else if (_route.Count > 0) BeginNextStep();
             else if (InputEnabled) TryStartRoute();
@@ -51,6 +52,7 @@ namespace BlockMap.Gameplay
         public void Teleport(Vector3Int cell, int facing)
         {
             _route.Clear();
+            _interactionMotion = false;
             Cell = cell;
             Facing = ((facing % 4) + 4) % 4;
             IsMoving = false;
@@ -60,6 +62,15 @@ namespace BlockMap.Gameplay
         }
 
         public void StopAfterCurrentStep() => _route.Clear();
+
+        public void BeginInteractionMotion()
+        {
+            _route.Clear();
+            _interactionMotion = true;
+            IsMoving = true;
+            InputEnabled = false;
+            ResetVisualPosition();
+        }
 
         public bool TryMoveTo(Vector3Int cell)
         {

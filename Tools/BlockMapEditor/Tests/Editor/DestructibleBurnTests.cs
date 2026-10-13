@@ -47,19 +47,17 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [UnityTest]
-        public IEnumerator RedAbilityBurnsTheRealPrefabInAllFourDirections()
+        public IEnumerator FireSlimeAutomaticallyBurnsTheRealPrefabInAllFourDirections()
         {
             for (int direction = 0; direction < 4; direction++)
             {
                 Vector3Int target = _cell + GridDirection.ToVector(direction);
-                _party.ActiveActor.Mover.Teleport(_cell, direction);
-                _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
+                _party.ActiveActor.Mover.Teleport(_cell, 0);
+                _party.ActiveActor.SetState(new SlimeState());
                 _world.Set(target, BlockLibrary.IndexOf("Breakable"));
                 yield return null;
-                Assert.IsTrue(_gameplay.TryGetDestructible(_party.ActiveActor, out var selected));
-                Assert.AreEqual(target, selected);
                 Assert.IsFalse(_gameplay.CanEnter(_party.ActiveActor, target, direction, false));
-                _party.RequestAbility(); // Same path as the E key, with the real player and LateUpdate.
+                _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
                 yield return null; yield return null;
                 Assert.AreEqual(-1, _world.GetIndex(target));
                 Assert.IsTrue(_gameplay.CanEnter(_party.ActiveActor, target, direction, false));
@@ -88,7 +86,7 @@ namespace BlockMap.Gameplay.Tests
             _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
             _world.Set(_cell + Vector3Int.forward, BlockLibrary.IndexOf("Breakable"));
             yield return null;
-            _party.RequestAbility(); yield return null; yield return null;
+            yield return null;
             var effect = _root.GetComponentInChildren<DestructibleBurnEffect>();
             var systems = effect.GetComponentsInChildren<ParticleSystem>();
             Assert.AreEqual(3, systems.Length);
@@ -115,7 +113,7 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [UnityTest]
-        public IEnumerator EPressedDuringTheLastHopExecutesAfterLanding()
+        public IEnumerator MovingIntoRangeBurnsAutomaticallyAndEDoesNotInterruptMovement()
         {
             _party.ActiveActor.Mover.Teleport(_cell - Vector3Int.forward, 0);
             _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
@@ -123,6 +121,7 @@ namespace BlockMap.Gameplay.Tests
             _world.Set(target, BlockLibrary.IndexOf("Breakable")); yield return null;
             Assert.IsTrue(_party.ActiveActor.Mover.TryMoveTo(_cell));
             _party.RequestAbility();
+            Assert.IsTrue(_party.ActiveActor.Mover.InputEnabled, "The removed fire ability must not lock movement.");
             Assert.AreNotEqual(-1, _world.GetIndex(target), "Must wait for the landing cell.");
             // Finish the real mover's current step deterministically; the batch runner can advance
             // hundreds of test ticks before a single 0.16-second hop has elapsed.
@@ -131,11 +130,11 @@ namespace BlockMap.Gameplay.Tests
             typeof(SlimeGridMover).GetMethod("AdvanceStep", flags).Invoke(_party.ActiveActor.Mover, null);
             yield return null; yield return null;
             Assert.AreEqual(_cell, _party.ActiveActor.Mover.Cell);
-            Assert.AreEqual(-1, _world.GetIndex(target), "E was discarded during the hop.");
+            Assert.AreEqual(-1, _world.GetIndex(target), "Landing next to the package must ignite it automatically.");
             Assert.IsTrue(_party.ActiveActor.Mover.InputEnabled);
             Assert.AreEqual(1, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length);
-            _party.RequestAbility(); yield return null; yield return null;
-            Assert.AreEqual(1, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length, "Repeated E duplicated the effect.");
+            yield return null; yield return null;
+            Assert.AreEqual(1, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length, "Passive checks duplicated the effect.");
         }
 
         [UnityTest]
@@ -146,18 +145,68 @@ namespace BlockMap.Gameplay.Tests
             foreach (SlimeElement element in new[] { SlimeElement.Neutral, SlimeElement.Blue })
             {
                 _party.ActiveActor.SetState(new SlimeState { element = element });
-                _party.RequestAbility(); yield return null; yield return null;
+                yield return null; yield return null;
                 Assert.AreNotEqual(-1, _world.GetIndex(target));
                 Assert.IsNull(_root.GetComponentInChildren<DestructibleBurnEffect>());
             }
             _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red, form = SlimeForm.Gas });
-            Assert.IsFalse(_gameplay.TryDestroyFacing(_party.ActiveActor));
+            yield return null; yield return null;
+            Assert.AreNotEqual(-1, _world.GetIndex(target));
             _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
-            _party.RequestAbility(); yield return null; yield return null;
+            yield return null; yield return null;
+            Assert.IsNotNull(_root.GetComponentInChildren<DestructibleBurnEffect>());
+            _party.ActiveActor.SetState(new SlimeState());
             _world.Set(target, BlockLibrary.IndexOf("Breakable")); _gameplay.ResetState(); yield return null;
             Assert.IsNull(_root.GetComponentInChildren<DestructibleBurnEffect>());
             Assert.AreEqual(1, _root.GetComponentsInChildren<GameplayBlockView>().Length);
             Assert.IsFalse(_gameplay.CanEnter(_party.ActiveActor, target, 0, false));
+        }
+
+        [UnityTest]
+        public IEnumerator AllFourNeighborsBurnButDiagonalsDistanceTwoAndOtherLayersStay()
+        {
+            for (int direction = 0; direction < 4; direction++)
+                _world.Set(_cell + GridDirection.ToVector(direction), BlockLibrary.IndexOf("Breakable"));
+            Vector3Int[] outside =
+            {
+                _cell + Vector3Int.forward + Vector3Int.right,
+                _cell + Vector3Int.forward + Vector3Int.left,
+                _cell + Vector3Int.back + Vector3Int.right,
+                _cell + Vector3Int.back + Vector3Int.left,
+                _cell + Vector3Int.forward * 2,
+                _cell + Vector3Int.forward + Vector3Int.up,
+                _cell + Vector3Int.back + Vector3Int.down
+            };
+            foreach (Vector3Int cell in outside) _world.Set(cell, BlockLibrary.IndexOf("Breakable"));
+            _party.ActiveActor.SetState(new SlimeState { element = SlimeElement.Red });
+            yield return null; yield return null;
+            for (int direction = 0; direction < 4; direction++)
+                Assert.IsFalse(_world.IsSolid(_cell + GridDirection.ToVector(direction)));
+            foreach (Vector3Int cell in outside) Assert.IsTrue(_world.IsSolid(cell), "Outside burn range: " + cell);
+            Assert.AreEqual(4, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length);
+            yield return null;
+            Assert.AreEqual(4, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length);
+        }
+
+        [UnityTest]
+        public IEnumerator PauseStopsIgnitionAndUncontrolledSmallFireSlimeStillBurns()
+        {
+            _party.RestoreProgress(new[]
+            {
+                new SlimeProgress { cell = new Vector3Int(0, 1, 0), state = new SlimeState { size = SlimeSize.Small } },
+                new SlimeProgress { cell = _cell, state = new SlimeState { element = SlimeElement.Red, size = SlimeSize.Small } }
+            }, 0);
+            Vector3Int target = _cell + Vector3Int.left;
+            Time.timeScale = 0f;
+            _world.Set(target, BlockLibrary.IndexOf("Breakable"));
+            yield return null; yield return null;
+            Assert.IsTrue(_world.IsSolid(target));
+            Assert.IsNull(_root.GetComponentInChildren<DestructibleBurnEffect>());
+            Time.timeScale = 1f;
+            yield return null; yield return null;
+            Assert.IsFalse(_party.Actors[1].IsControlled);
+            Assert.IsFalse(_world.IsSolid(target));
+            Assert.AreEqual(1, _root.GetComponentsInChildren<DestructibleBurnEffect>().Length);
         }
     }
 }

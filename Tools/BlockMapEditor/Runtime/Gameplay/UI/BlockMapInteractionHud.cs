@@ -26,11 +26,6 @@ namespace BlockMap.Gameplay
                 DrawAboveActor(actor, "E", _gameplay.CanSolidify(actor));
                 return;
             }
-            if (_gameplay.TryGetDestructible(actor, out Vector3Int package))
-            {
-                DrawAboveDevice(package, "E");
-                return;
-            }
             if (!_gameplay.TryGetInteraction(actor, out SlimeInteraction interaction)) return;
             if (interaction.Kind == SlimeInteractionKind.Fuse) DrawAboveActor(actor, "F", true);
             else DrawAboveDevice(interaction.Cell);

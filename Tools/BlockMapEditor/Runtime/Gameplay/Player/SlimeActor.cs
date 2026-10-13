@@ -28,6 +28,7 @@ namespace BlockMap.Gameplay
         public SlimeState State => _state;
         public bool IsControlled { get; private set; }
         public int Weight => _state?.Weight ?? 0;
+        public Color BodyColor => ColorForState(_state);
 
         public Vector3 OverlayAnchor
         {

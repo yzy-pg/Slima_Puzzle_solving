@@ -5,10 +5,9 @@ using UnityEngine;
 namespace BlockMap.Gameplay
 {
     /// <summary>管理最多两只史莱姆、控制权、能力、分裂与融合。</summary>
-    public sealed class SlimePartyController : MonoBehaviour, ISlimeMovementPlanner
+    public sealed partial class SlimePartyController : MonoBehaviour, ISlimeMovementPlanner
     {
         readonly List<SlimeActor> _actors = new List<SlimeActor>(2);
-        readonly List<Vector3Int> _routeBuffer = new List<Vector3Int>(64);
 
         BlockGameplayController _gameplay;
         GameObject _playerPrefab;
@@ -54,6 +53,9 @@ namespace BlockMap.Gameplay
                 return;
             }
 
+            AdvanceSplitAnimation(Time.deltaTime);
+            if (_splitSource != null) return;
+
             // Capture E before the movement guard so a press during the final hop is not lost.
             if (Input.GetKeyDown(KeyCode.E)) RequestAbility();
             if (AnyActorMoving() || _abilityRequested) return;
@@ -64,7 +66,8 @@ namespace BlockMap.Gameplay
         public void RequestAbility()
         {
             var actor = ActiveActor;
-            if (actor == null) return;
+            if (actor == null || _splitSource != null ||
+                (actor.State.form == SlimeForm.Solid && actor.State.element != SlimeElement.Blue)) return;
             _abilityRequested = true;
             actor.Mover.StopAfterCurrentStep();
             actor.Mover.FaceInputDirection();
@@ -82,10 +85,16 @@ namespace BlockMap.Gameplay
 
         public void RestartParty()
         {
+            CancelSplitAnimation();
             _abilityRequested = false;
             _fusionMover = null;
             for (int i = _actors.Count - 1; i >= 0; i--)
-                if (_actors[i] != null) Destroy(_actors[i].gameObject);
+                if (_actors[i] != null)
+                {
+                    _actors[i].gameObject.SetActive(false);
+                    if (Application.isPlaying) Destroy(_actors[i].gameObject);
+                    else DestroyImmediate(_actors[i].gameObject);
+                }
             _actors.Clear();
             _activeIndex = 0;
 
@@ -111,6 +120,7 @@ namespace BlockMap.Gameplay
 
         public void RestoreProgress(SlimeProgress[] actors, int activeActor)
         {
+            CancelSplitAnimation();
             _abilityRequested = false;
             _fusionMover = null;
             foreach (SlimeActor actor in _actors)
@@ -130,10 +140,17 @@ namespace BlockMap.Gameplay
         public bool TryBuildRoute(SlimeGridMover mover, int direction, List<Vector3Int> route)
         {
             SlimeActor actor = ActorFor(mover);
-            if (actor == null || actor != ActiveActor || route == null) return false;
+            if (actor == null || actor != ActiveActor || route == null || IsBusy) return false;
 
             route.Clear();
             Vector3Int next = mover.Cell + GridDirection.ToVector(direction);
+            if (actor.State.form == SlimeForm.Solid && actor.State.size == SlimeSize.Large &&
+                _gameplay.GetProfileAt(next)?.Kind == GameplayBlockKind.Splitter)
+            {
+                // Movement and F share the same rear-entry interaction.
+                if (direction == mover.Facing) TrySplit(actor);
+                return false;
+            }
             if (!CanOccupy(actor, next, actor.State.element != SlimeElement.Blue)) return false;
             route.Add(next);
 
@@ -148,6 +165,8 @@ namespace BlockMap.Gameplay
                 if (floor != null && floor.Kind == GameplayBlockKind.RedFloor) break;
 
                 Vector3Int candidate = next + GridDirection.ToVector(direction);
+                if (actor.State.size == SlimeSize.Large &&
+                    _gameplay.GetProfileAt(candidate)?.Kind == GameplayBlockKind.Splitter) break;
                 if (!CanOccupy(actor, candidate, false)) break;
                 route.Add(candidate);
                 next = candidate;
@@ -180,56 +199,6 @@ namespace BlockMap.Gameplay
             }
             if (_gameplay.IsExit(cell)) ExitReached?.Invoke();
             Changed?.Invoke();
-        }
-
-        public bool CanSplit(SlimeActor source)
-        {
-            if (source == null || source.State.form != SlimeForm.Solid ||
-                source.State.size != SlimeSize.Large || _actors.Count >= 2)
-                return false;
-
-            return CollectSplitCells(source).Count > 0;
-        }
-
-        List<Vector3Int> CollectSplitCells(SlimeActor source)
-        {
-            int facing = source.Mover.Facing;
-            int[] localOrder =
-            {
-                GridDirection.Left(facing),
-                GridDirection.Right(facing),
-                facing,
-                GridDirection.Back(facing)
-            };
-
-            _routeBuffer.Clear();
-            foreach (int direction in localOrder)
-            {
-                Vector3Int candidate = source.Mover.Cell + GridDirection.ToVector(direction);
-                if (_gameplay.CanEnter(source, candidate, direction, false)) _routeBuffer.Add(candidate);
-            }
-            return _routeBuffer;
-        }
-
-        public bool TrySplit(SlimeActor source)
-        {
-            if (!CanSplit(source)) return false;
-            int facing = source.Mover.Facing;
-
-            Vector3Int original = source.Mover.Cell;
-            SlimeState smallState = source.State.Copy();
-            smallState.size = SlimeSize.Small;
-            source.SetState(smallState.Copy());
-            source.Mover.Teleport(_routeBuffer[0], facing);
-
-            Vector3Int secondCell = _routeBuffer.Count > 1 ? _routeBuffer[1] : original;
-            SlimeActor second = SpawnActor(smallState.Copy(), secondCell, facing);
-            if (second != null) _actors.Add(second);
-
-            _activeIndex = Mathf.Max(0, _actors.IndexOf(source));
-            RefreshControl();
-            Changed?.Invoke();
-            return true;
         }
 
         public bool HasOtherSolidAt(SlimeActor source, Vector3Int cell)
@@ -288,10 +257,6 @@ namespace BlockMap.Gameplay
                 actor.SetState(solid);
                 if (_gameplay.ApplyPassive(actor)) RestartRequested?.Invoke();
             }
-            else if (actor.State.element == SlimeElement.Red)
-            {
-                _gameplay.TryDestroyFacing(actor);
-            }
             else if (actor.State.element == SlimeElement.Blue)
             {
                 SlimeState next = actor.State.Copy();
@@ -318,7 +283,10 @@ namespace BlockMap.Gameplay
                 bool mayFuse = actor.State.element == SlimeElement.Blue && CanFusePair(actor, occupied);
                 if (!gasPassesThrough && !mayFuse) return false;
             }
-            return _gameplay.CanEnter(actor, cell, actor.Mover.Facing, allowPush);
+            Vector3Int delta = cell - actor.Mover.Cell;
+            int direction = Mathf.Abs(delta.x) > Mathf.Abs(delta.z)
+                ? (delta.x > 0 ? 1 : 3) : (delta.z > 0 ? 0 : 2);
+            return _gameplay.CanEnter(actor, cell, direction, allowPush);
         }
 
         void FuseAt(Vector3Int cell)
@@ -392,11 +360,16 @@ namespace BlockMap.Gameplay
         {
             _activeIndex = _actors.Count == 0 ? 0 : Mathf.Clamp(_activeIndex, 0, _actors.Count - 1);
             for (int i = 0; i < _actors.Count; i++)
-                if (_actors[i] != null) _actors[i].SetControlled(i == _activeIndex);
+                if (_actors[i] != null)
+                {
+                    _actors[i].SetControlled(i == _activeIndex);
+                    if (_splitSource != null) _actors[i].Mover.InputEnabled = false;
+                }
         }
 
         bool AnyActorMoving()
         {
+            if (_splitSource != null) return true;
             foreach (SlimeActor actor in _actors)
                 if (actor != null && actor.Mover.HasPendingMovement) return true;
             return false;

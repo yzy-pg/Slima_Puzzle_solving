@@ -34,7 +34,13 @@ namespace BlockMap.Gameplay.Tests
 
         void ArrangeSmallPair()
         {
+            var splitter = new Vector3Int(2, 1, 3);
+            _world.Set(splitter, BlockLibrary.IndexOf("Splitter"));
+            RefreshGameplay();
             Assert.That(_party.TrySplit(_party.ActiveActor), Is.True);
+            _party.AdvanceSplitAnimation(_party.splitterCutDuration + _party.splitterJumpDuration + .01f);
+            _world.Remove(splitter);
+            RefreshGameplay();
             _party.Actors[0].Mover.Teleport(new Vector3Int(2, 1, 2), 1);
             _party.Actors[1].Mover.Teleport(new Vector3Int(3, 1, 2), 3);
         }
