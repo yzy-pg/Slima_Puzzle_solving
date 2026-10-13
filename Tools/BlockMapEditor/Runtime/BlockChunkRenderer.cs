@@ -159,6 +159,7 @@ namespace BlockMap
                 def.emissionMap != null ? def.emissionMap : Texture2D.blackTexture);
             if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", def.emissionColor);
             if (mat.HasProperty("_EmissionStrength")) mat.SetFloat("_EmissionStrength", def.emissionStrength);
+            if (def.IsLamp && mat.HasProperty("_NoiseWorldSize")) mat.SetFloat("_NoiseWorldSize", 0.025f);
             // 地形由独立的全屏遮罩描边；关闭反转壳和顶点吸附，光照方格由 Shader 单独采样。
             if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0f);
             if (mat.HasProperty("_PixelSnap")) mat.SetFloat("_PixelSnap", 0f);
@@ -223,7 +224,8 @@ namespace BlockMap
                 if (skipInteractiveBlocks && (def.interactive || def.previewPrefab != null)) continue;
                 // ② 平时的方块几何：配了模型的方块也不再画立方体 ——
                 //    否则那层占位标记立方体会把模型整个包在里面，看起来就是一个粉红色方块。
-                if (def.previewPrefab != null) continue;
+                if (def.previewPrefab != null ||
+                    Gameplay.BlockGameplayCatalog.Get(def.id)?.Kind == Gameplay.GameplayBlockKind.Door) continue;
                 int sub = subDefs.IndexOf(def);
                 if (sub < 0) { subDefs.Add(def); subTris.Add(new List<int>()); sub = subDefs.Count - 1; }
 
@@ -317,8 +319,9 @@ namespace BlockMap
             var mats = new Material[subDefs.Count];
             for (int i = 0; i < subDefs.Count; i++) mats[i] = GetMaterial(subDefs[i]);
             mr.sharedMaterials = mats;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            mr.receiveShadows = true;
+            GetComponent<BlockMapGameRoot>()?.ApplyAtmosphereTo(mr);
 
             if (generateColliders)
             {

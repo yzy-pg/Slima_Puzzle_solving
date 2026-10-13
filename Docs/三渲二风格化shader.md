@@ -42,13 +42,13 @@
    - `Pixel Snap`：顶点像素吸附强度（0 = 关，越大越方）
    - `Shadow Color` / `Light Tint` / `Ambient Color`：决定五段的配色
    - `Outline Width`：反转壳描边粗细（**只给角色/单体物件用**）
-3. 贴图的 Filter Mode 记得设 **Point**（像素风的关键）
+3. 普通像素素材可使用 **Point**；密集地板花纹使用 **Bilinear**，减少相机移动时的采样闪烁，见 [地板纹理频闪](地板纹理频闪.md)。
 
 ## 四、注意事项（踩过的坑）
 
 - **方块地形不要用物体 shader 的 Outline Pass**：chunk 是"每个面顶点独立"的合并网格，反转壳沿法线外扩会在每个方块棱上裂开 → 地形一律用全屏后处理描边。
 - 反转壳的粗细按屏幕像素算，所以**远处的角色描边不会变细**。
-- 贴图要关 Mipmap、用 Point，否则像素化会被模糊掉。
+- 无隔离边的自动包边图集保持 Mipmap 关闭；普通像素素材使用 Point，密集地板使用 Bilinear。图集 UV 已内缩半像素，双线性过滤不会读取相邻格。
 - 全屏描边依赖深度（Feature 内部已 `ConfigureInput(Depth)`）；默认插在 `BeforeRenderingPostProcessing`，如果有别的后处理需要调整顺序，改 Feature 面板的 `Pass Event`。
 - 这套只针对 **URP**；如果换回 Built-in 需要重写。
 - ⚠️ **ShaderLab 的 `[Header(...)]` 属性里不能写中文**：属性参数是按 token 解析的，非 ASCII 会让解析器报

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94f7b741ccf531143a3b1900e54ba2ee, type: 3}
+  m_Name: Glass_Floor
+  m_EditorClassIdentifier: 
+  id: Glass_Floor
+  displayName: "Glass floor"
+  simpleTexture: {fileID: 0}
+  panelTexture: {fileID: 2800000, guid: 5c359ebcee21417484ef0aa0a2a3276e, type: 3}
+  frameTexture: {fileID: 2800000, guid: f02111bc4f4641d3a0fe65d7f7835aa2, type: 3}
+  atlasOverride: {fileID: 0}
+  interactive: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  renderMode: 2
+  cutoff: 0.5
+  doubleSided: 0
+  previewPrefab: {fileID: 0}
+  mountOnWall: 0
+  emitLight: 0

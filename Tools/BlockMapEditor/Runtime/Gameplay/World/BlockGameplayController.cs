@@ -41,29 +41,71 @@ namespace BlockMap.Gameplay
             public bool toggled;
             public bool latched;
             public bool active;
+            public int receiverFaces;
+            public int latchedReceiverFaces;
             public GameplayBlockView view;
             public int blockIndex;
             public int direction;
+            public float buttonRemaining;
         }
 
         readonly Dictionary<Vector3Int, RuntimeState> _states = new Dictionary<Vector3Int, RuntimeState>();
         readonly BlockSignalBus _signals = new BlockSignalBus();
         readonly HashSet<Vector3Int> _activeReceivers = new HashSet<Vector3Int>();
+        readonly Dictionary<int, Color> _mechanismColors = new Dictionary<int, Color>();
 
         BlockWorld _world;
         SlimePartyController _party;
         BlockOpticsSystem _optics;
         Transform _viewRoot;
+        Transform _burnRoot;
         bool _worldDirty;
         Vector2Int _minXZ;
         Vector2Int _maxXZ;
 
         public event Action Changed;
 
+        /// <summary>修改一个机关的关联色，同频道的全部门立即更新；编号保证移动或重建后仍使用同色。</summary>
+        public void SetMechanismColor(Vector3Int cell, Color color)
+        {
+            if (_world == null) return;
+            var profile = GetProfileAt(cell);
+            if (profile == null || !BlockLinkRules.IsSignalSource(profile.Kind)) return;
+            _world.EnsureMechanismNumbers();
+            _mechanismColors[_world.GetMechanismNumber(cell)] = color;
+            RefreshLinkColors();
+        }
+
+        void RefreshLinkColors()
+        {
+            var views = new List<GameplayBlockView>();
+            foreach (var state in _states.Values) if (state.view != null) views.Add(state.view);
+            BlockLinkVisuals.Apply(_world, views, _mechanismColors);
+        }
+
         public void Initialize(BlockWorld world)
         {
             if (_world != null) _world.Changed -= OnWorldChanged;
             _world = world;
+            if (_viewRoot == null)
+            {
+                var previews = new Dictionary<string, GameplayBlockView>();
+                var bakedViews = GetComponentsInChildren<GameplayBlockView>(true);
+                foreach (var view in bakedViews)
+                    previews[view.name] = view;
+                // A scene-authored closed door orientation must survive entering Play.
+                foreach (var item in _world.Blocks)
+                {
+                    var definition = BlockLibrary.Get(item.Value);
+                    if (definition == null || BlockGameplayCatalog.Get(definition.id)?.Kind != GameplayBlockKind.Door) continue;
+                    string name = $"Gameplay_{definition.id}_{item.Key.x}_{item.Key.y}_{item.Key.z}";
+                    if (previews.TryGetValue(name, out var view))
+                        _world.SetDir(item.Key, Mathf.RoundToInt(view.transform.eulerAngles.y / 90f) & 3);
+                }
+                // Baked previews are replaced by live views, not left underneath animations.
+                foreach (var view in bakedViews) DestroySafe(view.gameObject);
+            }
+            _mechanismColors.Clear();
             _world.Changed += OnWorldChanged;
 
             _optics = GetComponent<BlockOpticsSystem>();
@@ -82,10 +124,43 @@ namespace BlockMap.Gameplay
 
         public void ResetState()
         {
+            if (_burnRoot != null) DestroySafe(_burnRoot.gameObject);
+            _burnRoot = null;
             _signals.Clear();
             _activeReceivers.Clear();
             RebuildViews(false);
             _optics?.MarkDirty();
+        }
+
+        public MechanismProgress[] CaptureProgress()
+        {
+            if (_worldDirty) RebuildViews(true);
+            var result = new List<MechanismProgress>();
+            foreach (KeyValuePair<Vector3Int, RuntimeState> item in _states)
+                if (item.Value.toggled || item.Value.latched)
+                    result.Add(new MechanismProgress
+                    {
+                        cell = item.Key,
+                        toggled = item.Value.toggled,
+                        receiverFaces = item.Value.latchedReceiverFaces,
+                        latched = item.Value.latched
+                    });
+            return result.ToArray();
+        }
+
+        public void RestoreProgress(MechanismProgress[] mechanisms)
+        {
+            ResetState();
+            if (mechanisms != null)
+                foreach (MechanismProgress saved in mechanisms)
+                    if (_states.TryGetValue(saved.cell, out RuntimeState state))
+                    {
+                        state.toggled = saved.toggled;
+                        state.latched = saved.latched;
+                        state.latchedReceiverFaces = saved.receiverFaces;
+                    }
+            _optics?.RefreshIfNeeded();
+            EvaluateSignals();
         }
 
         void OnDestroy()
@@ -97,6 +172,8 @@ namespace BlockMap.Gameplay
         void Update()
         {
             if (_worldDirty) RebuildViews(true);
+            foreach (var state in _states.Values)
+                state.buttonRemaining = Mathf.Max(0f, state.buttonRemaining - Time.deltaTime);
             _optics?.RefreshIfNeeded();
             EvaluateSignals();
         }
@@ -249,8 +326,8 @@ namespace BlockMap.Gameplay
             {
                 Vector3Int cell = actor.Mover.Cell + GridDirection.ToVector(direction);
                 GameplayBlockProfile profile = GetProfileAt(cell);
-                if (profile == null || profile.Kind != GameplayBlockKind.Lever) continue;
-                interaction = new SlimeInteraction(SlimeInteractionKind.Lever, cell);
+                if (profile == null || (profile.Kind != GameplayBlockKind.Lever && profile.Kind != GameplayBlockKind.Button)) continue;
+                interaction = new SlimeInteraction(profile.Kind == GameplayBlockKind.Button ? SlimeInteractionKind.Button : SlimeInteractionKind.Lever, cell);
                 return true;
             }
             return false;
@@ -263,6 +340,11 @@ namespace BlockMap.Gameplay
             {
                 case SlimeInteractionKind.Fuse: return _party.TryFuseFacing(actor);
                 case SlimeInteractionKind.Split: return _party.TrySplit(actor);
+                case SlimeInteractionKind.Button:
+                    StateAt(interaction.Cell).buttonRemaining = .65f;
+                    EvaluateSignals();
+                    Changed?.Invoke();
+                    return true;
                 default:
                     RuntimeState state = StateAt(interaction.Cell);
                     state.toggled = !state.toggled;
@@ -274,13 +356,28 @@ namespace BlockMap.Gameplay
 
         public bool TryDestroyFacing(SlimeActor actor)
         {
-            if (actor == null || actor.State.form != SlimeForm.Solid || actor.State.element != SlimeElement.Red)
-                return false;
-            Vector3Int target = actor.Mover.Cell + GridDirection.ToVector(actor.Mover.Facing);
-            GameplayBlockProfile profile = GetProfileAt(target);
-            if (profile == null || profile.Kind != GameplayBlockKind.Destructible) return false;
+            if (!TryGetDestructible(actor, out Vector3Int target)) return false;
+            if (_worldDirty) RebuildViews(true);
+            if (Application.isPlaying && _states.TryGetValue(target, out RuntimeState state) && state.view != null)
+            {
+                if (_burnRoot == null)
+                {
+                    _burnRoot = new GameObject("BurningPackages").transform;
+                    _burnRoot.SetParent(transform, false);
+                }
+                DestructibleBurnEffect.Create(state.view, _burnRoot);
+            }
             _world.Remove(target);
             return true;
+        }
+
+        public bool TryGetDestructible(SlimeActor actor, out Vector3Int target)
+        {
+            target = default;
+            if (actor == null || actor.Mover == null || actor.State.form != SlimeForm.Solid ||
+                actor.State.element != SlimeElement.Red || actor.Mover.HasPendingMovement) return false;
+            target = actor.Mover.Cell + GridDirection.ToVector(actor.Mover.Facing);
+            return GetProfileAt(target)?.Kind == GameplayBlockKind.Destructible;
         }
 
         public bool IsExit(Vector3Int cell)
@@ -309,14 +406,22 @@ namespace BlockMap.Gameplay
         public void BeginReceiverEvaluation()
         {
             _activeReceivers.Clear();
+            foreach (var state in _states.Values) state.receiverFaces = 0;
         }
 
-        public void ActivateReceiver(Vector3Int cell)
+        public void ActivateReceiver(Vector3Int cell, int sourceDirection = 0)
         {
             GameplayBlockProfile profile = GetProfileAt(cell);
             if (profile == null || profile.Kind != GameplayBlockKind.BeamReceiver) return;
             RuntimeState state = StateAt(cell);
-            if (profile.IsLatched) state.latched = true;
+            int face = 1 << (sourceDirection & 3);
+            state.receiverFaces |= face;
+            if (profile.IsLatched) state.latchedReceiverFaces |= face;
+            if (profile.IsLatched && !state.latched)
+            {
+                state.latched = true;
+                Changed?.Invoke();
+            }
             _activeReceivers.Add(cell);
         }
 
@@ -386,11 +491,19 @@ namespace BlockMap.Gameplay
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.Lever))
                 _signals.Set(block.SignalChannel, SourceKey("lever", block.Cell), StateAt(block.Cell).toggled);
 
+            foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.Button))
+            {
+                var state = StateAt(block.Cell);
+                state.active = state.buttonRemaining > 0f;
+                _signals.Set(block.SignalChannel, SourceKey("button", block.Cell), state.active);
+            }
+
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.BeamReceiver))
             {
                 RuntimeState state = StateAt(block.Cell);
                 bool active = _activeReceivers.Contains(block.Cell) || state.latched;
                 state.active = active;
+                state.view?.SetReceiverFaces(state.receiverFaces | state.latchedReceiverFaces);
                 _signals.Set(block.SignalChannel, SourceKey("receiver", block.Cell), active);
             }
 
@@ -458,6 +571,7 @@ namespace BlockMap.Gameplay
                 _states[cell] = state;
             }
             if (preserveState) RemoveChangedViews(previous);
+            RefreshLinkColors();
             _minXZ = hasBounds ? new Vector2Int(minX, minZ) : Vector2Int.zero;
             _maxXZ = hasBounds ? new Vector2Int(maxX, maxZ) : Vector2Int.zero;
             _optics?.MarkDirty();
@@ -479,6 +593,7 @@ namespace BlockMap.Gameplay
         static void DestroySafe(GameObject target)
         {
             if (target == null) return;
+            target.SetActive(false);
             if (Application.isPlaying) Destroy(target);
             else DestroyImmediate(target);
         }

@@ -17,6 +17,7 @@ namespace BlockMap.Gameplay
 
         public static bool IsSignalSource(GameplayBlockKind kind) =>
             kind == GameplayBlockKind.PressurePlate ||
+            kind == GameplayBlockKind.Button ||
             kind == GameplayBlockKind.Lever ||
             kind == GameplayBlockKind.BeamReceiver;
 
@@ -44,5 +45,8 @@ namespace BlockMap.Gameplay
                 hash = (hash ^ normalized[index]) * 16777619;
             return GroupColors[hash % GroupColors.Length];
         }
+
+        public static Color ColorForSource(int number) =>
+            GroupColors[Mathf.Max(0, number - 1) % GroupColors.Length];
     }
 }

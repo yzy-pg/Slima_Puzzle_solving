@@ -102,7 +102,7 @@ namespace BlockMap
         }
 
         /// <summary>
-        /// 把当前场景的 BlockMapGameRoot 相机拉近（cameraSize 5.5 / offset (0,12,-10.5)）。
+        /// 把当前场景的 BlockMapGameRoot 相机拉近（cameraSize 4.5 / offset (0,12,-10.5)）。
         /// 场景里已经保存过的旧值不会被代码默认值更新，所以要改就点这个菜单。
         /// </summary>
         [MenuItem("Tools/Slima/地图编辑器/把镜头拉近（相机贴近场景）", false, 421)]
@@ -116,14 +116,14 @@ namespace BlockMap
             }
 
             Undo.RecordObject(root, "Zoom camera in");
-            root.cameraSize = 5.5f;
+            root.cameraSize = 4.5f;
             root.cameraOffset = new Vector3(0f, 12f, -10.5f);
 
             EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
             EditorSceneManager.SaveOpenScenes();
             Debug.Log($"[BlockMap] 相机已拉近：cameraSize={root.cameraSize}, cameraOffset={root.cameraOffset}");
             EditorUtility.DisplayDialog("BlockMap",
-                "相机已拉近：\n\ncameraSize = 5.5（原来 8）\ncameraOffset = (0, 12, -10.5)（原来 (0, 18, -16)）\n\n" +
+                "相机已拉近：\n\ncameraSize = 4.5\ncameraOffset = (0, 12, -10.5)\n\n" +
                 "想再近就继续调小 cameraSize；想改俯视角度，直接改 cameraOffset。", "好");
         }
 

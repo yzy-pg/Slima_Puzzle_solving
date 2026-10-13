@@ -5,7 +5,7 @@
   "gasVisualHeight": 1.0,
   "blueSlideLimit": 64,
   "beamRange": 64,
-  "beamWidth": 0.08,
+  "beamWidth": 0.10,
   "doorAnimationDuration": 0.35,
   "showEmitterDirectionIndicator": true,
   "emitterIndicatorHeight": 1.05,

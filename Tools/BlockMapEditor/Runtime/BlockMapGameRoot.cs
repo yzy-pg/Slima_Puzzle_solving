@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using BlockMap.Gameplay;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace BlockMap
 {
@@ -29,8 +31,8 @@ namespace BlockMap
         public bool overrideCameraSmoothTime;
         [Min(0f)] public float cameraSmoothTime = 0.25f;
 
-        [Tooltip("正交相机视野大小：越小 = 越靠近场景（放大）。默认 5.5（原来是 8，更贴近场景）")]
-        public float cameraSize = 5.5f;
+        [Tooltip("正交相机视野大小：越小 = 场景显示越大。默认 4.5，更贴近角色与地板细节")]
+        public float cameraSize = 4.5f;
 
         [Tooltip("相机背景色。默认暗色（夜晚基调）；想白底截图再改回 (1,1,1)")]
         public Color backgroundColor = new Color(0.02f, 0.03f, 0.06f);
@@ -56,6 +58,19 @@ namespace BlockMap
         public Color nightAmbient = new Color(0.08f, 0.10f, 0.16f);
         public Color nightBackground = new Color(0.02f, 0.03f, 0.06f);
 
+        [Header("场景氛围阴影")]
+        public bool sceneAtmosphere = true;
+        [Range(0f, 1f)] public float atmosphereSunIntensity = 0.45f;
+        public Color atmosphereShadow = new Color(0.065f, 0.08f, 0.14f);
+        public Color atmosphereAmbient = new Color(0.13f, 0.19f, 0.29f);
+        public Color atmosphereEnvironment = new Color(0.22f, 0.30f, 0.42f);
+
+        [Header("相机亮部泛光")]
+        public bool enableBloom = true;
+        [Min(0f)] public float bloomIntensity = 0.35f;
+        [Min(0f)] public float bloomThreshold = 0.6f;
+        [Range(0f, 1f)] public float bloomScatter = 0.55f;
+
         BlockWorld _world;
         Camera _camera;
         Vector3Int _spawnCell;
@@ -77,23 +92,52 @@ namespace BlockMap
         Vector3 _cameraFocus;
         Vector3 _cameraVelocity;
         bool _cameraFocusInitialized;
+        VolumeProfile _bloomProfile;
 
         public SlimePartyController Party => _party;
         public bool Won => _won;
         public string Hint => _hint;
         public int SpawnTotal => _spawnTotal;
         public int ExitTotal => _exitTotal;
+        public event System.Action ProgressChanged;
+
+        public GameplayProgress CaptureProgress()
+        {
+            if (_party == null || _party.IsBusy) return null;
+            SlimeProgress[] actors = _party.CaptureProgress(out int activeActor);
+            return new GameplayProgress
+            {
+                worldJson = _world.ToJson(),
+                actors = actors,
+                activeActor = activeActor,
+                mechanisms = _gameplay.CaptureProgress(),
+                won = _won
+            };
+        }
+
+        public void RestoreProgress(GameplayProgress progress)
+        {
+            _world.FromJson(progress.worldJson);
+            _party.RestoreProgress(progress.actors, progress.activeActor);
+            _gameplay.RestoreProgress(progress.mechanisms);
+            GetComponent<BlockMapRuntimeSpawner>()?.Rebuild();
+            _won = progress.won;
+            if (_won)
+                foreach (SlimeActor actor in _party.Actors) actor.SetControlled(false);
+            _cameraFocusInitialized = false;
+            ProgressChanged?.Invoke();
+        }
 
         void Start()
         {
             _world = GetComponent<BlockWorld>();
             _world.RestoreIfNeeded();
-            _initialWorldJson = _world.ToJson();
             ReadLevelMarkers();
 
             _gameplay = GetComponent<BlockGameplayController>();
             if (_gameplay == null) _gameplay = gameObject.AddComponent<BlockGameplayController>();
             _gameplay.Initialize(_world);
+            _initialWorldJson = _world.ToJson();
 
             if (_hasSpawn)
             {
@@ -171,6 +215,11 @@ namespace BlockMap
 
         void OnDestroy()
         {
+            if (_bloomProfile != null)
+            {
+                foreach (VolumeComponent component in _bloomProfile.components) Destroy(component);
+                Destroy(_bloomProfile);
+            }
             if (_party == null) return;
             _party.RestartRequested -= RestartLevel;
             _party.ExitReached -= CompleteLevel;
@@ -203,6 +252,7 @@ namespace BlockMap
             _party?.RestartParty();
             _cameraFocusInitialized = false;
             _won = false;
+            ProgressChanged?.Invoke();
         }
 
         void CompleteLevel()
@@ -211,6 +261,7 @@ namespace BlockMap
             _won = true;
             foreach (SlimeActor actor in _party.Actors)
                 if (actor != null) actor.SetControlled(false);
+            ProgressChanged?.Invoke();
         }
 
         void ConfigureGameplayCamera()
@@ -229,7 +280,26 @@ namespace BlockMap
             camera.farClipPlane = 400f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = nightMode ? nightBackground : backgroundColor;
+            camera.allowHDR = true;
             _camera = camera;
+
+            if (enableBloom)
+            {
+                camera.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+                var volumeObject = new GameObject("Gameplay Bloom");
+                volumeObject.transform.SetParent(transform, false);
+                var volume = volumeObject.AddComponent<Volume>();
+                volume.isGlobal = true;
+                volume.priority = 10f;
+                _bloomProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+                _bloomProfile.name = "Gameplay Bloom (Runtime)";
+                var bloom = _bloomProfile.Add<Bloom>(true);
+                bloom.intensity.Override(bloomIntensity);
+                bloom.threshold.Override(bloomThreshold);
+                bloom.scatter.Override(bloomScatter);
+                bloom.tint.Override(new Color(0.85f, 0.93f, 1f));
+                volume.sharedProfile = _bloomProfile;
+            }
 
             ApplyNightMode();
         }
@@ -242,13 +312,40 @@ namespace BlockMap
         void ApplyNightMode()
         {
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = nightAmbient;
-
-            if (!nightMode) return;
+            RenderSettings.ambientLight = sceneAtmosphere ? atmosphereEnvironment : nightAmbient;
 
             foreach (Light light in Object.FindObjectsOfType<Light>())
             {
-                if (light.type == LightType.Directional) light.intensity = nightSunIntensity;
+                if (light.gameObject.scene != gameObject.scene || light.type != LightType.Directional) continue;
+                if (nightMode) light.intensity = nightSunIntensity;
+                else if (sceneAtmosphere) light.intensity = atmosphereSunIntensity;
+                if (sceneAtmosphere) light.shadows = LightShadows.Soft;
+            }
+
+            if (sceneAtmosphere)
+                foreach (GameObject sceneRoot in gameObject.scene.GetRootGameObjects())
+                    foreach (Renderer item in sceneRoot.GetComponentsInChildren<Renderer>(true))
+                        ApplyAtmosphereTo(item);
+        }
+
+        public void ApplyAtmosphereTo(Renderer item)
+        {
+            if (!sceneAtmosphere) return;
+            bool toon = false;
+            foreach (Material material in item.sharedMaterials)
+                if (material != null && material.shader.name == "Slima/Toon (Cel + Pixel)") toon = true;
+            if (!toon) return;
+            var properties = new MaterialPropertyBlock();
+            item.GetPropertyBlock(properties);
+            properties.SetColor("_ShadowColor", atmosphereShadow);
+            properties.SetColor("_AmbientColor", atmosphereAmbient);
+            properties.SetFloat("_FallbackLight", 0f);
+            item.SetPropertyBlock(properties);
+            // Older baked chunks saved these flags as Off; restore them at runtime too.
+            if (item.name.StartsWith("Chunk_"))
+            {
+                item.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                item.receiveShadows = true;
             }
         }
 

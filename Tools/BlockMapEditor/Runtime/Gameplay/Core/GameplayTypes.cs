@@ -15,7 +15,8 @@ namespace BlockMap.Gameplay
         DamageFloor,
         Destructible,
         BeamEmitter,
-        BeamReceiver
+        BeamReceiver,
+        Button
     }
 
     public enum SlimeElement { Neutral, Red, Blue }

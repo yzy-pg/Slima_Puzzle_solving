@@ -179,6 +179,9 @@ namespace BlockMap
 
                 if (_byId.TryGetValue(mid, out var existed))
                 {
+                    // Dedicated artwork prefabs take precedence over an older imported model with the same ID.
+                    if (existed.previewPrefab != null && existed.previewPrefab.GetComponent<GameplayMechanismArt>() != null &&
+                        go.GetComponent<GameplayMechanismArt>() == null) continue;
                     existed.previewPrefab = go;
                     existed.interactive = true;
                     continue;

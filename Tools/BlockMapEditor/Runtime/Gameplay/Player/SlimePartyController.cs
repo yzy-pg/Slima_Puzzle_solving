@@ -18,6 +18,7 @@ namespace BlockMap.Gameplay
         float _viewYaw;
         int _activeIndex;
         SlimeGridMover _fusionMover;
+        bool _abilityRequested;
 
         public event Action Changed;
         public event Action RestartRequested;
@@ -46,20 +47,42 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
+            if (Time.timeScale == 0f) return;
             if (Input.GetKeyDown(KeyCode.R))
             {
                 RestartRequested?.Invoke();
                 return;
             }
 
-            if (AnyActorMoving()) return;
+            // Capture E before the movement guard so a press during the final hop is not lost.
+            if (Input.GetKeyDown(KeyCode.E)) RequestAbility();
+            if (AnyActorMoving() || _abilityRequested) return;
             if (Input.GetKeyDown(KeyCode.Tab)) SelectNext();
             if (Input.GetKeyDown(KeyCode.F)) _gameplay?.TryInteract(ActiveActor);
-            if (Input.GetKeyDown(KeyCode.E)) UseAbility();
+        }
+
+        public void RequestAbility()
+        {
+            var actor = ActiveActor;
+            if (actor == null) return;
+            _abilityRequested = true;
+            actor.Mover.StopAfterCurrentStep();
+            actor.Mover.FaceInputDirection();
+            actor.Mover.InputEnabled = false;
+        }
+
+        void LateUpdate()
+        {
+            // All movers have finished Update; use the landing cell and facing, regardless of script order.
+            if (Time.timeScale == 0f || !_abilityRequested || AnyActorMoving()) return;
+            _abilityRequested = false;
+            UseAbility();
+            RefreshControl();
         }
 
         public void RestartParty()
         {
+            _abilityRequested = false;
             _fusionMover = null;
             for (int i = _actors.Count - 1; i >= 0; i--)
                 if (_actors[i] != null) Destroy(_actors[i].gameObject);
@@ -68,6 +91,38 @@ namespace BlockMap.Gameplay
 
             SlimeActor actor = SpawnActor(new SlimeState(), _spawnCell, _spawnFacing);
             if (actor != null) _actors.Add(actor);
+            RefreshControl();
+            Changed?.Invoke();
+        }
+
+        public SlimeProgress[] CaptureProgress(out int activeActor)
+        {
+            activeActor = _activeIndex;
+            var result = new SlimeProgress[_actors.Count];
+            for (int i = 0; i < _actors.Count; i++)
+                result[i] = new SlimeProgress
+                {
+                    cell = _actors[i].Mover.Cell,
+                    facing = _actors[i].Mover.Facing,
+                    state = _actors[i].State.Copy()
+                };
+            return result;
+        }
+
+        public void RestoreProgress(SlimeProgress[] actors, int activeActor)
+        {
+            _abilityRequested = false;
+            _fusionMover = null;
+            foreach (SlimeActor actor in _actors)
+            {
+                actor.gameObject.SetActive(false);
+                if (Application.isPlaying) Destroy(actor.gameObject);
+                else DestroyImmediate(actor.gameObject);
+            }
+            _actors.Clear();
+            foreach (SlimeProgress saved in actors)
+                _actors.Add(SpawnActor(saved.state.Copy(), saved.cell, saved.facing));
+            _activeIndex = activeActor;
             RefreshControl();
             Changed?.Invoke();
         }

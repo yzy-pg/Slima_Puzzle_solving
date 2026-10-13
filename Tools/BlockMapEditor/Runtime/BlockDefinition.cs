@@ -76,6 +76,25 @@ namespace BlockMap
         public bool useLocalLightPosition;
         public Vector3 lightLocalPosition = new Vector3(0f, 1.5f, 0f);
 
+        [Header("_Lamp 运行时二维光晕")]
+        public bool lampHalo = true;
+        [ColorUsage(false, true), Tooltip("与 Light Color 相乘，控制光晕颜色。")]
+        public Color lampHaloTint = Color.white;
+        [Min(0.01f)] public float lampHaloSize = 1.8f;
+        [Tooltip("相对方块中心的位置，随方块朝向旋转。")]
+        public Vector3 lampHaloLocalOffset;
+        [Min(0f), Tooltip("沿摄像机方向移到方块表面前，避免自身遮住光晕；仍受其他物体深度遮挡。")]
+        public float lampHaloCameraOffset = 0.9f;
+        [Min(0f)] public float lampHaloIntensity = 0.6f;
+        [HideInInspector] // Legacy pixel-halo settings retained for serialized assets.
+        public Vector3 lampHaloBrightness = new Vector3(0.15f, 0.4f, 1f);
+        [HideInInspector] public int lampHaloPixelCount = 32;
+        [HideInInspector] public float lampHaloTransitionWidth = 0.65f;
+        [Range(0.1f, 4f)] public float lampHaloGradientPower = 1f;
+        [HideInInspector] public float lampHaloSeed;
+        [HideInInspector]
+        public Texture2D lampHaloTexture;
+
         public bool IsLamp => !string.IsNullOrEmpty(id) &&
             id.EndsWith("_Lamp", System.StringComparison.OrdinalIgnoreCase);
 
@@ -93,6 +112,13 @@ namespace BlockMap
         /// <summary>是否使用自动包边（贴图空间 CT）。</summary>
         public bool UseAutoTile => atlasOverride != null || (panelTexture != null && frameTexture != null);
 
+        // Dense floor patterns need interpolation during camera motion. Half-texel atlas
+        // insets keep bilinear samples inside each tile without enabling cross-tile mipmaps.
+        public FilterMode GeneratedAtlasFilter => !string.IsNullOrEmpty(id) &&
+            id.IndexOf("_Floor", System.StringComparison.OrdinalIgnoreCase) >= 0 && !IsLamp &&
+            renderMode != BlockRenderMode.Transparent
+                ? FilterMode.Bilinear : FilterMode.Point;
+
         /// <summary>取出这个方块要用的贴图：图集（包边）或单图。</summary>
         public Texture2D GetTexture()
         {
@@ -102,6 +128,7 @@ namespace BlockMap
             {
                 _runtimeAtlas = AutoTileAtlas.Build(panelTexture, frameTexture);
                 _runtimeAtlas.name = id + "_atlas";
+                _runtimeAtlas.filterMode = GeneratedAtlasFilter;
             }
             return _runtimeAtlas;
         }

@@ -114,9 +114,11 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 material.SetFloat("_NoiseStrength", 1);
                 material.SetFloat("_NoiseSpace", 1);
                 material.SetFloat("_NoisePixelSize", 4);
+                // Legacy screen settings must not affect world-anchored sampling.
+                material.SetFloat("_NoiseWorldSize", .08f);
                 var noisy = Capture("pixel-noise");
                 CheckBands(noisy, true);
-                CheckWholePixelCells(noisy, 4);
+                var worldCells = CheckWorldCells(noisy, camera, quad.transform, .08f);
                 int changed = 0;
                 for (int i = 0; i < hard.Length; i++)
                 {
@@ -125,13 +127,45 @@ namespace SlimaPuzzle.Rendering.EditorTools
                     if (difference > 0.27f) throw new Exception("Noise skipped a neighboring light band.");
                 }
                 if (changed < 10) throw new Exception("Boundary pixel noise had no visible effect.");
-                quad.transform.rotation = Quaternion.Euler(0, 18, 0);
+                camera.transform.position = new Vector3(.37f, .19f, -10);
+                CheckWorldCells(Capture("world-noise-camera-moved"), camera, quad.transform, .08f, worldCells);
+                camera.orthographicSize = 2.4f;
+                CheckWorldCells(Capture("world-noise-camera-zoomed"), camera, quad.transform, .08f, worldCells);
+                camera.transform.position = new Vector3(2, 1, -10);
+                camera.transform.LookAt(Vector3.zero);
                 camera.orthographic = false;
                 camera.fieldOfView = 25;
                 var perspective = Capture("pixel-noise-perspective");
-                CheckWholePixelCells(perspective, 4, 48);
+                CheckWorldCells(perspective, camera, quad.transform, .08f, worldCells);
+                control.overrideMaterialSettings = true;
+                control.transitionWidth = 1;
+                control.worldPixelSize = .16f;
+                var overrideCells = CheckWorldCells(Capture("world-noise-light-override"), camera, quad.transform, .16f);
+                camera.transform.position += new Vector3(.31f, -.17f, 0);
+                CheckWorldCells(Capture("world-noise-light-override-moved"), camera, quad.transform, .16f, overrideCells);
+                control.overrideMaterialSettings = false;
                 camera.orthographic = true;
-                quad.transform.rotation = Quaternion.identity;
+                camera.orthographicSize = 2;
+                camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
+                // Generated lamps refine the receiver grid without changing material bands.
+                Object.DestroyImmediate(control);
+                light.name = "Light_RedLight_Lamp_0_0_0";
+                var lampFine = Capture("lamp-fine-pixels");
+                CheckBands(lampFine, true);
+                var fineCells = CheckWorldCells(lampFine, camera, quad.transform, .025f);
+                if (fineCells.Count <= worldCells.Count * 2)
+                    throw new Exception("Lamp sampling did not increase the visible pixel count.");
+                camera.transform.position += new Vector3(.31f, -.17f, 0);
+                CheckWorldCells(Capture("lamp-fine-pixels-moved"), camera, quad.transform, .025f, fineCells);
+                var actor = light.transform.parent = new GameObject("Sampling validation slime").transform;
+                actor.gameObject.AddComponent<BlockMap.Gameplay.SlimeActor>();
+                light.name = "Slime Glow";
+                CheckWorldCells(Capture("slime-fine-pixels"), camera, quad.transform, .025f, fineCells);
+                light.transform.SetParent(null, true);
+                Object.DestroyImmediate(actor.gameObject);
+                light.name = "Lighting validation point light";
+                control = light.gameObject.AddComponent<SlimaToonLight>();
+                camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
                 Directory.CreateDirectory("Docs/images");
                 File.Copy("Logs/ToonLighting/pixel-noise.png", "Docs/images/PixelLightNoise.png", true);
 
@@ -190,7 +224,7 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 if (unique.Count < 50) throw new Exception("Co-located smooth light became quantized.");
                 if (ShaderUtil.ShaderHasError(shader)) throw new Exception("Rendered shader variant compilation failed.");
                 Object.DestroyImmediate(mesh);
-                Debug.Log("[Slima Lighting Validation] PASS: five discrete bands; whole 4x4 noise cells in orthographic AND oblique perspective; adjacent-band noise; smooth mode; band override; disabled-light cleanup; main-light modes; independent co-located modes; renderer installation.");
+                Debug.Log("[Slima Lighting Validation] PASS: world cells stay uniform and unchanged after camera translation, zoom and perspective rotation; material and per-light world sizes; legacy screen settings ignored; five discrete bands; adjacent-band noise; smooth mode; band override; disabled-light cleanup; main-light modes; independent co-located modes; renderer installation.");
             }
             finally
             {
@@ -206,16 +240,39 @@ namespace SlimaPuzzle.Rendering.EditorTools
             }
         }
 
-        static void CheckWholePixelCells(Color[] pixels, int size, int margin = 4)
+        static Dictionary<Vector2Int, float> CheckWorldCells(Color[] pixels, Camera camera,
+            Transform surface, float size, Dictionary<Vector2Int, float> reference = null)
         {
-            for (int y = margin; y < 200 - margin; y += size)
-                for (int x = margin; x < 600 - margin; x += size)
+            var cells = new Dictionary<Vector2Int, float>();
+            var plane = new Plane(surface.forward, surface.position);
+            int compared = 0;
+            for (int y = 2; y < 198; y++)
+                for (int x = 2; x < 598; x++)
                 {
+                    Ray ray = camera.ViewportPointToRay(new Vector3((x + .5f) / 600, (y + .5f) / 200, 0));
+                    if (!plane.Raycast(ray, out float distance)) continue;
+                    Vector3 hit = ray.GetPoint(distance);
+                    Vector3 local = surface.InverseTransformPoint(hit);
+                    if (Mathf.Abs(local.x) > .49f || Mathf.Abs(local.y) > .49f) continue;
+                    Vector2 grid = new Vector2(hit.x, hit.y) / size;
+                    float fx = grid.x - Mathf.Floor(grid.x), fy = grid.y - Mathf.Floor(grid.y);
+                    // Ignore rasterization uncertainty right on a world-cell boundary.
+                    if (fx < .05f || fx > .95f || fy < .05f || fy > .95f) continue;
+                    var cell = new Vector2Int(Mathf.FloorToInt(grid.x), Mathf.FloorToInt(grid.y));
                     float value = pixels[y * 600 + x].r;
-                    for (int dy = 0; dy < size; dy++) for (int dx = 0; dx < size; dx++)
-                        if (Mathf.Abs(pixels[(y + dy) * 600 + x + dx].r - value) > .02f)
-                            throw new Exception("Split pixel cell at " + x + "," + y + "; noise must fill a square.");
+                    if (cells.TryGetValue(cell, out float existing) && Mathf.Abs(existing - value) > .02f)
+                        throw new Exception("Split world pixel cell: " + cell);
+                    cells[cell] = value;
+                    if (reference != null && reference.TryGetValue(cell, out float expected))
+                    {
+                        if (Mathf.Abs(expected - value) > .02f)
+                            throw new Exception("Camera movement changed world pixel cell: " + cell);
+                        compared++;
+                    }
                 }
+            if (cells.Count < 100 || (reference != null && compared < 100))
+                throw new Exception("Too few world cells visible to validate camera stability.");
+            return cells;
         }
 
         static void CheckBands(Color[] pixels, bool requireAll)

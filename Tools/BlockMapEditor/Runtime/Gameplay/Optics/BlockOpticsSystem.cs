@@ -31,6 +31,11 @@ namespace BlockMap.Gameplay
 
         void Trace(GameplayBlockCell emitter)
         {
+            EnsureBeamRoot();
+            var particleObject = new GameObject("BeamParticles");
+            particleObject.transform.SetParent(_beamRoot, false);
+            var particles = particleObject.AddComponent<BlockBeamParticles>();
+            particles.Initialize();
             int direction = _gameplay.GetDirection(emitter.Cell);
             Vector3Int cell = emitter.Cell;
             BeamColor color = emitter.Profile.BeamColor;
@@ -40,6 +45,7 @@ namespace BlockMap.Gameplay
             {
                 Vector3Int next = cell + GridDirection.ToVector(direction);
                 DrawSegment(cell, next, color);
+                particles.AddSegment(Center(cell), Center(next), ToColor(color));
 
                 SlimeActor actor = _gameplay.GetActorAt(next);
                 if (actor != null && actor.State.form == SlimeForm.Solid)
@@ -60,7 +66,7 @@ namespace BlockMap.Gameplay
                 if (profile != null && profile.Kind == GameplayBlockKind.BeamReceiver)
                 {
                     if (SlimeRules.ReceiverAccepts(profile.BeamColor, color))
-                        _gameplay.ActivateReceiver(next);
+                        _gameplay.ActivateReceiver(next, (direction + 2) & 3);
                     break;
                 }
 
@@ -69,7 +75,7 @@ namespace BlockMap.Gameplay
             }
         }
 
-        void DrawSegment(Vector3Int from, Vector3Int to, BeamColor color)
+        void EnsureBeamRoot()
         {
             if (_beamRoot == null)
             {
@@ -77,28 +83,53 @@ namespace BlockMap.Gameplay
                 container.transform.SetParent(transform, false);
                 _beamRoot = container.transform;
             }
+        }
 
-            var beam = new GameObject("BeamSegment");
+        void DrawSegment(Vector3Int from, Vector3Int to, BeamColor color)
+        {
+            EnsureBeamRoot();
+            float width = BlockGameplaySettings.Current.beamWidth;
+            DrawLine("BeamSegment", from, to, color, width, Resources.Load<Material>("BlockMapBeam"));
+            Material glow = Resources.Load<Material>("BlockMapBeamGlow");
+            DrawLine("BeamGlow", from, to, color, width * glow.GetFloat("_GlowWidth"), glow);
+        }
+
+        void DrawLine(string name, Vector3Int from, Vector3Int to, BeamColor color, float width, Material material)
+        {
+            var beam = new GameObject(name);
             beam.transform.SetParent(_beamRoot, false);
             LineRenderer line = beam.AddComponent<LineRenderer>();
             line.useWorldSpace = true;
             line.positionCount = 2;
-            line.startWidth = BlockGameplaySettings.Current.beamWidth;
-            line.endWidth = BlockGameplaySettings.Current.beamWidth;
-            line.numCapVertices = 4;
+            line.startWidth = width;
+            line.endWidth = width;
+            line.numCapVertices = 0;
+            line.textureMode = LineTextureMode.Tile;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
             line.SetPosition(0, Center(from));
             line.SetPosition(1, Center(to));
 
             Color beamColor = ToColor(color);
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
-            line.sharedMaterial = new Material(shader) { color = beamColor };
+            line.sharedMaterial = material;
             line.startColor = beamColor;
             line.endColor = beamColor;
+            var properties = new MaterialPropertyBlock();
+            properties.SetVector("_FlowDirection", (Vector3)(to - from));
+            Color.RGBToHSV(beamColor, out float hue, out _, out _);
+            Color bandColor = Color.HSVToRGB(hue, 1f, 0.5f);
+            if (QualitySettings.activeColorSpace == ColorSpace.Linear) bandColor = bandColor.linear;
+            properties.SetVector("_BandColor", new Vector4(bandColor.r, bandColor.g, bandColor.b, 1));
+            Color coreColor = Color.HSVToRGB(hue, 1f, 1f);
+            if (QualitySettings.activeColorSpace == ColorSpace.Linear) coreColor = coreColor.linear;
+            properties.SetVector("_CoreColor", new Vector4(coreColor.r, coreColor.g, coreColor.b, 1));
+            line.SetPropertyBlock(properties);
         }
 
         void ClearBeams()
         {
             if (_beamRoot == null) return;
+            _beamRoot.gameObject.SetActive(false);
             if (Application.isPlaying) Destroy(_beamRoot.gameObject);
             else DestroyImmediate(_beamRoot.gameObject);
             _beamRoot = null;

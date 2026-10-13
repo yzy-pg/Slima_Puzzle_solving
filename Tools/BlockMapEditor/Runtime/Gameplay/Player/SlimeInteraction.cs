@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BlockMap.Gameplay
 {
-    public enum SlimeInteractionKind { Split, Lever, Fuse }
+    public enum SlimeInteractionKind { Split, Lever, Fuse, Button }
 
     /// <summary>只描述可执行的 F 交互；查询不会执行交互。</summary>
     public readonly struct SlimeInteraction

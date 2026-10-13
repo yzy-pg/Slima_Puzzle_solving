@@ -42,6 +42,7 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
+            if (Time.timeScale == 0f) return;
             if (IsMoving) AdvanceStep();
             else if (_route.Count > 0) BeginNextStep();
             else if (InputEnabled) TryStartRoute();
@@ -76,17 +77,22 @@ namespace BlockMap.Gameplay
 
         void TryStartRoute()
         {
-            int direction = ReadDirection();
-            if (direction < 0) return;
-
-            int yawSteps = Mathf.RoundToInt(viewYaw / 90f) & 3;
-            direction = (direction + yawSteps) & 3;
-            Facing = direction;
-            transform.rotation = Quaternion.Euler(0f, Facing * 90f, 0f);
+            if (!FaceInputDirection()) return;
+            int direction = Facing;
 
             _route.Clear();
             if (Planner == null || !Planner.TryBuildRoute(this, direction, _route)) return;
             if (_route.Count > 0) BeginNextStep();
+        }
+
+        public bool FaceInputDirection()
+        {
+            int direction = ReadDirection();
+            if (direction < 0 || HasPendingMovement) return false;
+            int yawSteps = Mathf.RoundToInt(viewYaw / 90f) & 3;
+            Facing = (direction + yawSteps) & 3;
+            transform.rotation = Quaternion.Euler(0f, Facing * 90f, 0f);
+            return true;
         }
 
         void BeginNextStep()
