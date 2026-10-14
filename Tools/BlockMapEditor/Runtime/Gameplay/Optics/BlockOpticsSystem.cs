@@ -57,9 +57,10 @@ namespace BlockMap.Gameplay
                 SlimeActor actor = _gameplay.GetActorAt(next);
                 if (actor != null && actor.State.form == SlimeForm.Solid && actor.State.element == SlimeElement.Blue)
                 {
-                    // Blue slime splits incoming light into two perpendicular blue rays.
-                    TraceRay(next, GridDirection.Left(direction), BeamColor.Blue, range - i - 1, visited, particles);
-                    TraceRay(next, GridDirection.Right(direction), BeamColor.Blue, range - i - 1, visited, particles);
+                    // Mix the incoming beam with the slime before splitting it.
+                    BeamColor splitColor = SlimeRules.MixBeam(color, actor.State.element);
+                    TraceRay(next, GridDirection.Left(direction), splitColor, range - i - 1, visited, particles);
+                    TraceRay(next, GridDirection.Right(direction), splitColor, range - i - 1, visited, particles);
                     return;
                 }
                 if (actor != null && actor.State.form == SlimeForm.Solid)

@@ -25,7 +25,7 @@ namespace BlockMap.Gameplay.Tests
             _gameplay = _root.AddComponent<BlockGameplayController>();
             _gameplay.Initialize(_world);
             _party = _root.AddComponent<SlimePartyController>();
-            _party.Initialize(_gameplay, null, new Vector3Int(2, 1, 2), 0, 1f, 0f);
+            _party.Initialize(_gameplay, null, new Vector3Int(2, 1, 2), 0, 1f, 0f, true);
             _gameplay.BindParty(_party);
         }
 
@@ -118,24 +118,50 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
-        public void GasMayOverlapSolidButCannotSolidifyThere()
+        public void ColoredFloorsAlwaysConvertSlimeToTheirSolidColor()
         {
-            ArrangeSmallPair();
-            SlimeActor gas = _party.ActiveActor;
-            gas.SetState(new SlimeState { size = SlimeSize.Small, form = SlimeForm.Gas });
-            var route = new List<Vector3Int>();
-            Assert.That(_party.TryBuildRoute(gas.Mover, 1, route), Is.True);
-            gas.Mover.Teleport(_party.Actors[1].Mover.Cell, 1);
-            Assert.That(_gameplay.CanSolidify(gas), Is.False);
-            typeof(SlimePartyController).GetMethod("UseAbility", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(_party, null);
-            Assert.That(gas.State.form, Is.EqualTo(SlimeForm.Gas));
-            gas.Mover.Teleport(new Vector3Int(4, 1, 2), 1);
-            Assert.That(_gameplay.CanSolidify(gas), Is.True);
+            Vector3Int redFloor = new Vector3Int(3, 1, 2);
+            Vector3Int blueFloor = new Vector3Int(4, 1, 2);
+            _world.Set(redFloor, BlockLibrary.IndexOf("Lab_Heater_01"));
+            _world.Set(blueFloor, BlockLibrary.IndexOf("Lab_Heater_02"));
+            RefreshGameplay();
+            SlimeActor slime = _party.ActiveActor;
+            slime.SetState(new SlimeState { form = SlimeForm.Gas });
+            slime.Mover.Teleport(redFloor, 1);
+
+            Assert.That(_gameplay.ApplyPassive(slime), Is.False);
+            Assert.That(slime.State.form, Is.EqualTo(SlimeForm.Solid));
+            Assert.That(slime.State.element, Is.EqualTo(SlimeElement.Red));
+            slime.Mover.Teleport(blueFloor, 1);
+            Assert.That(_gameplay.ApplyPassive(slime), Is.False);
+            Assert.That(slime.State.form, Is.EqualTo(SlimeForm.Solid));
+            Assert.That(slime.State.element, Is.EqualTo(SlimeElement.Blue));
         }
 
         [Test]
-        public void LeverPromptQueryDoesNotToggleTheLever()
+        public void RedBeamMixesWithBlueSlimeBeforeSplittingToPurpleReceiver()
+        {
+            var emitter = new Vector3Int(1, 1, 2);
+            var blueSlimeCell = new Vector3Int(2, 1, 2);
+            var receiver = new Vector3Int(2, 1, 3);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(emitter, BlockLibrary.IndexOf("Lab_Laser_02"));
+            _world.SetDir(emitter, 1);
+            _world.Set(receiver, BlockLibrary.IndexOf("ReceiverPurple_A"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(receiver, "purple-beam");
+            _world.SetLinkId(door, "purple-beam");
+            SlimeActor blue = _party.ActiveActor;
+            blue.SetState(new SlimeState { element = SlimeElement.Blue, size = SlimeSize.Small });
+            blue.Mover.Teleport(blueSlimeCell, 0);
+
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(blue, door, 0, false), Is.True);
+        }
+
+        [Test]
+        public void LeverIsNotFInteractableAndTogglesDoorWhenEntered()
         {
             var lever = new Vector3Int(2, 1, 3);
             var door = new Vector3Int(4, 1, 4);
@@ -144,12 +170,124 @@ namespace BlockMap.Gameplay.Tests
             _world.SetLinkId(lever, "query-test");
             _world.SetLinkId(door, "query-test");
             RefreshGameplay();
-            Assert.That(_gameplay.TryGetInteraction(_party.ActiveActor, out SlimeInteraction interaction), Is.True);
-            Assert.That(interaction.Kind, Is.EqualTo(SlimeInteractionKind.Lever));
-            Assert.That(interaction.Cell, Is.EqualTo(lever));
-            Assert.That(_gameplay.TryGetInteraction(_party.ActiveActor, out _), Is.True);
+            Assert.That(_gameplay.TryGetInteraction(_party.ActiveActor, out _), Is.False);
+            Assert.That(_gameplay.TryInteract(_party.ActiveActor), Is.False);
+
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(2, 1, 2), 0);
+            Assert.That(_party.ActiveActor.Mover.TryMoveTo(lever), Is.True);
+            FinishCurrentStep(_party.ActiveActor.Mover);
             RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+        }
+
+        [Test]
+        public void EveryLinkedLeverEntryTogglesTheSharedDoor()
+        {
+            var leverA = new Vector3Int(2, 1, 3);
+            var leverB = new Vector3Int(4, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(leverA, BlockLibrary.IndexOf("Lab_Lever"));
+            _world.Set(leverB, BlockLibrary.IndexOf("Lab_Lever"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(leverA, "shared-door");
+            _world.SetLinkId(leverB, "shared-door");
+            _world.SetLinkId(door, "shared-door");
+            RefreshGameplay();
+
+            EnterLever(leverA, new Vector3Int(2, 1, 2), 0);
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            EnterLever(leverB, new Vector3Int(4, 1, 1), 0);
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+            EnterLever(leverA, new Vector3Int(2, 1, 2), 0);
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+        }
+
+        [Test]
+        public void PressurePlateActivationTogglesDoorOnlyOnEachEntryEdge()
+        {
+            var plate = new Vector3Int(2, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(plate, BlockLibrary.IndexOf("Lab_PressurePlate"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(plate, "plate-toggle");
+            _world.SetLinkId(door, "plate-toggle");
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            _party.ActiveActor.Mover.Teleport(plate, 0);
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+        }
+
+        [Test]
+        public void RedSlimeCanActivelyFuseWithBlueSlime()
+        {
+            ArrangeSmallPair();
+            SlimeActor red = _party.Actors[0];
+            SlimeActor blue = _party.Actors[1];
+            red.SetState(new SlimeState { size = SlimeSize.Small, element = SlimeElement.Red });
+            blue.SetState(new SlimeState { size = SlimeSize.Small, element = SlimeElement.Blue });
+            red.Mover.Teleport(new Vector3Int(2, 1, 2), 1);
+            blue.Mover.Teleport(new Vector3Int(3, 1, 2), 3);
+
+            Assert.That(_party.CanFuseFacing(red), Is.True);
+            Assert.That(_party.CanFuseFacing(blue), Is.True);
+            Assert.That(_party.TryFuseFacing(red), Is.True);
+            FinishCurrentStep(red.Mover);
+
+            Assert.That(_party.Actors.Count, Is.EqualTo(1));
+            Assert.That(red.State.form, Is.EqualTo(SlimeForm.Solid));
+            Assert.That(red.State.element, Is.EqualTo(SlimeElement.Neutral));
+        }
+
+        [Test]
+        public void SynchronousBlueSlimeMovesUntilBlockedWhenControlledSlimeIsBlocked()
+        {
+            ArrangeSmallPair();
+            SlimeActor controlled = _party.Actors[0];
+            SlimeActor blue = _party.Actors[1];
+            controlled.Mover.Teleport(new Vector3Int(2, 1, 2), 0);
+            blue.SetState(new SlimeState { size = SlimeSize.Small, element = SlimeElement.Blue });
+            blue.Mover.Teleport(new Vector3Int(3, 1, 2), 0);
+            _world.Set(new Vector3Int(2, 1, 3), BlockLibrary.IndexOf("Door"));
+            _world.Set(new Vector3Int(3, 1, 5), BlockLibrary.IndexOf("Door"));
+            RefreshGameplay();
+
+            var controlledRoute = new List<Vector3Int>();
+            Assert.That(_party.TryBuildRoute(controlled.Mover, 0, controlledRoute), Is.False);
+            Assert.That(controlled.Mover.HasPendingMovement, Is.False);
+            Assert.That(blue.Mover.HasPendingMovement, Is.True);
+            Assert.That(blue.Mover.HasQueuedRoute, Is.True);
+        }
+
+        [Test]
+        public void BlueSlideTriggersLeverWhenPassingThroughItsCell()
+        {
+            var lever = new Vector3Int(2, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(lever, BlockLibrary.IndexOf("Lab_Lever"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(lever, "slide-trigger");
+            _world.SetLinkId(door, "slide-trigger");
+            RefreshGameplay();
+            SlimeActor blue = _party.ActiveActor;
+            blue.SetState(new SlimeState { size = SlimeSize.Small, element = SlimeElement.Blue });
+            blue.Mover.Teleport(new Vector3Int(1, 1, 2), 1);
+
+            var route = new List<Vector3Int>();
+            Assert.That(_party.TryBuildRoute(blue.Mover, 1, route), Is.True);
+            Assert.That(route, Does.Contain(lever));
+            Assert.That(blue.Mover.QueueRoute(route), Is.True);
+            FinishCurrentStep(blue.Mover);
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(blue, door, 0, false), Is.True);
+            Assert.That(blue.Mover.HasQueuedRoute, Is.True);
         }
 
         [Test]
@@ -164,7 +302,7 @@ namespace BlockMap.Gameplay.Tests
             _world.SetLinkId(doorCell, "test");
             _world.SetLinkId(leverCell, "test");
             RefreshGameplay();
-            Assert.That(_gameplay.TryInteract(_party.ActiveActor), Is.True);
+            EnterLever(leverCell, new Vector3Int(2, 1, 2), 0);
             RefreshGameplay();
             BlockMapDoor door = _root.GetComponentInChildren<BlockMapDoor>();
             Assert.That(door, Is.Not.Null);
@@ -179,6 +317,15 @@ namespace BlockMap.Gameplay.Tests
             Assert.That(remaining.GetInstanceID(), Is.EqualTo(identity));
             Assert.That(remaining.transform.localRotation, Is.EqualTo(angle));
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, doorCell, 0, false), Is.True);
+        }
+
+        void EnterLever(Vector3Int lever, Vector3Int approach, int facing)
+        {
+            SlimeActor actor = _party.ActiveActor;
+            actor.Mover.Teleport(approach, facing);
+            Assert.That(actor.Mover.TryMoveTo(lever), Is.True);
+            FinishCurrentStep(actor.Mover);
+            RefreshGameplay();
         }
     }
 }

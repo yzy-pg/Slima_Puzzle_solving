@@ -77,11 +77,13 @@ namespace BlockMap.Gameplay.Tests
             _world.SetLinkId(door, "saved-door");
             RefreshGameplay();
             _party.ActiveActor.Mover.Teleport(new Vector3Int(2, 1, 2), 1);
-            Assert.That(_gameplay.TryInteract(_party.ActiveActor), Is.True);
+            Assert.That(_party.ActiveActor.Mover.TryMoveTo(lever), Is.True);
+            FinishCurrentStep(_party.ActiveActor.Mover);
             RefreshGameplay();
             MechanismProgress[] captured = _gameplay.CaptureProgress();
-            Assert.That(captured.Length, Is.EqualTo(1));
-            Assert.That(captured[0].toggled, Is.True);
+            Assert.That(captured.Length, Is.EqualTo(2));
+            Assert.That(System.Array.Exists(captured, progress => progress.cell == lever && progress.toggled), Is.True);
+            Assert.That(System.Array.Exists(captured, progress => progress.cell == door && progress.toggled), Is.True);
             _gameplay.ResetState();
             RefreshGameplay();
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.False);
@@ -104,14 +106,37 @@ namespace BlockMap.Gameplay.Tests
             _gameplay.Changed += () => changed = true;
             _gameplay.ActivateReceiver(receiver);
             Assert.That(changed, Is.True, "Latching must notify the autosave session.");
+            RefreshGameplay();
             MechanismProgress[] captured = _gameplay.CaptureProgress();
-            Assert.That(captured.Length, Is.EqualTo(1));
-            Assert.That(captured[0].latched, Is.True);
+            Assert.That(System.Array.Exists(captured, progress => progress.cell == receiver && progress.latched), Is.True);
+            Assert.That(System.Array.Exists(captured, progress => progress.cell == door && progress.toggled), Is.True);
             _gameplay.ResetState();
             _gameplay.RestoreProgress(captured);
             _gameplay.BeginReceiverEvaluation();
             RefreshGameplay();
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
+        }
+
+        [Test]
+        public void EachBeamReceiverActivationTogglesItsSharedDoor()
+        {
+            var receiver = new Vector3Int(3, 1, 2);
+            var door = new Vector3Int(4, 1, 2);
+            _world.Set(receiver, BlockLibrary.IndexOf("Lab_Laser_04"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(receiver, "receiver-toggle");
+            _world.SetLinkId(door, "receiver-toggle");
+            RefreshGameplay();
+
+            _gameplay.ActivateReceiver(receiver);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
+            _gameplay.BeginReceiverEvaluation();
+            RefreshGameplay();
+            _gameplay.ActivateReceiver(receiver);
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.False);
         }
 
         [Test]
@@ -129,5 +154,12 @@ namespace BlockMap.Gameplay.Tests
 
         void RefreshGameplay() => typeof(BlockGameplayController)
             .GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_gameplay, null);
+
+        static void FinishCurrentStep(SlimeGridMover mover)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            typeof(SlimeGridMover).GetField("_progress", flags).SetValue(mover, 1f);
+            typeof(SlimeGridMover).GetMethod("AdvanceStep", flags).Invoke(mover, null);
+        }
     }
 }

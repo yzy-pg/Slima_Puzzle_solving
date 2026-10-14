@@ -109,7 +109,7 @@ namespace BlockMap.Gameplay
     {
         public static SlimeState Fuse(SlimeState first, SlimeState second)
         {
-            var result = new SlimeState { size = SlimeSize.Large };
+            var result = new SlimeState { form = SlimeForm.Solid, size = SlimeSize.Large };
             bool oppositeColors =
                 (first.element == SlimeElement.Red && second.element == SlimeElement.Blue) ||
                 (first.element == SlimeElement.Blue && second.element == SlimeElement.Red);
@@ -117,7 +117,6 @@ namespace BlockMap.Gameplay
             if (oppositeColors) result.element = SlimeElement.Neutral;
             else
             {
-                result.form = SlimeForm.Solid;
                 result.element = first.element != SlimeElement.Neutral ? first.element : second.element;
             }
 

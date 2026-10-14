@@ -16,7 +16,7 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
-        public void RedAndBlueSmallSlimesFuseIntoGas()
+        public void RedAndBlueSmallSlimesFuseIntoSolidNeutralSlime()
         {
             var red = new SlimeState { size = SlimeSize.Small, element = SlimeElement.Red };
             var blue = new SlimeState { size = SlimeSize.Small, element = SlimeElement.Blue };
@@ -24,7 +24,7 @@ namespace BlockMap.Gameplay.Tests
             SlimeState result = SlimeRules.Fuse(red, blue);
 
             Assert.That(result.size, Is.EqualTo(SlimeSize.Large));
-            Assert.That(result.form, Is.EqualTo(SlimeForm.Gas));
+            Assert.That(result.form, Is.EqualTo(SlimeForm.Solid));
             Assert.That(result.element, Is.EqualTo(SlimeElement.Neutral));
         }
 

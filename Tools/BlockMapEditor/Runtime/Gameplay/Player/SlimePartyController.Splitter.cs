@@ -79,7 +79,6 @@ namespace BlockMap.Gameplay
             _splitStart = source.transform.position;
             _splitFacing = _gameplay.GetDirection(_splitCell);
             _splitElapsed = 0f;
-            _abilityRequested = false;
             source.Mover.BeginInteractionMotion();
             BuildCutParticles(source.BodyColor);
             RefreshControl();

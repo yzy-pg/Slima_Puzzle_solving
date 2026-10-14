@@ -66,6 +66,12 @@ namespace BlockMap.Gameplay
 
         public void StopAfterCurrentStep() => _route.Clear();
 
+        public void SetFacing(int direction)
+        {
+            Facing = ((direction % 4) + 4) % 4;
+            transform.rotation = Quaternion.Euler(0f, Facing * 90f, 0f);
+        }
+
         public void BeginInteractionMotion()
         {
             _route.Clear();

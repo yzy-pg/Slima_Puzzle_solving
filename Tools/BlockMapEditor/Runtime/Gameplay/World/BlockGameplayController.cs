@@ -161,8 +161,10 @@ namespace BlockMap.Gameplay
                         state.latchedReceiverFaces = saved.receiverFaces;
                         state.buttonRemaining = saved.buttonRemaining;
                     }
+            foreach (GameplayBlockCell door in Enumerate(GameplayBlockKind.Door))
+                _signals.SetToggled(door.SignalChannel, StateAt(door.Cell).toggled);
             _optics?.RefreshIfNeeded();
-            EvaluateSignals();
+            EvaluateSignals(false);
         }
 
         void OnDestroy()
@@ -173,8 +175,6 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
-            if (Time.timeScale > 0f && _party != null)
-                foreach (SlimeActor actor in _party.Actors) BurnAdjacentDestructibles(actor);
             if (_worldDirty) RebuildViews(true);
             foreach (var state in _states.Values)
                 state.buttonRemaining = Mathf.Max(0f, state.buttonRemaining - Time.deltaTime);
@@ -290,7 +290,7 @@ namespace BlockMap.Gameplay
 
         public bool ApplyPassive(SlimeActor actor)
         {
-            if (actor == null || actor.State.form == SlimeForm.Gas) return false;
+            if (actor == null) return false;
             GameplayBlockProfile profile = GetProfileAt(actor.Mover.Cell);
             if (profile == null) return false;
 
@@ -298,22 +298,14 @@ namespace BlockMap.Gameplay
             switch (profile.Kind)
             {
                 case GameplayBlockKind.RedFloor:
-                    if (next.element == SlimeElement.Blue)
-                    {
-                        next.element = SlimeElement.Neutral;
-                        next.form = SlimeForm.Gas;
-                    }
-                    else next.element = SlimeElement.Red;
+                    next.element = SlimeElement.Red;
+                    next.form = SlimeForm.Solid;
                     actor.SetState(next);
                     return false;
 
                 case GameplayBlockKind.BlueFloor:
-                    if (next.element == SlimeElement.Red)
-                    {
-                        next.element = SlimeElement.Neutral;
-                        next.form = SlimeForm.Gas;
-                    }
-                    else next.element = SlimeElement.Blue;
+                    next.element = SlimeElement.Blue;
+                    next.form = SlimeForm.Solid;
                     actor.SetState(next);
                     return false;
 
@@ -347,8 +339,8 @@ namespace BlockMap.Gameplay
             {
                 Vector3Int cell = actor.Mover.Cell + GridDirection.ToVector(direction);
                 GameplayBlockProfile profile = GetProfileAt(cell);
-                if (profile == null || (profile.Kind != GameplayBlockKind.Lever && profile.Kind != GameplayBlockKind.Button)) continue;
-                interaction = new SlimeInteraction(profile.Kind == GameplayBlockKind.Button ? SlimeInteractionKind.Button : SlimeInteractionKind.Lever, cell);
+                if (profile == null || profile.Kind != GameplayBlockKind.Button) continue;
+                interaction = new SlimeInteraction(SlimeInteractionKind.Button, cell);
                 return true;
             }
             return false;
@@ -363,16 +355,68 @@ namespace BlockMap.Gameplay
                 case SlimeInteractionKind.Split: return _party.TrySplit(actor);
                 case SlimeInteractionKind.Button:
                     StateAt(interaction.Cell).buttonRemaining = .65f;
+                    GameplayBlockProfile button = GetProfileAt(interaction.Cell);
+                    string buttonChannel = ResolveChannel(interaction.Cell, button);
+                    _signals.Set(buttonChannel, SourceKey("button", interaction.Cell), true);
+                    ToggleLinkedDoors(buttonChannel);
                     EvaluateSignals();
                     Changed?.Invoke();
                     return true;
+                case SlimeInteractionKind.Lever:
+                    return false;
                 default:
-                    RuntimeState state = StateAt(interaction.Cell);
-                    state.toggled = !state.toggled;
-                    _optics?.MarkDirty();
-                    Changed?.Invoke();
-                    return true;
+                    return false;
             }
+        }
+
+        /// <summary>处理每次实际进入的格子，包含滑动途中经过的格子。</summary>
+        public bool ProcessCellEntry(SlimeActor actor, Vector3Int cell)
+        {
+            if (actor == null) return false;
+            if (CanDestroyOnEntry(actor, cell)) DestroyOnEntry(actor, cell);
+
+            GameplayBlockProfile profile = GetProfileAt(cell);
+            if (profile != null && profile.Kind == GameplayBlockKind.Lever)
+                ToggleLeverAt(cell, profile);
+
+            return ApplyPassive(actor);
+        }
+
+        void ToggleLeverAt(Vector3Int cell, GameplayBlockProfile profile)
+        {
+            RuntimeState state = StateAt(cell);
+            state.toggled = !state.toggled;
+            string channel = ResolveChannel(cell, profile);
+            _signals.Set(channel, SourceKey("lever", cell), state.toggled);
+            ToggleLinkedDoors(channel);
+        }
+
+        string ResolveChannel(Vector3Int cell, GameplayBlockProfile profile) =>
+            BlockLinkRules.ResolveChannel(
+                _world != null ? _world.GetLinkId(cell) : string.Empty,
+                profile,
+                _world == null || !_world.HasLinkIds);
+
+        void ToggleLinkedDoors(string channel)
+        {
+            if (string.IsNullOrWhiteSpace(channel)) return;
+            _signals.Toggle(channel);
+            bool signalState = _signals.IsToggled(channel);
+            foreach (GameplayBlockCell door in Enumerate(GameplayBlockKind.Door))
+            {
+                if (!string.Equals(door.SignalChannel, channel, StringComparison.Ordinal)) continue;
+                RuntimeState state = StateAt(door.Cell);
+                state.toggled = signalState;
+                SetDoorSignalState(door, state, signalState);
+            }
+        }
+
+        void SetDoorSignalState(GameplayBlockCell door, RuntimeState state, bool signalState)
+        {
+            bool isOpen = door.Profile.invertSignal ? !signalState : signalState;
+            if (state.active != isOpen) _optics?.MarkDirty();
+            state.active = isOpen;
+            state.view?.SetActivated(isOpen);
         }
 
         public bool CanDestroyOnEntry(SlimeActor actor, Vector3Int cell)
@@ -398,29 +442,6 @@ namespace BlockMap.Gameplay
             }
             _world.Remove(cell);
             return true;
-        }
-
-        void BurnAdjacentDestructibles(SlimeActor actor)
-        {
-            if (actor == null || actor.Mover == null || !actor.gameObject.activeInHierarchy ||
-                actor.State.form != SlimeForm.Solid || actor.State.element != SlimeElement.Red) return;
-
-            for (int direction = 0; direction < 4; direction++)
-            {
-                Vector3Int target = actor.Mover.Cell + GridDirection.ToVector(direction);
-                if (GetProfileAt(target)?.Kind != GameplayBlockKind.Destructible) continue;
-                if (_worldDirty) RebuildViews(true);
-                if (Application.isPlaying && _states.TryGetValue(target, out RuntimeState state) && state.view != null)
-                {
-                    if (_burnRoot == null)
-                    {
-                        _burnRoot = new GameObject("BurningPackages").transform;
-                        _burnRoot.SetParent(transform, false);
-                    }
-                    DestructibleBurnEffect.Create(state.view, _burnRoot);
-                }
-                _world.Remove(target);
-            }
         }
 
         public bool IsExit(Vector3Int cell)
@@ -513,10 +534,9 @@ namespace BlockMap.Gameplay
             return state;
         }
 
-        void EvaluateSignals()
+        void EvaluateSignals(bool processActivationEdges = true)
         {
             if (_world == null) return;
-            _signals.Clear();
 
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.PressurePlate))
             {
@@ -527,8 +547,10 @@ namespace BlockMap.Gameplay
                         if (actor != null && actor.Mover.Cell == block.Cell) weight += actor.Weight;
                 }
                 int required = Mathf.Max(1, block.Profile.value);
-                _signals.Set(block.SignalChannel, SourceKey("plate", block.Cell), weight >= required);
-                StateAt(block.Cell).active = weight >= required;
+                bool active = weight >= required;
+                if (_signals.Set(block.SignalChannel, SourceKey("plate", block.Cell), active) && processActivationEdges)
+                    ToggleLinkedDoors(block.SignalChannel);
+                StateAt(block.Cell).active = active;
             }
 
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.Lever))
@@ -547,20 +569,23 @@ namespace BlockMap.Gameplay
                 bool active = _activeReceivers.Contains(block.Cell) || state.latched;
                 state.active = active;
                 state.view?.SetReceiverFaces(state.receiverFaces | state.latchedReceiverFaces);
-                _signals.Set(block.SignalChannel, SourceKey("receiver", block.Cell), active);
+                if (_signals.Set(block.SignalChannel, SourceKey("receiver", block.Cell), active) && processActivationEdges)
+                    ToggleLinkedDoors(block.SignalChannel);
             }
 
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.Door))
             {
                 RuntimeState state = StateAt(block.Cell);
-                bool signalActive = _signals.IsActive(block.SignalChannel);
-                bool active = block.Profile.invertSignal ? !signalActive : signalActive;
-                if (state.active != active) _optics?.MarkDirty();
-                state.active = active;
+                bool signalState = _signals.IsToggled(block.SignalChannel);
+                state.toggled = signalState;
+                SetDoorSignalState(block, state, signalState);
             }
 
             foreach (KeyValuePair<Vector3Int, RuntimeState> item in _states)
-                item.Value.view?.SetActivated(item.Value.active || item.Value.toggled);
+            {
+                if (item.Value.view == null || GetProfileAt(item.Key)?.Kind == GameplayBlockKind.Door) continue;
+                item.Value.view.SetActivated(item.Value.active || item.Value.toggled);
+            }
         }
 
         void RebuildViews(bool preserveState)
