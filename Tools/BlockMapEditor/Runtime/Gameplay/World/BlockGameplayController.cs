@@ -173,6 +173,8 @@ namespace BlockMap.Gameplay
 
         void Update()
         {
+            if (Time.timeScale > 0f && _party != null)
+                foreach (SlimeActor actor in _party.Actors) BurnAdjacentDestructibles(actor);
             if (_worldDirty) RebuildViews(true);
             foreach (var state in _states.Values)
                 state.buttonRemaining = Mathf.Max(0f, state.buttonRemaining - Time.deltaTime);
@@ -296,14 +298,22 @@ namespace BlockMap.Gameplay
             switch (profile.Kind)
             {
                 case GameplayBlockKind.RedFloor:
-                    next.element = SlimeElement.Red;
-                    next.form = SlimeForm.Solid;
+                    if (next.element == SlimeElement.Blue)
+                    {
+                        next.element = SlimeElement.Neutral;
+                        next.form = SlimeForm.Gas;
+                    }
+                    else next.element = SlimeElement.Red;
                     actor.SetState(next);
                     return false;
 
                 case GameplayBlockKind.BlueFloor:
-                    next.element = SlimeElement.Blue;
-                    next.form = SlimeForm.Solid;
+                    if (next.element == SlimeElement.Red)
+                    {
+                        next.element = SlimeElement.Neutral;
+                        next.form = SlimeForm.Gas;
+                    }
+                    else next.element = SlimeElement.Blue;
                     actor.SetState(next);
                     return false;
 
@@ -320,6 +330,17 @@ namespace BlockMap.Gameplay
             interaction = default;
             if (actor == null || actor.State.form == SlimeForm.Gas || (_party != null && _party.IsBusy)) return false;
 
+            if (_party != null && _party.CanFuseFacing(actor))
+            {
+                interaction = new SlimeInteraction(SlimeInteractionKind.Fuse, actor.Mover.Cell);
+                return true;
+            }
+
+            if (_party != null && _party.CanSplit(actor) && _party.TryGetSplitterCell(actor, out Vector3Int splitter))
+            {
+                interaction = new SlimeInteraction(SlimeInteractionKind.Split, splitter);
+                return true;
+            }
             int facing = actor.Mover.Facing;
             int[] order = { facing, GridDirection.Left(facing), GridDirection.Right(facing), GridDirection.Back(facing) };
             foreach (int direction in order)
@@ -338,6 +359,8 @@ namespace BlockMap.Gameplay
             if (!TryGetInteraction(actor, out SlimeInteraction interaction)) return false;
             switch (interaction.Kind)
             {
+                case SlimeInteractionKind.Fuse: return _party.TryFuseFacing(actor);
+                case SlimeInteractionKind.Split: return _party.TrySplit(actor);
                 case SlimeInteractionKind.Button:
                     StateAt(interaction.Cell).buttonRemaining = .65f;
                     EvaluateSignals();
@@ -375,6 +398,29 @@ namespace BlockMap.Gameplay
             }
             _world.Remove(cell);
             return true;
+        }
+
+        void BurnAdjacentDestructibles(SlimeActor actor)
+        {
+            if (actor == null || actor.Mover == null || !actor.gameObject.activeInHierarchy ||
+                actor.State.form != SlimeForm.Solid || actor.State.element != SlimeElement.Red) return;
+
+            for (int direction = 0; direction < 4; direction++)
+            {
+                Vector3Int target = actor.Mover.Cell + GridDirection.ToVector(direction);
+                if (GetProfileAt(target)?.Kind != GameplayBlockKind.Destructible) continue;
+                if (_worldDirty) RebuildViews(true);
+                if (Application.isPlaying && _states.TryGetValue(target, out RuntimeState state) && state.view != null)
+                {
+                    if (_burnRoot == null)
+                    {
+                        _burnRoot = new GameObject("BurningPackages").transform;
+                        _burnRoot.SetParent(transform, false);
+                    }
+                    DestructibleBurnEffect.Create(state.view, _burnRoot);
+                }
+                _world.Remove(target);
+            }
         }
 
         public bool IsExit(Vector3Int cell)
