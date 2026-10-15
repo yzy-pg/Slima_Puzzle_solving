@@ -40,21 +40,24 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
-        public void NumbersSurviveSaveMoveAndRemovalOfOtherSources()
+        public void NumbersCompactAfterRemovalWhileMoveAndSavePreserveLinks()
         {
             var first = new Vector3Int(1, 1, 1);
             var second = new Vector3Int(2, 1, 1);
             var moved = new Vector3Int(4, 1, 1);
             AddLever(first, "G001");
             AddLever(second, "G001");
-            int number = _world.GetMechanismNumber(second);
+            Assert.That(_world.GetMechanismNumber(second), Is.EqualTo(2));
             _world.Remove(first);
             Assert.That(_world.Move(second, moved), Is.True);
             string json = _world.ToJson();
             _world.FromJson(json);
-            Assert.That(_world.GetMechanismNumber(moved), Is.EqualTo(number));
+            Assert.That(_world.GetMechanismNumber(moved), Is.EqualTo(1));
+            Assert.That(_world.GetLinkId(moved), Is.EqualTo("G001"));
             AddLever(new Vector3Int(5, 1, 1), "G001");
-            Assert.That(_world.GetMechanismNumber(new Vector3Int(5, 1, 1)), Is.GreaterThan(number));
+            _world.EnsureMechanismNumbers();
+            Assert.That(_world.GetMechanismNumber(moved), Is.EqualTo(1));
+            Assert.That(_world.GetMechanismNumber(new Vector3Int(5, 1, 1)), Is.EqualTo(2));
         }
 
         [Test]

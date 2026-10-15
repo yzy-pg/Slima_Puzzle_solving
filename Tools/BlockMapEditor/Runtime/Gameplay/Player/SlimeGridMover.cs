@@ -23,6 +23,7 @@ namespace BlockMap.Gameplay
         public Vector3Int Cell { get; private set; }
         public int Facing { get; private set; }
         public bool IsMoving { get; private set; }
+        public Vector3Int DestinationCell => IsMoving && !_interactionMotion ? CellOf(_stepTarget) : Cell;
         public bool HasPendingMovement => IsMoving || _route.Count > 0;
         public bool HasQueuedRoute => _route.Count > 0;
         public bool InputEnabled { get; set; } = true;

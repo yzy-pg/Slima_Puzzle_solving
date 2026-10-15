@@ -125,7 +125,7 @@ namespace BlockMap.Gameplay
             if (actor.State.form == SlimeForm.Solid && actor.State.size == SlimeSize.Large &&
                 _gameplay.GetProfileAt(firstCell)?.Kind == GameplayBlockKind.Splitter)
             {
-                // Entry and the F interaction both use the same splitter validation.
+                // 切割只由移动进入触发；提示和 F 交互不提供切割入口。
                 if (direction == mover.Facing) TrySplit(actor);
                 return false;
             }
@@ -147,7 +147,8 @@ namespace BlockMap.Gameplay
             int limit = Mathf.Max(1, BlockGameplaySettings.Current.blueSlideLimit);
             for (int step = 1; step < limit; step++)
             {
-                if (CanFusePair(actor, FindAt(next))) break;
+                // 同步移动时，同伴会离开当前格；在实际落格时判定融合，不能提前截断路线。
+                if (!_synchronousSplitMovement && CanFusePair(actor, FindAt(next))) break;
                 GameplayBlockProfile floor = _gameplay.GetProfileAt(next);
                 if (floor != null && floor.Kind == GameplayBlockKind.RedFloor) break;
 
@@ -216,7 +217,7 @@ namespace BlockMap.Gameplay
 
             if (actor.State.form == SlimeForm.Solid)
             {
-                if (HasOtherSolidAt(actor, cell)) mover.StopAfterCurrentStep();
+                if (FindFusionPartnerAt(actor, cell) != null) mover.StopAfterCurrentStep();
                 FuseAt(cell);
             }
             if (_gameplay.IsExit(cell)) ExitReached?.Invoke();
@@ -229,29 +230,6 @@ namespace BlockMap.Gameplay
                 if (actor != null && actor != source && actor.State.form == SlimeForm.Solid && actor.Mover.Cell == cell)
                     return true;
             return false;
-        }
-
-        static bool CanFusePair(SlimeActor first, SlimeActor second) =>
-            first != null && second != null && first != second &&
-            first.State.form == SlimeForm.Solid && second.State.form == SlimeForm.Solid &&
-            first.State.size == SlimeSize.Small && second.State.size == SlimeSize.Small;
-
-        /// <summary>查询当前控制的史莱姆是否可以与面朝方向的小史莱姆融合。</summary>
-        public bool CanFuseFacing(SlimeActor source)
-        {
-            if (source == null || IsBusy) return false;
-            Vector3Int target = source.Mover.Cell + GridDirection.ToVector(source.Mover.Facing);
-            return CanFusePair(source, FindAt(target)) &&
-                   _gameplay.CanEnter(source, target, source.Mover.Facing, false);
-        }
-
-        public bool TryFuseFacing(SlimeActor source)
-        {
-            if (!CanFuseFacing(source)) return false;
-            Vector3Int target = source.Mover.Cell + GridDirection.ToVector(source.Mover.Facing);
-            if (!source.Mover.TryMoveTo(target)) return false;
-            Changed?.Invoke();
-            return true;
         }
 
         public SlimeActor FindAt(Vector3Int cell)
@@ -287,29 +265,6 @@ namespace BlockMap.Gameplay
             int direction = Mathf.Abs(delta.x) > Mathf.Abs(delta.z)
                 ? (delta.x > 0 ? 1 : 3) : (delta.z > 0 ? 0 : 2);
             return _gameplay.CanEnter(actor, cell, direction, allowPush);
-        }
-
-        void FuseAt(Vector3Int cell)
-        {
-            SlimeActor first = null;
-            SlimeActor second = null;
-            foreach (SlimeActor actor in _actors)
-            {
-                if (actor == null || actor.Mover.Cell != cell || actor.State.form != SlimeForm.Solid ||
-                    actor.State.size != SlimeSize.Small) continue;
-                if (first == null) first = actor;
-                else { second = actor; break; }
-            }
-            if (first == null || second == null) return;
-
-            SlimeActor survivor = first.IsControlled ? first : second.IsControlled ? second : first;
-            SlimeActor removed = survivor == first ? second : first;
-            survivor.SetState(SlimeRules.Fuse(first.State, second.State));
-            _actors.Remove(removed);
-            if (Application.isPlaying) Destroy(removed.gameObject);
-            else DestroyImmediate(removed.gameObject);
-            _activeIndex = Mathf.Max(0, _actors.IndexOf(survivor));
-            RefreshControl();
         }
 
         SlimeActor SpawnActor(SlimeState state, Vector3Int cell, int facing)

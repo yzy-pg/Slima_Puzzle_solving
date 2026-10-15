@@ -117,26 +117,123 @@ namespace BlockMap.Gameplay.Tests
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
         }
 
-        [Test]
-        public void EachBeamReceiverActivationTogglesItsSharedDoor()
+        [TestCase("Door", false)]
+        [TestCase("Door_Inverted", true)]
+        public void ContinuousReceiverTogglesOnBothEdgesButNotWhileHeld(string doorId, bool initiallyOpen)
         {
-            var receiver = new Vector3Int(3, 1, 2);
+            var receiver = new Vector3Int(0, 1, 4);
+            var emitter = new Vector3Int(0, 1, 0);
             var door = new Vector3Int(4, 1, 2);
             _world.Set(receiver, BlockLibrary.IndexOf("Lab_Laser_04"));
-            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.Set(door, BlockLibrary.IndexOf(doorId));
             _world.SetLinkId(receiver, "receiver-toggle");
             _world.SetLinkId(door, "receiver-toggle");
             RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(initiallyOpen));
 
-            _gameplay.ActivateReceiver(receiver);
+            _world.Set(emitter, BlockLibrary.IndexOf("Lab_Laser_01"));
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(!initiallyOpen));
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(!initiallyOpen));
+
+            _world.SetDir(emitter, 1);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(initiallyOpen));
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(initiallyOpen));
+            _world.SetDir(emitter, 0);
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.EqualTo(!initiallyOpen));
+        }
+
+        [Test]
+        public void RestoringLitReceiverDoesNotToggleAgainAndStillHandlesBeamLoss()
+        {
+            var receiver = new Vector3Int(0, 1, 4);
+            var emitter = new Vector3Int(0, 1, 0);
+            var door = new Vector3Int(4, 1, 2);
+            _world.Set(receiver, BlockLibrary.IndexOf("Lab_Laser_04"));
+            _world.Set(emitter, BlockLibrary.IndexOf("Lab_Laser_01"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(receiver, "receiver-save");
+            _world.SetLinkId(door, "receiver-save");
+            RefreshGameplay();
+            MechanismProgress[] saved = _gameplay.CaptureProgress();
+
+            _gameplay.RestoreProgress(saved);
             RefreshGameplay();
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
-            _gameplay.BeginReceiverEvaluation();
-            RefreshGameplay();
-            _gameplay.ActivateReceiver(receiver);
-            RefreshGameplay();
 
+            _world.SetDir(emitter, 1);
+            RefreshGameplay();
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.False);
+        }
+
+        [Test]
+        public void HeldReceiverDoesNotOverrideLeverUntilItsSignalChanges()
+        {
+            var receiver = new Vector3Int(0, 1, 4);
+            var emitter = new Vector3Int(0, 1, 0);
+            var door = new Vector3Int(4, 1, 2);
+            var lever = new Vector3Int(3, 1, 2);
+            _world.Set(receiver, BlockLibrary.IndexOf("Lab_Laser_04"));
+            _world.Set(emitter, BlockLibrary.IndexOf("Lab_Laser_01"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.Set(lever, BlockLibrary.IndexOf("Lever_B"));
+            foreach (Vector3Int cell in new[] { receiver, door, lever }) _world.SetLinkId(cell, "shared-door");
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
+
+            _party.ActiveActor.Mover.TryMoveTo(lever);
+            FinishCurrentStep(_party.ActiveActor.Mover);
+            RefreshGameplay();
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.False);
+
+            _world.SetDir(emitter, 1);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
+        }
+
+        [Test]
+        public void SaveWhileEmitterOccupiesDoorPreservesBothObjectsAndDoorMetadata()
+        {
+            var lever = new Vector3Int(2, 1, 3);
+            var emitter = new Vector3Int(3, 1, 2);
+            var door = new Vector3Int(4, 1, 2);
+            _world.Set(lever, BlockLibrary.IndexOf("Lever_B"));
+            _world.Set(emitter, BlockLibrary.IndexOf("Lab_Laser_01"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(lever, "occupied-door-save");
+            _world.SetLinkId(door, "occupied-door-save");
+            _world.SetDir(emitter, 2);
+            _world.SetDir(door, 3);
+            _world.SetMechanismColor(door, Color.yellow);
+            RefreshGameplay();
+            _party.ActiveActor.Mover.Teleport(lever, 0);
+            _gameplay.ProcessCellEntry(_party.ActiveActor, lever);
+            Assert.That(_world.Move(emitter, door, allowCover: true), Is.True);
+            RefreshGameplay();
+            string savedWorld = _world.ToJson();
+            MechanismProgress[] savedMechanisms = _gameplay.CaptureProgress();
+
+            _world.FromJson(savedWorld);
+            _gameplay.RestoreProgress(savedMechanisms);
+            _party.ActiveActor.Mover.Teleport(emitter, 1);
+            RefreshGameplay();
+            Assert.That(_world.GetIndex(door), Is.EqualTo(BlockLibrary.IndexOf("Lab_Laser_01")));
+            Assert.That(_world.GetLinkId(door, "Door"), Is.EqualTo("occupied-door-save"));
+            Assert.That(_world.GetDir(door), Is.EqualTo(2));
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, true), Is.True);
+            RefreshGameplay();
+            Assert.That(_world.GetIndex(door), Is.EqualTo(BlockLibrary.IndexOf("Door")));
+            Assert.That(_world.GetDir(door), Is.EqualTo(3));
+            Assert.That(_world.GetLinkId(door), Is.EqualTo("occupied-door-save"));
+            Assert.That(_world.TryGetMechanismColor(door, out Color restoredColor), Is.True);
+            Assert.That(restoredColor, Is.EqualTo(Color.yellow));
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 1, false), Is.True);
         }
 
         [Test]

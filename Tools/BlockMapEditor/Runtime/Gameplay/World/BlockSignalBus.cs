@@ -11,6 +11,13 @@ namespace BlockMap.Gameplay
 
         public bool Set(string channel, string source, bool active)
         {
+            bool changed = SetContinuous(channel, source, active);
+            return active && changed;
+        }
+
+        /// <summary>持续机关在接通和断开时都返回一次变化；保持状态时返回 false。</summary>
+        public bool SetContinuous(string channel, string source, bool active)
+        {
             if (string.IsNullOrWhiteSpace(channel) || string.IsNullOrWhiteSpace(source)) return false;
             if (!_channels.TryGetValue(channel, out Dictionary<string, bool> sources))
             {
@@ -19,7 +26,7 @@ namespace BlockMap.Gameplay
             }
             bool wasActive = sources.TryGetValue(source, out bool previous) && previous;
             sources[source] = active;
-            return active && !wasActive;
+            return active != wasActive;
         }
 
         public bool IsActive(string channel)

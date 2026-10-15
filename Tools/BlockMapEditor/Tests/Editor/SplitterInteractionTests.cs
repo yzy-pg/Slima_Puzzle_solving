@@ -63,7 +63,12 @@ namespace BlockMap.Gameplay.Tests
             source.Mover.Teleport(_center, GridDirection.Right(facing));
             Assert.That(_gameplay.CanEnter(source, _center + right, GridDirection.Right(facing), false), Is.False);
             source.Mover.Teleport(_center - front, facing);
-            Assert.That(_gameplay.TryInteract(source), Is.True);
+            Assert.That(_party.CanSplit(source), Is.True);
+            Assert.That(_gameplay.TryGetInteraction(source, out _), Is.False, "切割机不再提供 F 气泡。");
+            Assert.That(_gameplay.TryInteract(source), Is.False, "F 不得启动切割。");
+            Assert.That(_party.IsBusy, Is.False);
+            Assert.That(_party.TryBuildRoute(source.Mover, facing, new List<Vector3Int>()), Is.False);
+            Assert.That(_party.IsBusy, Is.True, "沿正确方向移动仍应启动切割。");
             Finish();
             Assert.That(source.Mover.Cell, Is.EqualTo(_center + front - right));
             Assert.That(_party.Actors[1].Mover.Cell, Is.EqualTo(_center + front + right));

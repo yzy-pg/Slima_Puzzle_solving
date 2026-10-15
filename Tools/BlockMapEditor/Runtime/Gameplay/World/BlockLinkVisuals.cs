@@ -56,18 +56,25 @@ namespace BlockMap.Gameplay
                     groups[channel] = sources = new List<Vector3Int>();
                 sources.Add(item.Key);
             }
+            foreach (BlockWorld.SaveEntry covered in world.CoveredBlocks)
+            {
+                var profile = BlockGameplayCatalog.Get(covered.id);
+                if (profile?.Kind != GameplayBlockKind.Door) continue;
+                string channel = BlockLinkRules.ResolveChannel(covered.linkId, profile, !world.HasLinkIds);
+                if (channel.Length > 0) targets.Add(channel);
+            }
             foreach (var sources in groups.Values)
                 sources.Sort((a, b) => world.GetMechanismNumber(a).CompareTo(world.GetMechanismNumber(b)));
             foreach (var view in views)
             {
                 if (view == null || !BlockLinkRules.IsLinkable(view.Profile.Kind)) continue;
-                string channel = BlockLinkRules.ResolveChannel(world.GetLinkId(view.Cell), view.Profile, !world.HasLinkIds);
+                string channel = BlockLinkRules.ResolveChannel(world.GetLinkId(view.Cell, view.Profile.id), view.Profile, !world.HasLinkIds);
                 if (view.Profile.Kind == GameplayBlockKind.Door)
                 {
                     var colors = new List<Color>();
                     if (groups.TryGetValue(channel, out var sources))
                         foreach (var cell in sources) colors.Add(SourceColor(world, cell, overrides));
-                    if (colors.Count == 0 && world.TryGetMechanismColor(view.Cell, out var doorColor)) colors.Add(doorColor);
+                    if (colors.Count == 0 && world.TryGetMechanismColor(view.Cell, view.Profile.id, out var doorColor)) colors.Add(doorColor);
                     view.SetLinkColors(colors.ToArray());
                 }
                 else if (view.Profile.Kind != GameplayBlockKind.BeamReceiver)

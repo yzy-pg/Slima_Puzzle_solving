@@ -24,6 +24,7 @@ namespace BlockMap.Gameplay
     [Serializable]
     public sealed class MechanismProgress
     {
+        public string blockId;
         public int receiverFaces;
         public Vector3Int cell;
         public bool toggled;

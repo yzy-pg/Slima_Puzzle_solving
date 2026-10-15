@@ -60,12 +60,23 @@ namespace BlockMap.Gameplay
             {
                 GameplayBlockProfile profile = ProfileFor(block.Value);
                 if (profile == null || !BlockLinkRules.IsSignalTarget(profile.Kind)) continue;
-                string channel = ChannelFor(block.Key, profile);
-                if (!_sources.TryGetValue(channel, out SortedSet<int> numbers)) continue;
-                var values = new int[numbers.Count];
-                numbers.CopyTo(values);
-                _labels.Add(new MechanismLabel(block.Key, values));
+                AddDoorLabel(block.Key, ChannelFor(block.Key, profile));
             }
+            foreach (BlockWorld.SaveEntry covered in _world.CoveredBlocks)
+            {
+                var profile = BlockGameplayCatalog.Get(covered.id);
+                if (profile == null || !BlockLinkRules.IsSignalTarget(profile.Kind)) continue;
+                AddDoorLabel(new Vector3Int(covered.x, covered.y, covered.z),
+                    BlockLinkRules.ResolveChannel(covered.linkId, profile, !_world.HasLinkIds));
+            }
+        }
+
+        void AddDoorLabel(Vector3Int cell, string channel)
+        {
+            if (!_sources.TryGetValue(channel, out SortedSet<int> numbers)) return;
+            var values = new int[numbers.Count];
+            numbers.CopyTo(values);
+            _labels.Add(new MechanismLabel(cell, values));
         }
 
         string ChannelFor(Vector3Int cell, GameplayBlockProfile profile) =>

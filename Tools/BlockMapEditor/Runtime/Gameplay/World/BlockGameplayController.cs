@@ -49,7 +49,8 @@ namespace BlockMap.Gameplay
             public float buttonRemaining;
         }
 
-        readonly Dictionary<Vector3Int, RuntimeState> _states = new Dictionary<Vector3Int, RuntimeState>();
+        readonly Dictionary<(Vector3Int cell, int index), RuntimeState> _states =
+            new Dictionary<(Vector3Int cell, int index), RuntimeState>();
         readonly BlockSignalBus _signals = new BlockSignalBus();
         readonly HashSet<Vector3Int> _activeReceivers = new HashSet<Vector3Int>();
         readonly Dictionary<int, Color> _mechanismColors = new Dictionary<int, Color>();
@@ -136,11 +137,12 @@ namespace BlockMap.Gameplay
         {
             if (_worldDirty) RebuildViews(true);
             var result = new List<MechanismProgress>();
-            foreach (KeyValuePair<Vector3Int, RuntimeState> item in _states)
+            foreach (var item in _states)
                 if (item.Value.toggled || item.Value.latched || item.Value.buttonRemaining > 0f)
                     result.Add(new MechanismProgress
                     {
-                        cell = item.Key,
+                        cell = item.Key.cell,
+                        blockId = BlockLibrary.Get(item.Key.index)?.id,
                         toggled = item.Value.toggled,
                         receiverFaces = item.Value.latchedReceiverFaces,
                         latched = item.Value.latched,
@@ -154,7 +156,8 @@ namespace BlockMap.Gameplay
             ResetState();
             if (mechanisms != null)
                 foreach (MechanismProgress saved in mechanisms)
-                    if (_states.TryGetValue(saved.cell, out RuntimeState state))
+                    if (_states.TryGetValue((saved.cell, string.IsNullOrEmpty(saved.blockId)
+                        ? _world.GetIndex(saved.cell) : BlockLibrary.IndexOf(saved.blockId)), out RuntimeState state))
                     {
                         state.toggled = saved.toggled;
                         state.latched = saved.latched;
@@ -162,7 +165,9 @@ namespace BlockMap.Gameplay
                         state.buttonRemaining = saved.buttonRemaining;
                     }
             foreach (GameplayBlockCell door in Enumerate(GameplayBlockKind.Door))
-                _signals.SetToggled(door.SignalChannel, StateAt(door.Cell).toggled);
+                _signals.SetToggled(door.SignalChannel, StateAt(door.Cell, BlockLibrary.IndexOf(door.Definition.id)).toggled);
+            // 先恢复门的通行状态，再重算光路，避免恢复后的第一帧产生伪接通/断光事件。
+            EvaluateSignals(false);
             _optics?.RefreshIfNeeded();
             EvaluateSignals(false);
         }
@@ -224,6 +229,14 @@ namespace BlockMap.Gameplay
                         _world.GetLinkId(item.Key),
                         !_world.HasLinkIds);
             }
+            foreach (BlockWorld.SaveEntry entry in _world.CoveredBlocks)
+            {
+                BlockDefinition definition = BlockLibrary.Get(entry.id);
+                GameplayBlockProfile profile = definition != null ? BlockGameplayCatalog.Get(definition.id) : null;
+                if (profile != null && profile.Kind == kind)
+                    yield return new GameplayBlockCell(new Vector3Int(entry.x, entry.y, entry.z),
+                        definition, profile, entry.linkId, !_world.HasLinkIds);
+            }
         }
 
         public bool CanEnter(SlimeActor actor, Vector3Int cell, int direction, bool allowPush)
@@ -251,6 +264,7 @@ namespace BlockMap.Gameplay
                 return !BlocksMovement(cell + Vector3Int.up, false);
             }
 
+            if (CoveredDoorBlocksMovement(cell)) return false;
             GameplayBlockProfile profile = GetProfileAt(cell);
             if (profile != null && profile.blocksMovement)
             {
@@ -328,11 +342,6 @@ namespace BlockMap.Gameplay
                 return true;
             }
 
-            if (_party != null && _party.CanSplit(actor) && _party.TryGetSplitterCell(actor, out Vector3Int splitter))
-            {
-                interaction = new SlimeInteraction(SlimeInteractionKind.Split, splitter);
-                return true;
-            }
             int facing = actor.Mover.Facing;
             int[] order = { facing, GridDirection.Left(facing), GridDirection.Right(facing), GridDirection.Back(facing) };
             foreach (int direction in order)
@@ -352,7 +361,6 @@ namespace BlockMap.Gameplay
             switch (interaction.Kind)
             {
                 case SlimeInteractionKind.Fuse: return _party.TryFuseFacing(actor);
-                case SlimeInteractionKind.Split: return _party.TrySplit(actor);
                 case SlimeInteractionKind.Button:
                     StateAt(interaction.Cell).buttonRemaining = .65f;
                     GameplayBlockProfile button = GetProfileAt(interaction.Cell);
@@ -405,7 +413,7 @@ namespace BlockMap.Gameplay
             foreach (GameplayBlockCell door in Enumerate(GameplayBlockKind.Door))
             {
                 if (!string.Equals(door.SignalChannel, channel, StringComparison.Ordinal)) continue;
-                RuntimeState state = StateAt(door.Cell);
+                RuntimeState state = StateAt(door.Cell, BlockLibrary.IndexOf(door.Definition.id));
                 state.toggled = signalState;
                 SetDoorSignalState(door, state, signalState);
             }
@@ -429,7 +437,7 @@ namespace BlockMap.Gameplay
         {
             if (!CanDestroyOnEntry(actor, cell)) return false;
             if (_worldDirty) RebuildViews(true);
-            if (_states.TryGetValue(cell, out RuntimeState state) && state.view != null)
+            if (_states.TryGetValue((cell, _world.GetIndex(cell)), out RuntimeState state) && state.view != null)
             {
                 // Hide the live object immediately; only the detached burn effect may remain visible.
                 if (_burnRoot == null)
@@ -492,9 +500,15 @@ namespace BlockMap.Gameplay
         bool TryPush(Vector3Int from, int direction)
         {
             Vector3Int to = from + GridDirection.ToVector(direction);
-            if (!WithinLevel(to) || _world.IsSolid(to) || !HasSupport(to + Vector3Int.down)) return false;
-            return _world.Move(from, to);
+            if (!WithinLevel(to) || !HasSupport(to + Vector3Int.down) || GetActorAt(to) != null) return false;
+            bool occupied = _world.IsSolid(to);
+            if (occupied && (GetProfileAt(to)?.Kind != GameplayBlockKind.Door || !IsActivated(to))) return false;
+            return _world.Move(from, to, allowCover: occupied);
         }
+
+        bool CoveredDoorBlocksMovement(Vector3Int cell) =>
+            _world.TryGetCoveredBlock(cell, out BlockWorld.SaveEntry covered) &&
+            BlockGameplayCatalog.Get(covered.id)?.Kind == GameplayBlockKind.Door && !IsActivated(cell);
 
         bool HasSupport(Vector3Int cell)
         {
@@ -522,14 +536,22 @@ namespace BlockMap.Gameplay
                    cell.z >= _minXZ.y && cell.z <= _maxXZ.y;
         }
 
-        bool IsActivated(Vector3Int cell) => _states.TryGetValue(cell, out RuntimeState state) && state.active;
-
-        RuntimeState StateAt(Vector3Int cell)
+        bool IsActivated(Vector3Int cell)
         {
-            if (!_states.TryGetValue(cell, out RuntimeState state))
+            int index = _world.GetIndex(cell);
+            if (_world.TryGetCoveredBlock(cell, out BlockWorld.SaveEntry covered) &&
+                BlockGameplayCatalog.Get(covered.id)?.Kind == GameplayBlockKind.Door)
+                index = BlockLibrary.IndexOf(covered.id);
+            return _states.TryGetValue((cell, index), out RuntimeState state) && state.active;
+        }
+
+        RuntimeState StateAt(Vector3Int cell, int index = -1)
+        {
+            var key = (cell, index < 0 ? _world.GetIndex(cell) : index);
+            if (!_states.TryGetValue(key, out RuntimeState state))
             {
                 state = new RuntimeState();
-                _states.Add(cell, state);
+                _states.Add(key, state);
             }
             return state;
         }
@@ -569,28 +591,28 @@ namespace BlockMap.Gameplay
                 bool active = _activeReceivers.Contains(block.Cell) || state.latched;
                 state.active = active;
                 state.view?.SetReceiverFaces(state.receiverFaces | state.latchedReceiverFaces);
-                if (_signals.Set(block.SignalChannel, SourceKey("receiver", block.Cell), active) && processActivationEdges)
+                if (_signals.SetContinuous(block.SignalChannel, SourceKey("receiver", block.Cell), active) && processActivationEdges)
                     ToggleLinkedDoors(block.SignalChannel);
             }
 
             foreach (GameplayBlockCell block in Enumerate(GameplayBlockKind.Door))
             {
-                RuntimeState state = StateAt(block.Cell);
+                RuntimeState state = StateAt(block.Cell, BlockLibrary.IndexOf(block.Definition.id));
                 bool signalState = _signals.IsToggled(block.SignalChannel);
                 state.toggled = signalState;
                 SetDoorSignalState(block, state, signalState);
             }
 
-            foreach (KeyValuePair<Vector3Int, RuntimeState> item in _states)
+            foreach (var item in _states)
             {
-                if (item.Value.view == null || GetProfileAt(item.Key)?.Kind == GameplayBlockKind.Door) continue;
+                if (item.Value.view == null || item.Value.view.Profile.Kind == GameplayBlockKind.Door) continue;
                 item.Value.view.SetActivated(item.Value.active || item.Value.toggled);
             }
         }
 
         void RebuildViews(bool preserveState)
         {
-            var previous = new Dictionary<Vector3Int, RuntimeState>(_states);
+            var previous = new Dictionary<(Vector3Int cell, int index), RuntimeState>(_states);
             _states.Clear();
             _worldDirty = false;
 
@@ -621,24 +643,11 @@ namespace BlockMap.Gameplay
                     maxZ = Mathf.Max(maxZ, cell.z);
                 }
 
-                BlockDefinition definition = BlockLibrary.Get(item.Value);
-                GameplayBlockProfile profile = definition != null ? BlockGameplayCatalog.Get(definition.id) : null;
-                if (profile == null) continue;
-
-                int direction = _world.GetDir(cell);
-                RuntimeState state;
-                if (preserveState && previous.TryGetValue(cell, out RuntimeState old) &&
-                    old.blockIndex == item.Value && old.direction == direction && old.view != null)
-                {
-                    state = old;
-                }
-                else
-                {
-                    state = new RuntimeState { blockIndex = item.Value, direction = direction };
-                    state.view = GameplayPrototypeFactory.Create(definition, profile, cell, direction, _viewRoot);
-                }
-                _states[cell] = state;
+                RebuildView(previous, preserveState, cell, item.Value, _world.GetDir(cell));
             }
+            foreach (BlockWorld.SaveEntry covered in _world.CoveredBlocks)
+                RebuildView(previous, preserveState, new Vector3Int(covered.x, covered.y, covered.z),
+                    BlockLibrary.IndexOf(covered.id), covered.r);
             if (preserveState) RemoveChangedViews(previous);
             RefreshLinkColors();
             _minXZ = hasBounds ? new Vector2Int(minX, minZ) : Vector2Int.zero;
@@ -646,9 +655,27 @@ namespace BlockMap.Gameplay
             _optics?.MarkDirty();
         }
 
-        void RemoveChangedViews(Dictionary<Vector3Int, RuntimeState> previous)
+        void RebuildView(Dictionary<(Vector3Int cell, int index), RuntimeState> previous,
+            bool preserveState, Vector3Int cell, int index, int direction)
         {
-            foreach (KeyValuePair<Vector3Int, RuntimeState> item in previous)
+            BlockDefinition definition = BlockLibrary.Get(index);
+            GameplayBlockProfile profile = definition != null ? BlockGameplayCatalog.Get(definition.id) : null;
+            if (profile == null) return;
+            var key = (cell, index);
+            if (preserveState && previous.TryGetValue(key, out RuntimeState old) &&
+                old.direction == direction && old.view != null)
+                _states[key] = old;
+            else
+                _states[key] = new RuntimeState
+                {
+                    blockIndex = index, direction = direction,
+                    view = GameplayPrototypeFactory.Create(definition, profile, cell, direction, _viewRoot)
+                };
+        }
+
+        void RemoveChangedViews(Dictionary<(Vector3Int cell, int index), RuntimeState> previous)
+        {
+            foreach (var item in previous)
             {
                 if (_states.TryGetValue(item.Key, out RuntimeState current) && current == item.Value) continue;
                 if (item.Value.view == null) continue;

@@ -43,6 +43,7 @@ namespace BlockMap
             if (_blocks.Count == 0) return;
 
             EnsureMechanismNumbers();
+            _serializedCoveredBlocks = new List<SaveEntry>(_coveredBlocks.Values);
             _serializedBlocks.Clear();
             foreach (var kv in _blocks)
             {
@@ -102,6 +103,7 @@ namespace BlockMap
                 restored++;
             }
 
+            RestoreCoveredBlocks(_serializedCoveredBlocks);
             EnsureMechanismNumbers();
             Debug.Log($"[BlockMap] 已从场景恢复 {restored} 个方块（含朝向）", this);
             foreach (var c in AllChunks()) MarkDirty(c);
@@ -116,8 +118,8 @@ namespace BlockMap
 
         public int Version { get; private set; }
 
-        public int Count => _blocks.Count;
-        public bool HasLinkIds => _linkIds.Count > 0;
+        public int Count => _blocks.Count + _coveredBlocks.Count;
+        public bool HasLinkIds => _linkIds.Count > 0 || CoveredBlocksHaveLinks();
 
         public static Vector3Int ChunkOf(Vector3Int p, int size) => new Vector3Int(
             FloorDiv(p.x, size), FloorDiv(p.y, size), FloorDiv(p.z, size));
@@ -181,6 +183,7 @@ namespace BlockMap
             int number = CreateMechanismNumber(index);
             RecordEdit(pos, before, index, beforeLink, string.Empty, number);
             _blocks[pos] = index;
+            _coveredBlocks.Remove(pos);
             _linkIds.Remove(pos);
             _mechanismColors.Remove(pos);
             SetMechanismNumberRaw(pos, number);
@@ -199,30 +202,25 @@ namespace BlockMap
             _linkIds.Remove(pos);
             _mechanismNumbers.Remove(pos);
             _mechanismColors.Remove(pos);
+            RevealCoveredBlock(pos);
             MarkNeighborhoodDirty(pos);
             NotifyChanged();
         }
 
-        /// <summary>移动一个方块并保留朝向。用于可推动机关；目标格必须为空。</summary>
-        public bool Move(Vector3Int from, Vector3Int to)
+        /// <summary>移动并保留元数据；allowCover 仅供玩法层已确认可穿过的开门使用。</summary>
+        public bool Move(Vector3Int from, Vector3Int to, bool allowCover = false)
         {
             if (!InBounds(from) || !InBounds(to) || from == to) return false;
-            if (!_blocks.TryGetValue(from, out int index) || _blocks.ContainsKey(to)) return false;
+            if (!_blocks.TryGetValue(from, out int index) || _coveredBlocks.ContainsKey(to)) return false;
+            bool occupied = _blocks.TryGetValue(to, out int targetIndex);
+            if (occupied && !allowCover) return false;
 
-            int dir = GetDir(from);
-            string linkId = GetLinkId(from);
-            int number = GetMechanismNumber(from);
-            string color = GetMechanismColorHex(from);
-            _blocks.Remove(from);
-            _dir.Remove(from);
-            _linkIds.Remove(from);
-            _mechanismNumbers.Remove(from);
-            _mechanismColors.Remove(from);
-            _blocks[to] = index;
-            if (dir != 0) _dir[to] = (byte)dir;
-            SetLinkIdRaw(to, linkId);
-            SetMechanismNumberRaw(to, number);
-            SetMechanismColorRaw(to, color);
+            SaveEntry moving = CaptureBlock(from, index);
+            if (occupied) _coveredBlocks[to] = CaptureBlock(to, targetIndex);
+            RemoveBlockRaw(to);
+            RemoveBlockRaw(from);
+            ApplyBlockRaw(to, moving);
+            RevealCoveredBlock(from);
             MarkNeighborhoodDirty(from);
             MarkNeighborhoodDirty(to);
             NotifyChanged();
@@ -232,6 +230,8 @@ namespace BlockMap
         public void Clear()
         {
             foreach (var chunk in AllChunks()) MarkDirty(chunk);
+            _coveredBlocks.Clear();
+            _serializedCoveredBlocks.Clear();
             _dir.Clear();
             _linkIds.Clear();
             _blocks.Clear();
@@ -395,12 +395,18 @@ namespace BlockMap
             public int chunkSize = 16;
             public int nextMechanismNumber = 1;
             public List<SaveEntry> blocks = new List<SaveEntry>();
+            public List<SaveEntry> coveredBlocks = new List<SaveEntry>();
         }
 
         public string ToJson()
         {
             EnsureMechanismNumbers();
-            var data = new SaveData { chunkSize = chunkSize, nextMechanismNumber = _nextMechanismNumber };
+            var data = new SaveData
+            {
+                chunkSize = chunkSize,
+                nextMechanismNumber = _nextMechanismNumber,
+                coveredBlocks = new List<SaveEntry>(_coveredBlocks.Values)
+            };
             foreach (var kv in _blocks)
             {
                 var def = BlockLibrary.Get(kv.Value);
@@ -450,6 +456,8 @@ namespace BlockMap
                 SetMechanismNumberRaw(p, e.mechanismNumber);
                 SetMechanismColorRaw(p, e.mechanismColor);
             }
+            RestoreCoveredBlocks(data.coveredBlocks);
+            _serializedCoveredBlocks = new List<SaveEntry>(_coveredBlocks.Values);
             EnsureMechanismNumbers();
             foreach (var c in AllChunks()) MarkDirty(c);
             MarkDirty(Vector3Int.zero);

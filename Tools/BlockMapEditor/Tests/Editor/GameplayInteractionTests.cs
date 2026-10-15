@@ -91,12 +91,19 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
-        public void OrdinaryMovementCannotEnterAnotherSmallSlime()
+        public void OrdinaryMovementIntoBlockedSmallSlimeFusesWithoutF()
         {
             ArrangeSmallPair();
+            _world.Set(new Vector3Int(4, 1, 2), BlockLibrary.IndexOf("Breakable"));
+            RefreshGameplay();
+            SlimeActor controlled = _party.ActiveActor;
             var route = new List<Vector3Int>();
-            Assert.That(_party.TryBuildRoute(_party.ActiveActor.Mover, 1, route), Is.False);
-            Assert.That(_party.CanFuseFacing(_party.ActiveActor), Is.True);
+            Assert.That(_party.TryBuildRoute(controlled.Mover, 1, route), Is.True);
+            controlled.Mover.QueueRoute(route);
+            FinishCurrentStep(controlled.Mover);
+            Assert.That(_party.Actors.Count, Is.EqualTo(1));
+            Assert.That(_party.ActiveActor, Is.SameAs(controlled));
+            Assert.That(controlled.State.size, Is.EqualTo(SlimeSize.Large));
         }
 
         [Test]
@@ -108,8 +115,9 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
-        public void BlueSlideEndsAtFusionTarget()
+        public void IndependentBlueSlideEndsAtStationaryFusionTarget()
         {
+            _party.Initialize(_gameplay, null, new Vector3Int(2, 1, 2), 0, 1f, 0f);
             ArrangeSmallPair();
             _party.ActiveActor.SetState(new SlimeState { size = SlimeSize.Small, element = SlimeElement.Blue });
             var route = new List<Vector3Int>();
@@ -317,6 +325,87 @@ namespace BlockMap.Gameplay.Tests
             Assert.That(remaining.GetInstanceID(), Is.EqualTo(identity));
             Assert.That(remaining.transform.localRotation, Is.EqualTo(angle));
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, doorCell, 0, false), Is.True);
+        }
+
+        [TestCase("Lab_Laser_01", 0)]
+        [TestCase("Lab_Laser_02", 1)]
+        [TestCase("Lab_Laser_03", 2)]
+        [TestCase("Lab_Laser_01", 3)]
+        public void PushingEmitterThroughOpenDoorPreservesDoorAnimationAndLinks(string emitterId, int direction)
+        {
+            var doorCell = new Vector3Int(4, 1, 2);
+            var emitterCell = new Vector3Int(3, 1, 2);
+            var leverCell = new Vector3Int(2, 1, 3);
+            _world.Set(doorCell, BlockLibrary.IndexOf("Door"));
+            _world.SetDir(doorCell, direction);
+            _world.Set(emitterCell, BlockLibrary.IndexOf(emitterId));
+            _world.Set(leverCell, BlockLibrary.IndexOf("Lever_B"));
+            _world.SetLinkId(doorCell, "door-passage");
+            _world.SetLinkId(leverCell, "door-passage");
+            RefreshGameplay();
+            EnterLever(leverCell, new Vector3Int(2, 1, 2), 0);
+            RefreshGameplay();
+            BlockMapDoor door = _root.GetComponentInChildren<BlockMapDoor>();
+            door.AdvanceAnimation(door.duration * .5f);
+            Vector3 halfway = door.hinge.localPosition;
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(2, 1, 2), 1);
+
+            MoveOneStep(1);
+
+            Assert.That(_world.GetIndex(doorCell), Is.EqualTo(BlockLibrary.IndexOf(emitterId)));
+            Assert.That(_world.TryGetCoveredBlock(doorCell, out BlockWorld.SaveEntry covered), Is.True);
+            Assert.That(covered.id, Is.EqualTo("Door"));
+            Assert.That(covered.linkId, Is.EqualTo("door-passage"));
+            Assert.That(_root.GetComponentInChildren<BlockMapDoor>(), Is.SameAs(door));
+            Assert.That(door.hinge.localPosition, Is.EqualTo(halfway));
+            Assert.That(door.IsOpen, Is.True);
+            var labels = new BlockMechanismLabels();
+            labels.Refresh(_world);
+            Assert.That(new List<MechanismLabel>(labels.Labels).Exists(
+                label => label.Cell == doorCell && label.Numbers.Length == 1), Is.True);
+
+            MoveOneStep(1);
+            Assert.That(_world.GetIndex(doorCell), Is.EqualTo(BlockLibrary.IndexOf("Door")));
+            Assert.That(_world.GetLinkId(doorCell), Is.EqualTo("door-passage"));
+            Assert.That(_world.GetDir(doorCell), Is.EqualTo(direction));
+            Assert.That(_world.GetIndex(new Vector3Int(5, 1, 2)), Is.EqualTo(BlockLibrary.IndexOf(emitterId)));
+            Assert.That(_root.GetComponentInChildren<BlockMapDoor>(), Is.SameAs(door));
+
+            door.AdvanceAnimation(door.duration);
+            Vector3 fullyOpen = door.hinge.localPosition;
+            EnterLever(leverCell, new Vector3Int(2, 1, 2), 0);
+            RefreshGameplay();
+            Assert.That(door.IsOpen, Is.False);
+            Assert.That(door.hinge.localPosition, Is.EqualTo(fullyOpen), "Closing must reverse without jumping.");
+            door.AdvanceAnimation(door.duration);
+            Assert.That(door.hinge.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, doorCell, 1, false), Is.False);
+        }
+
+        [Test]
+        public void ClosedDoorStillBlocksPushedEmitter()
+        {
+            var doorCell = new Vector3Int(4, 1, 2);
+            var emitterCell = new Vector3Int(3, 1, 2);
+            _world.Set(doorCell, BlockLibrary.IndexOf("Door"));
+            _world.Set(emitterCell, BlockLibrary.IndexOf("Lab_Laser_01"));
+            RefreshGameplay();
+
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, emitterCell, 1, true), Is.False);
+            Assert.That(_world.GetIndex(emitterCell), Is.EqualTo(BlockLibrary.IndexOf("Lab_Laser_01")));
+            Assert.That(_world.GetIndex(doorCell), Is.EqualTo(BlockLibrary.IndexOf("Door")));
+            Assert.That(_world.TryGetCoveredBlock(doorCell, out _), Is.False);
+        }
+
+        void MoveOneStep(int direction)
+        {
+            SlimeGridMover mover = _party.ActiveActor.Mover;
+            var route = new List<Vector3Int>();
+            Assert.That(_party.TryBuildRoute(mover, direction, route), Is.True);
+            mover.QueueRoute(route);
+            Assert.That(mover.IsMoving, Is.True);
+            FinishCurrentStep(mover);
+            RefreshGameplay();
         }
 
         void EnterLever(Vector3Int lever, Vector3Int approach, int facing)
