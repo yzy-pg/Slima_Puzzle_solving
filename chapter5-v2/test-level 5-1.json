@@ -1,0 +1,1817 @@
+{
+    "chunkSize": 16,
+    "nextMechanismNumber": 3,
+    "blocks": [
+        {
+            "x": 121,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "ReceiverRed_A",
+            "linkId": "G002",
+            "mechanismNumber": 1,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "ReceiverBlue_A",
+            "linkId": "G001",
+            "mechanismNumber": 2,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Laser_03",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Laser_02",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Door",
+            "linkId": "G001",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Door",
+            "linkId": "G002",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Floor_15",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Floor_04",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 126,
+            "r": 0,
+            "id": "Exit",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 76,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 76,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 0,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 0,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 0,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 135,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 120,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 124,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 76,
+            "r": 0,
+            "id": "StandingLight_Lamp",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 130,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 131,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 132,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 133,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 130,
+            "y": 1,
+            "z": 134,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 129,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 76,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 128,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 123,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 122,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 121,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 75,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 126,
+            "y": 1,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 126,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 124,
+            "y": 1,
+            "z": 125,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 127,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 128,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 129,
+            "y": 1,
+            "z": 127,
+            "r": 0,
+            "id": "Lab_Wall_09",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        },
+        {
+            "x": 125,
+            "y": 1,
+            "z": 132,
+            "r": 0,
+            "id": "Spawn_Asynchronous",
+            "linkId": "",
+            "mechanismNumber": 0,
+            "mechanismColor": ""
+        }
+    ],
+    "coveredBlocks": []
+}
