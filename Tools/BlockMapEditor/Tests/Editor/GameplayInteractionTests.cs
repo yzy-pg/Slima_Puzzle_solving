@@ -210,26 +210,118 @@ namespace BlockMap.Gameplay.Tests
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
         }
 
-        [Test]
-        public void PressurePlateActivationTogglesDoorOnlyOnEachEntryEdge()
+        [TestCase("Door", false)]
+        [TestCase("Door_Inverted", true)]
+        public void PressurePlateTogglesOnPressAndReleaseButNotWhileHeld(string doorId, bool initiallyOpen)
         {
             var plate = new Vector3Int(2, 1, 2);
             var door = new Vector3Int(4, 1, 4);
             _world.Set(plate, BlockLibrary.IndexOf("Lab_PressurePlate"));
-            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.Set(door, BlockLibrary.IndexOf(doorId));
             _world.SetLinkId(plate, "plate-toggle");
             _world.SetLinkId(door, "plate-toggle");
-            RefreshGameplay();
-            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
-
-            RefreshGameplay();
-            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
             _party.ActiveActor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
             RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(initiallyOpen));
+
+            _party.ActiveActor.Mover.Teleport(plate, 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(!initiallyOpen));
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(!initiallyOpen));
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(initiallyOpen));
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(initiallyOpen));
             _party.ActiveActor.Mover.Teleport(plate, 0);
             RefreshGameplay();
 
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.EqualTo(!initiallyOpen));
+        }
+
+        [Test]
+        public void PressurePlateTogglesOnlyWhenWeightCrossesItsThreshold()
+        {
+            var plate = new Vector3Int(2, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(plate, BlockLibrary.IndexOf("PressurePlateLarge_A"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(plate, "plate-weight");
+            _world.SetLinkId(door, "plate-weight");
+            SlimeActor actor = _party.ActiveActor;
+            actor.SetState(new SlimeState { size = SlimeSize.Small });
+            RefreshGameplay();
             Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+
+            actor.SetState(new SlimeState { size = SlimeSize.Large });
+            RefreshGameplay();
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(actor, door, 0, false), Is.True);
+
+            actor.SetState(new SlimeState { size = SlimeSize.Small });
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(actor, door, 0, false), Is.False);
+            actor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(actor, door, 0, false), Is.False, "不足阈值的重量变化不得重复切换。");
+        }
+
+        [Test]
+        public void EachSharedPressurePlatePressAndReleaseTogglesTheDoor()
+        {
+            var firstPlate = new Vector3Int(2, 1, 2);
+            var secondPlate = new Vector3Int(3, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            foreach (Vector3Int cell in new[] { firstPlate, secondPlate })
+                _world.Set(cell, BlockLibrary.IndexOf("Lab_PressurePlate"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            foreach (Vector3Int cell in new[] { firstPlate, secondPlate, door }) _world.SetLinkId(cell, "shared-plates");
+            _party.RestoreProgress(new[]
+            {
+                new SlimeProgress { cell = new Vector3Int(1, 1, 1), state = new SlimeState { size = SlimeSize.Small } },
+                new SlimeProgress { cell = new Vector3Int(1, 1, 3), state = new SlimeState { size = SlimeSize.Small } }
+            }, 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+            _party.Actors[0].Mover.Teleport(firstPlate, 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            _party.Actors[1].Mover.Teleport(secondPlate, 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+            _party.Actors[0].Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            _party.Actors[1].Mover.Teleport(new Vector3Int(1, 1, 3), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+        }
+
+        [Test]
+        public void HeldPressurePlateDoesNotOverrideLinkedLever()
+        {
+            var plate = new Vector3Int(2, 1, 2);
+            var lever = new Vector3Int(4, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(plate, BlockLibrary.IndexOf("Lab_PressurePlate"));
+            _world.Set(lever, BlockLibrary.IndexOf("Lever_B"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            foreach (Vector3Int cell in new[] { plate, lever, door }) _world.SetLinkId(cell, "plate-and-lever");
+            _party.RestoreProgress(new[]
+            {
+                new SlimeProgress { cell = plate, state = new SlimeState { size = SlimeSize.Small } },
+                new SlimeProgress { cell = new Vector3Int(4, 1, 1), state = new SlimeState { size = SlimeSize.Small } }
+            }, 1);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+
+            EnterLever(lever, new Vector3Int(4, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+            _party.Actors[0].Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
         }
 
         [Test]

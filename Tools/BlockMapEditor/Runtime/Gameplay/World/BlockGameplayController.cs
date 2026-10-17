@@ -570,7 +570,7 @@ namespace BlockMap.Gameplay
                 }
                 int required = Mathf.Max(1, block.Profile.value);
                 bool active = weight >= required;
-                if (_signals.Set(block.SignalChannel, SourceKey("plate", block.Cell), active) && processActivationEdges)
+                if (_signals.SetContinuous(block.SignalChannel, SourceKey("plate", block.Cell), active) && processActivationEdges)
                     ToggleLinkedDoors(block.SignalChannel);
                 StateAt(block.Cell).active = active;
             }

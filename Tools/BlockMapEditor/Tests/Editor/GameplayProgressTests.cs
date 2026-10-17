@@ -198,6 +198,36 @@ namespace BlockMap.Gameplay.Tests
         }
 
         [Test]
+        public void RestoringPressedPlateSeedsItsSignalWithoutAnExtraToggle()
+        {
+            var plate = new Vector3Int(2, 1, 2);
+            var door = new Vector3Int(4, 1, 4);
+            _world.Set(plate, BlockLibrary.IndexOf("Lab_PressurePlate"));
+            _world.Set(door, BlockLibrary.IndexOf("Door"));
+            _world.SetLinkId(plate, "plate-save");
+            _world.SetLinkId(door, "plate-save");
+            RefreshGameplay();
+            SlimeProgress[] actors = _party.CaptureProgress(out int active);
+            MechanismProgress[] mechanisms = _gameplay.CaptureProgress();
+
+            _gameplay.RestoreProgress(mechanisms);
+            RefreshGameplay();
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+
+            _party.RestoreProgress(actors, active);
+            _gameplay.RestoreProgress(mechanisms);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.True);
+            _party.ActiveActor.Mover.Teleport(new Vector3Int(1, 1, 1), 0);
+            RefreshGameplay();
+            Assert.That(_gameplay.CanEnter(_party.ActiveActor, door, 0, false), Is.False);
+        }
+
+        [Test]
         public void SaveWhileEmitterOccupiesDoorPreservesBothObjectsAndDoorMetadata()
         {
             var lever = new Vector3Int(2, 1, 3);
