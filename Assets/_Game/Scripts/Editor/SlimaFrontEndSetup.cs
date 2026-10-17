@@ -36,13 +36,12 @@ namespace SlimaPuzzle.EditorTools
             {
                 new EditorBuildSettingsScene(SlimaFrontEnd.MenuScene, true)
             };
-            string[] levels = { "Assets/Scenes/map01.unity", "Assets/Scenes/map02.unity", "Assets/Scenes/map03.unity" };
-            foreach (string path in levels) scenes.Add(new EditorBuildSettingsScene(path, true));
-            foreach (EditorBuildSettingsScene existing in EditorBuildSettings.scenes)
-                if (!scenes.Exists(scene => scene.path == existing.path)) scenes.Add(existing);
+            string[] levels = SlimaFrontEnd.DefaultLevelScenes;
+            foreach (string path in levels)
+                if (!string.IsNullOrEmpty(path)) scenes.Add(new EditorBuildSettingsScene(path, true));
             EditorBuildSettings.scenes = scenes.ToArray();
             AssetDatabase.Refresh();
-            Debug.Log("[Slima] 主菜单已创建，启动场景与三个关卡已加入 Build Settings。");
+            Debug.Log($"[Slima] 主菜单已创建，启动场景与 {scenes.Count - 1} 个关卡已加入 Build Settings。");
         }
 
         [MenuItem("Tools/Slima/主菜单/打开主菜单")]

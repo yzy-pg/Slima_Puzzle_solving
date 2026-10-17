@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -28,6 +29,26 @@ namespace BlockMap
             if (string.IsNullOrEmpty(s)) return "BlockMapLevel";
             foreach (char c in Path.GetInvalidFileNameChars()) s = s.Replace(c, '_');
             return s;
+        }
+
+        static bool WriteAtlasIfChanged(string path, byte[] png)
+        {
+            if (File.Exists(path) && File.ReadAllBytes(path).SequenceEqual(png)) return false;
+
+            // Unity may memory-map imported PNGs; truncating the mapped file fails with Win32 1224.
+            // Replace the directory entry instead, leaving existing readers and the .meta GUID intact.
+            string temporaryPath = path + "." + System.Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllBytes(temporaryPath, png);
+                if (File.Exists(path)) File.Replace(temporaryPath, path, null);
+                else File.Move(temporaryPath, path);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+            }
+            return true;
         }
 
         [MenuItem("Tools/Slima/地图编辑器/② 把地图烘成场景（持久化）", false, 200)]
@@ -123,15 +144,21 @@ namespace BlockMap
                         if (runtimeAtlas != null)
                         {
                             string tp = BuiltDir + "/Textures/" + def.id + "_atlas.png";
-                            File.WriteAllBytes(tp, runtimeAtlas.EncodeToPNG());
-                            AssetDatabase.ImportAsset(tp, ImportAssetOptions.ForceUpdate);
+                            bool atlasChanged = WriteAtlasIfChanged(tp, runtimeAtlas.EncodeToPNG());
+                            if (atlasChanged || AssetImporter.GetAtPath(tp) == null)
+                                AssetDatabase.ImportAsset(tp, ImportAssetOptions.ForceUpdate);
                             if (AssetImporter.GetAtPath(tp) is TextureImporter ti)
                             {
-                                ti.textureCompression = TextureImporterCompression.Uncompressed;
-                                ti.filterMode = def.GeneratedAtlasFilter;
-                                ti.wrapMode = TextureWrapMode.Clamp;
-                                ti.mipmapEnabled = false;
-                                ti.SaveAndReimport();
+                                if (ti.textureCompression != TextureImporterCompression.Uncompressed ||
+                                    ti.filterMode != def.GeneratedAtlasFilter || ti.wrapMode != TextureWrapMode.Clamp ||
+                                    ti.mipmapEnabled)
+                                {
+                                    ti.textureCompression = TextureImporterCompression.Uncompressed;
+                                    ti.filterMode = def.GeneratedAtlasFilter;
+                                    ti.wrapMode = TextureWrapMode.Clamp;
+                                    ti.mipmapEnabled = false;
+                                    ti.SaveAndReimport();
+                                }
                             }
                             tex = AssetDatabase.LoadAssetAtPath<Texture2D>(tp);
                         }

@@ -152,9 +152,106 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelScenes:
-  - Assets/Scenes/map01.unity
-  - Assets/Scenes/map02.unity
-  - Assets/Scenes/map03.unity
+  - Assets/Scenes/test-level 1-0.unity
+  - Assets/Scenes/test-level 1-1.unity
+  - Assets/Scenes/test-level 2-0.unity
+  - Assets/Scenes/test-level 2-1.unity
+  - Assets/Scenes/test-level 3-0.unity
+  - Assets/Scenes/test-level 3-1.unity
+  - Assets/Scenes/test-level 3-2.unity
+  - Assets/Scenes/test-level 4-0.unity
+  - Assets/Scenes/test-level 4-1.unity
+  - Assets/Scenes/test-level 4-2.unity
+  - Assets/Scenes/test-level 4-3.unity
+  - Assets/Scenes/test-level 5-0.unity
+  - Assets/Scenes/test-level 5-1.unity
+  - Assets/Scenes/test-level 5-2.unity
+  - Assets/Scenes/test-level 5-3.unity
+  - Assets/Scenes/test-level 5-4.unity
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
+  - ''
   beakerRect:
     serializedVersion: 2
     x: 735
@@ -167,6 +264,20 @@ MonoBehaviour:
     y: 275
     width: 230
     height: 180
+  titleRect:
+    serializedVersion: 2
+    x: 70
+    y: 58
+    width: 870
+    height: 280
+  titleFontSize: 240
+  titleLetterSpacing: 4
+  titleWeight: 6
+  titleOutlineWidth: 10
+  slimeFloatAmplitude: 14
+  slimeFloatSpeed: 1.8
+  slimeGlow: 0.8
+  slimeParticleCount: 16
 --- !u!4 &727459558
 Transform:
   m_ObjectHideFlags: 0

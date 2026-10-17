@@ -229,7 +229,7 @@ namespace SlimaPuzzle.Rendering.EditorTools
                         var atlas = SaveTexture(PreviewAssets + "/" + mats[m].name + "_atlas.png", (Texture2D)mats[m].mainTexture, true);
                         saved.SetTexture("_BaseMap", atlas);
                     }
-                    saved.SetFloat("_NoiseWorldSize", .025f); saved.SetFloat("_NoiseStrength", .85f);
+                    saved.SetFloat("_NoiseWorldSize", .04f); saved.SetFloat("_NoiseStrength", .85f);
                     mats[m] = saved;
                 }
                 mr.sharedMaterials = mats;
@@ -239,7 +239,7 @@ namespace SlimaPuzzle.Rendering.EditorTools
             foreach (Light l in stage.GetComponentsInChildren<Light>())
             {
                 var c = l.gameObject.AddComponent<SlimaToonLight>(); c.overrideMaterialSettings = true;
-                c.worldPixelSize = .025f; c.transitionWidth = .85f;
+                c.worldPixelSize = .04f; c.transitionWidth = .85f;
             }
             var key = new GameObject("Showcase key light").AddComponent<Light>();
             key.type = LightType.Directional; key.intensity = .25f; key.transform.rotation = Quaternion.Euler(45, -25, 0);

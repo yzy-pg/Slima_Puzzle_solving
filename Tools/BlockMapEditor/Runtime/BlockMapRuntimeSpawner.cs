@@ -145,6 +145,7 @@ namespace BlockMap
                     GameObject existing = GameObject.Find(lightName);
                     if (existing != null && existing.GetComponent<Light>() != null)
                     {
+                        EnableLightShadows(existing.GetComponent<Light>());
                         lights++;
                         continue;
                     }
@@ -157,6 +158,7 @@ namespace BlockMap
                     l.color = def.lightColor;
                     l.range = def.lightRange;
                     l.intensity = def.lightIntensity;
+                    EnableLightShadows(l);
 
                     // ★ 照射方向跟随方块"正面"（dir 来自地图编辑器，和门/道具共用同一套朝向）。
                     //   要改照射方向 → 在地图编辑器里旋转这个 Lamp 方块即可；
@@ -187,6 +189,15 @@ namespace BlockMap
             if (!gameplayOwnsViews)
                 BlockLinkVisuals.Apply(_world, parent.GetComponentsInChildren<GameplayBlockView>(true));
             _nextRebuild = Time.realtimeSinceStartup + Mathf.Max(0f, rebuildInterval);
+        }
+
+        static void EnableLightShadows(Light light)
+        {
+            if (light.shadows != LightShadows.None) return;
+            light.shadows = LightShadows.Soft;
+            light.shadowBias = 0.04f;
+            light.shadowNormalBias = 0.15f;
+            light.shadowNearPlane = 0.1f;
         }
 
         void Clear()

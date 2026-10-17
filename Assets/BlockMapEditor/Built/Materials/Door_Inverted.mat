@@ -73,6 +73,7 @@ Material:
     - _NoiseStrength: 0.35
     - _NoiseWorldSize: 0.06
     - _OutlineNoise: 0
+    - _OutlineSmoothNormals: 0
     - _OutlineWidth: 0
     - _PixelSnap: 0
     - _ShadowInfluence: 1

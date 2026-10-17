@@ -100,6 +100,7 @@ namespace BlockMap
         Vector3 _cameraVelocity;
         bool _cameraFocusInitialized;
         VolumeProfile _bloomProfile;
+        readonly Dictionary<Material, Material> _nonShadowMaterials = new Dictionary<Material, Material>();
         readonly List<GameplayProgress> _undoStack = new List<GameplayProgress>(32);
         GameplayProgress _undoCurrent;
         bool _restoringUndo;
@@ -291,6 +292,12 @@ namespace BlockMap
 
         void OnDestroy()
         {
+            foreach (Material material in _nonShadowMaterials.Values)
+            {
+                if (Application.isPlaying) Destroy(material);
+                else DestroyImmediate(material);
+            }
+            _nonShadowMaterials.Clear();
             if (_bloomProfile != null)
             {
                 foreach (VolumeComponent component in _bloomProfile.components) Destroy(component);
@@ -419,18 +426,48 @@ namespace BlockMap
                 if (sceneAtmosphere) light.shadows = LightShadows.Soft;
             }
 
-            if (sceneAtmosphere)
-                foreach (GameObject sceneRoot in gameObject.scene.GetRootGameObjects())
-                    foreach (Renderer item in sceneRoot.GetComponentsInChildren<Renderer>(true))
-                        ApplyAtmosphereTo(item);
+            foreach (GameObject sceneRoot in gameObject.scene.GetRootGameObjects())
+                foreach (Renderer item in sceneRoot.GetComponentsInChildren<Renderer>(true))
+                    ApplyAtmosphereTo(item);
         }
 
         public void ApplyAtmosphereTo(Renderer item)
         {
+            // Props receive terrain shadows without casting solid shadows themselves.
+            bool terrain = item.name.StartsWith("Chunk_", System.StringComparison.Ordinal);
+            item.shadowCastingMode = terrain ? ShadowCastingMode.On : ShadowCastingMode.Off;
+            if (terrain)
+            {
+                // Baked chunks can also contain lamp submeshes. Exclude those passes
+                // without changing shared assets or the walls in the same mesh.
+                Material[] materials = item.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    Material source = materials[i];
+                    if (source == null || !source.GetShaderPassEnabled("ShadowCaster")) continue;
+                    string id = source.name.StartsWith("BlockMap_", System.StringComparison.Ordinal)
+                        ? source.name.Substring("BlockMap_".Length) : source.name;
+                    BlockDefinition definition = BlockLibrary.Get(id);
+                    if (definition == null || (!definition.IsLamp && !definition.emitLight &&
+                        !definition.interactive && definition.previewPrefab == null && BlockGameplayCatalog.Get(id) == null)) continue;
+                    if (!_nonShadowMaterials.TryGetValue(source, out Material material))
+                    {
+                        material = new Material(source) { name = source.name, hideFlags = HideFlags.DontSave };
+                        material.SetShaderPassEnabled("ShadowCaster", false);
+                        _nonShadowMaterials.Add(source, material);
+                    }
+                    materials[i] = material;
+                    changed = true;
+                }
+                if (changed) item.sharedMaterials = materials;
+                item.receiveShadows = true;
+            }
             if (!sceneAtmosphere) return;
             bool toon = false;
             foreach (Material material in item.sharedMaterials)
-                if (material != null && material.shader.name == "Slima/Toon (Cel + Pixel)") toon = true;
+                if (material != null && (material.shader.name == "Slima/Toon (Cel + Pixel)" ||
+                    material.shader.name == "BlockMap/BlockUnlitTransparent")) toon = true;
             if (!toon) return;
             var properties = new MaterialPropertyBlock();
             item.GetPropertyBlock(properties);
@@ -438,12 +475,6 @@ namespace BlockMap
             properties.SetColor("_AmbientColor", atmosphereAmbient);
             properties.SetFloat("_FallbackLight", 0f);
             item.SetPropertyBlock(properties);
-            // Older baked chunks saved these flags as Off; restore them at runtime too.
-            if (item.name.StartsWith("Chunk_"))
-            {
-                item.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                item.receiveShadows = true;
-            }
         }
 
         void RefreshHint()
@@ -502,6 +533,7 @@ namespace BlockMap
             disc.transform.localScale = new Vector3(0.45f, 0.02f, 0.45f);
             Object.Destroy(disc.GetComponent<Collider>());          // 标记不挡路
             disc.GetComponent<MeshRenderer>().sharedMaterial = material;
+            ApplyAtmosphereTo(disc.GetComponent<MeshRenderer>());
 
             var pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pole.name = "Pole";
@@ -510,6 +542,7 @@ namespace BlockMap
             pole.transform.localScale = new Vector3(0.08f, 0.5f, 0.08f);
             Object.Destroy(pole.GetComponent<Collider>());
             pole.GetComponent<MeshRenderer>().sharedMaterial = material;
+            ApplyAtmosphereTo(pole.GetComponent<MeshRenderer>());
         }
 
         static Material MarkerMaterial(Color color)

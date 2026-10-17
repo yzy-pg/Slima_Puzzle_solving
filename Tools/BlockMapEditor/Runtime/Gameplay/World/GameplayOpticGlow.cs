@@ -11,6 +11,7 @@ namespace BlockMap.Gameplay
         [Min(0)] public float intensity = .65f;
         [Min(0)] public float cameraOffset = .12f;
         public Renderer opticalSurface;
+        public Renderer topIndicator;
         [Min(0)] public float emissionStrength = 1.6f;
         [Min(0)] public float lightRange = 4f;
         [Min(0)] public float lightIntensity = 3.2f;
@@ -43,7 +44,10 @@ namespace BlockMap.Gameplay
                 lightObject.transform.localRotation = Quaternion.Euler(0,i*90,0)*Quaternion.Euler(lightTilt,0,0);
                 faceLights[i] = lightObject.AddComponent<Light>();
                 faceLights[i].type = LightType.Spot;
-                faceLights[i].shadows = LightShadows.None;
+                faceLights[i].shadows = LightShadows.Soft;
+                faceLights[i].shadowBias = .04f;
+                faceLights[i].shadowNormalBias = .15f;
+                faceLights[i].shadowNearPlane = .1f;
             }
             surfaceProperties = new MaterialPropertyBlock();
             Apply();
@@ -52,6 +56,13 @@ namespace BlockMap.Gameplay
         public void SetActivated(bool active)
         {
             activated = active;
+            Initialize();
+            Apply();
+        }
+
+        public void SetColor(Color beamColor)
+        {
+            color = beamColor;
             Initialize();
             Apply();
         }
@@ -83,9 +94,20 @@ namespace BlockMap.Gameplay
             if (opticalSurface != null)
             {
                 opticalSurface.GetPropertyBlock(surfaceProperties);
+                surfaceProperties.SetColor("_BaseColor",color);
+                surfaceProperties.SetColor("_EmissionColor",color);
                 surfaceProperties.SetFloat("_EmissionStrength",litFaces != 0 ? emissionStrength : 0f);
                 surfaceProperties.SetVector("_OpticFaceMask",new Vector4((litFaces & 1)!=0 ? 1:0,(litFaces & 2)!=0 ? 1:0,(litFaces & 4)!=0 ? 1:0,(litFaces & 8)!=0 ? 1:0));
                 opticalSurface.SetPropertyBlock(surfaceProperties);
+            }
+            if (topIndicator != null)
+            {
+                topIndicator.GetPropertyBlock(surfaceProperties);
+                surfaceProperties.SetColor("_BaseColor",color);
+                surfaceProperties.SetColor("_EmissionColor",color);
+                surfaceProperties.SetFloat("_EmissionStrength",litFaces != 0 ? emissionStrength : 0f);
+                surfaceProperties.SetVector("_OpticFaceMask",Vector4.one);
+                topIndicator.SetPropertyBlock(surfaceProperties);
             }
         }
     }

@@ -78,6 +78,7 @@ Material:
     - _NoiseSurfaceLock: 1
     - _NoiseWorldSize: 0.1
     - _OutlineNoise: 0
+    - _OutlineSmoothNormals: 0
     - _OutlineWidth: 2
     - _PixelBlock: 2
     - _PixelSize: 4

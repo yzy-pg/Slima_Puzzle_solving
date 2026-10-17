@@ -9,12 +9,51 @@ EditorBuildSettings:
     path: Assets/_Game/Scenes/MainMenu.unity
     guid: 01af4684e8262f5448adb812da301555
   - enabled: 1
-    path: Assets/Scenes/map01.unity
-    guid: 0e6c9c30b08be284a9e8918ad7024ca9
+    path: Assets/Scenes/test-level 1-0.unity
+    guid: 9701519ef17cca2459bfb0f66cad87ac
   - enabled: 1
-    path: Assets/Scenes/map02.unity
-    guid: 9035d9ae6a8834e4db7ddb33d88473df
+    path: Assets/Scenes/test-level 1-1.unity
+    guid: e6bb7d722a642aa4ea6c2cec2e6de311
   - enabled: 1
-    path: Assets/Scenes/map03.unity
-    guid: 0a0398ea535a24941ba313811409c1fe
+    path: Assets/Scenes/test-level 2-0.unity
+    guid: aad7184b1a0deaf438a2b5680dd20a0f
+  - enabled: 1
+    path: Assets/Scenes/test-level 2-1.unity
+    guid: 44e064bce309e6e4980a11dcb49c6c91
+  - enabled: 1
+    path: Assets/Scenes/test-level 3-0.unity
+    guid: bfb01b7da0cac2f4e98c3d7c21b8ce96
+  - enabled: 1
+    path: Assets/Scenes/test-level 3-1.unity
+    guid: 92321a1e08fd13d42bfae62c80acea27
+  - enabled: 1
+    path: Assets/Scenes/test-level 3-2.unity
+    guid: 2e9c4a917d69e1a46930eeecd75d50d1
+  - enabled: 1
+    path: Assets/Scenes/test-level 4-0.unity
+    guid: a625974acc322a1458b090b3e46dd632
+  - enabled: 1
+    path: Assets/Scenes/test-level 4-1.unity
+    guid: fb330505fffc40b47a98831614533612
+  - enabled: 1
+    path: Assets/Scenes/test-level 4-2.unity
+    guid: b8e19eb2de3e6fa4fa72b7ede80a39c2
+  - enabled: 1
+    path: Assets/Scenes/test-level 4-3.unity
+    guid: 61f777d842a5f7842977ba65013831fe
+  - enabled: 1
+    path: Assets/Scenes/test-level 5-0.unity
+    guid: ef18335e8029f114a9d61cfcdb522107
+  - enabled: 1
+    path: Assets/Scenes/test-level 5-1.unity
+    guid: eff9bf59d65995b4cad0265c68a6b112
+  - enabled: 1
+    path: Assets/Scenes/test-level 5-2.unity
+    guid: 73c7e06e438964045a4b8c68ad3c43e3
+  - enabled: 1
+    path: Assets/Scenes/test-level 5-3.unity
+    guid: a1a355fe417d49a418171b03df796043
+  - enabled: 1
+    path: Assets/Scenes/test-level 5-4.unity
+    guid: 41d2feb462b3a6b488e07895c068708d
   m_configObjects: {}

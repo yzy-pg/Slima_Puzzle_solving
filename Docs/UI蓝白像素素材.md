@@ -1,5 +1,7 @@
 # UI 蓝白像素素材
 
+当前运行界面已切换为 [暗色 UI 与史莱姆动效](暗色UI与史莱姆动效.md)。本文记录保留的原蓝白素材；暗色版本独立存放于 `SlimaUI/Dark/`。
+
 使用内置 `image_gen` 工具绘制，9 张基础 PNG 和 3 张封面分层 PNG 已复制进项目；不是运行时生成。
 `SlimaFrontEnd` 通过 `Resources.Load("SlimaUI/...")` 加载，Unity 打包时会包含这些图片。
 

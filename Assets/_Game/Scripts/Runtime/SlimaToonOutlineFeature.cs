@@ -101,6 +101,7 @@ namespace SlimaPuzzle.Rendering
         bool _loggedOnce;
         MeshRenderer[] _renderers;
         int _rescan;
+        bool _hasDoors;
         readonly List<MaskGroup> _groups = new List<MaskGroup>();
 
         public override void Create()
@@ -141,15 +142,15 @@ namespace SlimaPuzzle.Rendering
                 renderer.EnqueuePass(_crispPass);
             }
 
-            // ⑤-b 保护遮罩（主角）：任何组的线都不许画在这里
+            // ⑤-b 保护遮罩：门按组件识别，避免旧 Renderer 资产缺少过滤配置时被墙线覆盖。
             bool wantProtect = !string.IsNullOrEmpty(settings.protectNameFilter) ||
-                !string.IsNullOrEmpty(settings.protectMaterialFilter);
+                !string.IsNullOrEmpty(settings.protectMaterialFilter) || _hasDoors;
             if (wantProtect)
             {
                 if (_protectPass.Material == null) _protectPass.CreateMaterial(settings.maskShader, Color.white);
                 _protectPass.renderPassEvent = RenderPassEvent.BeforeRenderingOpaques;
                 _protectPass.Setup(BuildFilterGroup("保护（主角 / 灯面）", "", settings.protectNameFilter),
-                    _renderers, Color.black, settings.protectMaterialFilter);
+                    _renderers, Color.black, settings.protectMaterialFilter, true);
                 renderer.EnqueuePass(_protectPass);
             }
 
@@ -219,17 +220,23 @@ namespace SlimaPuzzle.Rendering
         {
             if (_renderers != null && _rescan-- > 0) return;
 
-            MeshRenderer[] all = Object.FindObjectsOfType<MeshRenderer>();
+            MeshRenderer[] all = Object.FindObjectsOfType<MeshRenderer>(true);
+            _hasDoors = false;
             var kept = new List<MeshRenderer>(all.Length);
             foreach (MeshRenderer renderer in all)
             {
                 if (renderer == null) continue;
                 if (renderer.GetComponentInParent<SlimaOutlineIgnore>() != null) continue;
+                if (renderer.GetComponentInParent<BlockMap.BlockMapDoor>() != null) _hasDoors = true;
                 kept.Add(renderer);
             }
             _renderers = kept.ToArray();
             _rescan = 60;
         }
+
+        static bool IsDrawable(MeshRenderer renderer, Camera camera) => renderer != null &&
+            renderer.enabled && !renderer.forceRenderingOff && renderer.gameObject.activeInHierarchy &&
+            (camera.cullingMask & (1 << renderer.gameObject.layer)) != 0;
 
         void LogReport()
         {
@@ -314,8 +321,10 @@ namespace SlimaPuzzle.Rendering
         sealed class MaskPass : ScriptableRenderPass
         {
             Material _material;
+            Material _doorMaterial;
             MaskGroup _group;
             string _materialFilter;
+            bool _protectDoors;
             MeshRenderer[] _renderers;
             Color _clearColor = Color.white;
             RTHandle _mask;
@@ -330,10 +339,11 @@ namespace SlimaPuzzle.Rendering
                 _material.SetColor(MaskColorId, maskColor);
             }
 
-            public void Setup(MaskGroup group, MeshRenderer[] renderers, Color clearColor, string materialFilter = null)
+            public void Setup(MaskGroup group, MeshRenderer[] renderers, Color clearColor, string materialFilter = null, bool protectDoors = false)
             {
                 _group = group;
                 _materialFilter = materialFilter;
+                _protectDoors = protectDoors;
                 _renderers = renderers;
                 _clearColor = clearColor;
             }
@@ -351,6 +361,13 @@ namespace SlimaPuzzle.Rendering
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 if (_material == null || _group == null || _mask == null) return;
+                if (_protectDoors && _doorMaterial == null)
+                {
+                    _doorMaterial = CoreUtils.CreateEngineMaterial(_material.shader);
+                    _doorMaterial.SetColor(MaskColorId, Color.white);
+                    _doorMaterial.SetFloat("_MaskExpand", 2f);
+                    _doorMaterial.SetFloat("_MaskCull", (float)CullMode.Off);
+                }
 
                 CommandBuffer cmd = CommandBufferPool.Get("Slima Mask");
                 using (new ProfilingScope(cmd, new ProfilingSampler("Slima Mask")))
@@ -362,15 +379,16 @@ namespace SlimaPuzzle.Rendering
                     {
                         foreach (MeshRenderer renderer in _renderers)
                         {
-                            if (renderer == null) continue;
+                            if (!IsDrawable(renderer, renderingData.cameraData.camera)) continue;
                             Material[] mats = renderer.sharedMaterials;
                             if (mats == null) continue;
                             for (int submesh = 0; submesh < mats.Length; submesh++)
                             {
                                 bool materialProtected = !string.IsNullOrEmpty(_materialFilter) && mats[submesh] != null &&
                                     MatchesAny(_materialFilter, mats[submesh].name);
-                                if (!Matches(_group, renderer.gameObject, mats[submesh]) && !materialProtected) continue;
-                                cmd.DrawRenderer(renderer, _material, submesh, 0);
+                                bool doorProtected = _protectDoors && renderer.GetComponentInParent<BlockMap.BlockMapDoor>() != null;
+                                if (!Matches(_group, renderer.gameObject, mats[submesh]) && !materialProtected && !doorProtected) continue;
+                                cmd.DrawRenderer(renderer, doorProtected ? _doorMaterial : _material, submesh, 0);
                             }
                         }
                     }
@@ -383,6 +401,8 @@ namespace SlimaPuzzle.Rendering
             {
                 CoreUtils.Destroy(_material);
                 _material = null;
+                CoreUtils.Destroy(_doorMaterial);
+                _doorMaterial = null;
                 _mask?.Release();
                 _mask = null;
             }
@@ -452,7 +472,7 @@ namespace SlimaPuzzle.Rendering
                     {
                         foreach (MeshRenderer renderer in _renderers)
                         {
-                            if (renderer == null) continue;
+                            if (!IsDrawable(renderer, renderingData.cameraData.camera)) continue;
                             Material[] mats = renderer.sharedMaterials;
                             if (mats == null) continue;
                             for (int submesh = 0; submesh < mats.Length; submesh++)

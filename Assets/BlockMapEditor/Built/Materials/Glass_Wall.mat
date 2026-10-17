@@ -29,6 +29,27 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Band0: 0
+    - _Band1: 0.25
+    - _Band2: 0.5
+    - _Band3: 0.75
+    - _Band4: 1
+    - _Bands: 5
+    - _Brightness: 1
     - _Cull: 2
-    m_Colors: []
+    - _ExtraLightMode: 1
+    - _FallbackLight: 0
+    - _LightContrast: 1
+    - _LightInputMax: 1
+    - _LightInputMin: 0
+    - _LightWrap: 0.15
+    - _LightingMode: 0
+    - _NoiseSeed: 0
+    - _NoiseStrength: 0.35
+    - _NoiseWorldSize: 0.06
+    - _ShadowInfluence: 1
+    m_Colors:
+    - _AmbientColor: {r: 0.15999997, g: 0.17999998, b: 0.23999995, a: 1}
+    - _LightTint: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowColor: {r: 0.41999996, g: 0.4699999, b: 0.6, a: 1}
   m_BuildTextureStacks: []

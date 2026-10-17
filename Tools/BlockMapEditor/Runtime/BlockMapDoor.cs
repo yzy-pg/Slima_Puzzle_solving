@@ -45,6 +45,7 @@ namespace BlockMap
         Quaternion _closedRotation;
         Renderer[] _renderers;
         bool[] _rendererVisibility;
+        UnityEngine.Rendering.ShadowCastingMode[] _shadowModes;
         bool _initialized;
 
         void Awake()
@@ -69,7 +70,12 @@ namespace BlockMap
             _closedRotation = panel.localRotation;
             _renderers = panel.GetComponentsInChildren<Renderer>(true);
             _rendererVisibility = new bool[_renderers.Length];
-            for (int i = 0; i < _renderers.Length; i++) _rendererVisibility[i] = _renderers[i].enabled;
+            _shadowModes = new UnityEngine.Rendering.ShadowCastingMode[_renderers.Length];
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                _rendererVisibility[i] = _renderers[i].enabled;
+                _shadowModes[i] = _renderers[i].shadowCastingMode;
+            }
             _initialized = true;
         }
 
@@ -93,16 +99,22 @@ namespace BlockMap
         {
             InitializePose();
             float target = _open ? 1f : 0f;
-            if (!Mathf.Approximately(_t, target))
-            {
-                _t = Mathf.MoveTowards(_t, target, deltaTime / Mathf.Max(0.01f, duration));
-            }
+            _t = Mathf.MoveTowards(_t, target, Mathf.Max(0f,deltaTime) / Mathf.Max(0.01f, duration));
+            // Fractional frame steps can stop just short of 1; the hide condition needs the exact endpoint.
+            if (Mathf.Approximately(_t, target)) _t = target;
             Transform panel = hinge != null ? hinge : transform;
             panel.localPosition = _closedPosition + _closedRotation * Vector3.right *
                 (slideDistance * Mathf.SmoothStep(0f, 1f, _t));
             panel.localRotation = _closedRotation;
+            bool visible = !_open || _t < 1f;
             for (int i = 0; i < _renderers.Length; i++)
-                if (_renderers[i] != null) _renderers[i].enabled = _rendererVisibility[i] && (!_open || _t < 1f);
+                if (_renderers[i] != null)
+                {
+                    _renderers[i].enabled = _rendererVisibility[i] && visible;
+                    _renderers[i].shadowCastingMode = visible ? _shadowModes[i] : UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            // Keep the controller alive; retire only the moving leaf and its highlight.
+            if (panel != transform && panel.gameObject.activeSelf != visible) panel.gameObject.SetActive(visible);
         }
 
         void OnMouseDown()
@@ -120,6 +132,12 @@ namespace BlockMap
         /// <summary>整体原地转 90°（改的是"朝向"，不是开门）—— 想单击转向就挂 BlockMapRotateOnClick</summary>
         public void Rotate90()
         {
+            var view = GetComponentInParent<Gameplay.GameplayBlockView>();
+            if (view != null)
+            {
+                view.transform.rotation = Quaternion.Euler(0f, 90f, 0f) * view.transform.rotation;
+                return;
+            }
             InitializePose();
             _closedRotation = Quaternion.Euler(0f, 90f, 0f) * _closedRotation;
             AdvanceAnimation(0f);

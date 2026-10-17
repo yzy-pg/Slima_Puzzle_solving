@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BlockMap.Gameplay;
 using UnityEngine;
 
 namespace BlockMap
@@ -400,6 +401,8 @@ namespace BlockMap
 
         public string ToJson()
         {
+            RestoreIfNeeded();
+            CaptureEditedDoorDirections();
             EnsureMechanismNumbers();
             var data = new SaveData
             {
@@ -424,6 +427,26 @@ namespace BlockMap
                 });
             }
             return JsonUtility.ToJson(data, true);
+        }
+
+        void CaptureEditedDoorDirections()
+        {
+            var views = new Dictionary<string, GameplayBlockView>();
+            foreach (var view in GetComponentsInChildren<GameplayBlockView>(true))
+                if (view.gameObject.activeSelf && view.GetComponentInParent<BlockWorld>() == this)
+                    views[view.name] = view;
+            if (views.Count == 0) return;
+
+            foreach (var block in _blocks)
+            {
+                var definition = BlockLibrary.Get(block.Value);
+                if (definition == null || BlockGameplayCatalog.Get(definition.id)?.Kind != GameplayBlockKind.Door) continue;
+                Vector3Int cell = block.Key;
+                string name = $"Gameplay_{definition.id}_{cell.x}_{cell.y}_{cell.z}";
+                // Only capture edits to the model; an unchanged preview may still be awaiting a data-driven rebuild.
+                if (views.TryGetValue(name, out var view) && view.TryCaptureEditedDirection(out int direction))
+                    SetDir(cell, direction);
+            }
         }
 
         public void FromJson(string json)

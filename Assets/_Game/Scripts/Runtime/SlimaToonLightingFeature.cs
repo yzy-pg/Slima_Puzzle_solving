@@ -64,9 +64,10 @@ namespace SlimaPuzzle.Rendering
                     var actor = light.GetComponentInParent<BlockMap.Gameplay.SlimeActor>();
                     if (actor != null) noiseSettings.x = Mathf.Max(0.002f, actor.glowPixelSize);
                 }
-                else if (light.name.StartsWith("Light_", System.StringComparison.Ordinal) &&
-                    light.name.IndexOf("_Lamp_", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    noiseSettings.x = 0.025f;
+                // All generated local lights share the lamp grid, including elemental floors.
+                else if (light.name.StartsWith("Light_", System.StringComparison.Ordinal) ||
+                    light.name.StartsWith("OpticalLight_", System.StringComparison.Ordinal))
+                    noiseSettings.x = 0.04f;
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

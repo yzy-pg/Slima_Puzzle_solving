@@ -37,7 +37,20 @@ namespace SlimaPuzzle.EditorTools
                     Require(view.GetComponentsInChildren<BlockMapLampHalo>().Length==expected,"Duplicate halos: "+id);
                     Require(view.GetComponentsInChildren<Light>().Length==expected && view.GetComponentsInChildren<Collider>().Length==0,"Expected one outward light per optical face and no colliders.");
                     foreach(var normal in glow.opticalSurface.GetComponent<MeshFilter>().sharedMesh.normals)
-                        Require(Mathf.Abs(normal.y)<.001f,"Top or bottom geometry is using the emitting material.");
+                        Require(Mathf.Abs(normal.y)<.001f,"A top surface is sharing the side sensor material.");
+                    Require(glow.topIndicator!=null && glow.topIndicator.GetComponentsInChildren<Light>().Length==0,"Top indicator is missing or creates a real light.");
+                    foreach(var normal in glow.topIndicator.GetComponent<MeshFilter>().sharedMesh.normals)
+                        Require(normal.y>.999f,"Top indicator is not a flat upward face.");
+                    var topSize=glow.topIndicator.GetComponent<MeshFilter>().sharedMesh.bounds.size;
+                    float expectedWidth=glow.receiver ? .30f : .36f;
+                    Require(Mathf.Abs(topSize.x-expectedWidth)<.0001f && Mathf.Abs(topSize.z-expectedWidth)<.0001f,"Top indicator did not use its enlarged size.");
+                    if(glow.receiver)
+                    {
+                        int bezelVertices=0;
+                        foreach(var normal in glow.transform.Find("Casing").GetComponent<MeshFilter>().sharedMesh.normals)
+                            if(normal.y>.999f) bezelVertices++;
+                        Require(bezelVertices==16,"Receiver mechanical bezel is missing.");
+                    }
                     for (int face=0;face<expected;face++)
                     {
                         Vector3 local=Quaternion.Euler(0,face*90,0)*new Vector3(0,.5f,.52f);
@@ -54,6 +67,17 @@ namespace SlimaPuzzle.EditorTools
                             view.SetReceiverFaces(1 << ((face+direction)&3));
                             CheckSettings(halos,glow,glow.intensity,face);
                         }
+                    Color originalColor=glow.color;
+                    foreach(var beamColor in new[] {BeamColor.White,BeamColor.Red,BeamColor.Blue,BeamColor.Purple})
+                    {
+                        glow.SetColor(BlockOpticsSystem.ToColor(beamColor));
+                        view.SetActivated(false); view.SetActivated(true);
+                        CheckSettings(halos,glow,glow.intensity,glow.receiver ? 3 : 0);
+                        var casingProperties=new MaterialPropertyBlock();
+                        glow.transform.Find("Casing").GetComponent<Renderer>().GetPropertyBlock(casingProperties);
+                        Require(casingProperties.GetColor("_BaseColor")==Color.white && casingProperties.GetFloat("_EmissionStrength")==0,"Metal bezel was tinted or made emissive.");
+                    }
+                    glow.SetColor(originalColor);
                     view.SetActivated(false);
                     CheckSettings(halos,glow,glow.receiver ? 0f : glow.intensity);
                     Object.DestroyImmediate(view.gameObject);
@@ -166,6 +190,39 @@ namespace SlimaPuzzle.EditorTools
                 targetPoint=new Vector3(1.5f,.35f,1); camera.orthographicSize=1.6f;
                 camera.transform.position=targetPoint+new Vector3(1,2.3f,6); camera.transform.LookAt(targetPoint);
                 Capture("Docs/images/OpticLight.png");
+                // Top indicators are emission only: isolate them with all real optical lights off.
+                ShowHalos(false); foreach(var point in points) point.enabled=false;
+                light.intensity=.7f;
+                var tops=new[] {emitter.GetComponentInChildren<GameplayOpticGlow>().topIndicator,receiver.GetComponentInChildren<GameplayOpticGlow>().topIndicator};
+                var topProperties=new MaterialPropertyBlock();
+                foreach(var top in tops)
+                {
+                    top.GetPropertyBlock(topProperties); topProperties.SetFloat("_EmissionStrength",0); top.SetPropertyBlock(topProperties);
+                }
+                var topOff=Capture(null);
+                foreach(var top in tops)
+                {
+                    top.GetPropertyBlock(topProperties); topProperties.SetFloat("_EmissionStrength",1.6f); top.SetPropertyBlock(topProperties);
+                }
+                var topOn=Capture("Docs/images/OpticTopIndicators.png");
+                foreach(float x in new[] {.5f,2.5f})
+                {
+                    Vector3 sample=camera.WorldToViewportPoint(new Vector3(x,1.001f,.5f)); bool brightened=false;
+                    int centerX=Mathf.RoundToInt(sample.x*1200),centerY=Mathf.RoundToInt(sample.y*600);
+                    for(int dx=-8;dx<=8;dx++) for(int dy=-8;dy<=8;dy++)
+                    {
+                        int index=Mathf.Clamp(centerY+dy,0,599)*1200+Mathf.Clamp(centerX+dx,0,1199);
+                        if(topOn[index].maxColorComponent>topOff[index].maxColorComponent+.1f) brightened=true;
+                    }
+                    Require(brightened,"Top arrow or receiver indicator did not emit visually.");
+                    foreach(var position in new[] {new Vector3(x,.001f,1.1f),new Vector3(x+.501f,.65f,.5f)})
+                    {
+                        Vector3 target=camera.WorldToViewportPoint(position);
+                        int index=Mathf.Clamp(Mathf.RoundToInt(target.y*600),0,599)*1200+Mathf.Clamp(Mathf.RoundToInt(target.x*1200),0,1199);
+                        Require((new Vector3(topOn[index].r,topOn[index].g,topOn[index].b)-new Vector3(topOff[index].r,topOff[index].g,topOff[index].b)).sqrMagnitude<.000004f,
+                            "Top indicator illuminated a neighbouring surface.");
+                    }
+                }
                 if (ShaderUtil.ShaderHasError(shared.shader)) throw new Exception("Rendered lamp shader failed.");
             }
             finally { rt.Release(); Object.DestroyImmediate(rt); Object.DestroyImmediate(pixels); if(wallMaterial!=null) Object.DestroyImmediate(wallMaterial); if(floorMaterial!=null) Object.DestroyImmediate(floorMaterial); }
@@ -188,6 +245,9 @@ namespace SlimaPuzzle.EditorTools
             Require(emission.GetFloat("_EmissionStrength")== (lit ? glow.emissionStrength : 0f),"Optical surface emission is wrong.");
             Vector4 expectedMask=Vector4.zero; if(lit) expectedMask[litFace]=1;
             Require(emission.GetVector("_OpticFaceMask")==expectedMask,"A non-receiving sensor face is emitting.");
+            glow.topIndicator.GetPropertyBlock(emission);
+            Require(emission.GetFloat("_EmissionStrength")== (lit ? glow.emissionStrength : 0f) && emission.GetVector("_OpticFaceMask")==Vector4.one,"Top indicator state is wrong.");
+            Require(emission.GetColor("_BaseColor")==glow.color && emission.GetColor("_EmissionColor")==glow.color,"Top indicator did not follow the laser color.");
             for(int face=0;face<halos.Length;face++)
             {
                 var halo=halos[face];

@@ -276,7 +276,7 @@ namespace BlockMap.Gameplay
                 {
                     // Keep the route legal; the object is removed only when the actor lands there.
                 }
-                else if (allowPush && profile.pushable && TryPush(cell, direction))
+                else if (allowPush && profile.pushable && TryPush(cell, direction, actor.Mover.stepDuration))
                 {
                     // 推动物件后原格变为空格。
                 }
@@ -497,13 +497,24 @@ namespace BlockMap.Gameplay
             _activeReceivers.Add(cell);
         }
 
-        bool TryPush(Vector3Int from, int direction)
+        bool TryPush(Vector3Int from, int direction, float duration)
         {
             Vector3Int to = from + GridDirection.ToVector(direction);
             if (!WithinLevel(to) || !HasSupport(to + Vector3Int.down) || GetActorAt(to) != null) return false;
             bool occupied = _world.IsSolid(to);
             if (occupied && (GetProfileAt(to)?.Kind != GameplayBlockKind.Door || !IsActivated(to))) return false;
-            return _world.Move(from, to, allowCover: occupied);
+            if (_worldDirty) RebuildViews(true);
+            int index = _world.GetIndex(from);
+            _states.TryGetValue((from, index), out RuntimeState moving);
+            if (!_world.Move(from, to, allowCover: occupied)) return false;
+            // Transfer the live view before rebuilding, so a push does not replace it at the destination.
+            if (moving != null && moving.view != null)
+            {
+                _states.Remove((from, index));
+                _states[(to, index)] = moving;
+                moving.view.AnimatePush(to, duration);
+            }
+            return true;
         }
 
         bool CoveredDoorBlocksMovement(Vector3Int cell) =>

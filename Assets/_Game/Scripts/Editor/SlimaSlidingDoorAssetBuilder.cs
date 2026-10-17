@@ -15,6 +15,14 @@ namespace SlimaPuzzle.EditorTools
         public const string ModelPath = "Assets/_Game/Art/Models/Doors/SlidingDoorPanel.asset";
         public const string MaterialPath = "Assets/_Game/Art/Materials/Doors/SlidingDoorMetal.mat";
         public const string PrefabFolder = "Assets/BlockMapEditor/Resources/BlockModels/Doors";
+        public static IEnumerable<string> DoorIds
+        {
+            get
+            {
+                foreach(var profile in BlockGameplayCatalog.All)
+                    if(profile.Kind==GameplayBlockKind.Door) yield return profile.id;
+            }
+        }
 
         [MenuItem("Tools/Slima/机关/生成灰色金属推拉门")]
         public static void BuildAssets()
@@ -36,6 +44,7 @@ namespace SlimaPuzzle.EditorTools
             {
                 existing.Clear(); existing.vertices=mesh.vertices; existing.normals=mesh.normals;
                 existing.uv=mesh.uv; existing.colors=mesh.colors; existing.triangles=mesh.triangles; existing.bounds=mesh.bounds;
+                var outlineNormals=new List<Vector3>(); mesh.GetUVs(3,outlineNormals); existing.SetUVs(3,outlineNormals);
                 EditorUtility.SetDirty(existing); Object.DestroyImmediate(mesh); mesh=existing;
             }
             var material=AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
@@ -46,11 +55,12 @@ namespace SlimaPuzzle.EditorTools
             }
             material.mainTexture=texture; material.color=Color.white;
             material.SetFloat("_EmissionStrength",0); material.SetFloat("_OutlineWidth",.6f);
+            material.SetFloat("_OutlineSmoothNormals",1);
             material.SetFloat("_ExtraLightMode",0); material.SetFloat("_LightWrap",0);
             material.SetColor("_ShadowColor",new Color(.38f,.38f,.38f));
             material.SetColor("_AmbientColor",new Color(.16f,.16f,.16f,1));
             EditorUtility.SetDirty(material);
-            foreach(string id in new[] {"Door","Door_B"})
+            foreach(string id in DoorIds)
             {
                 var root=new GameObject(id);
                 try
@@ -74,6 +84,7 @@ namespace SlimaPuzzle.EditorTools
         {
             var vertices=new List<Vector3>(); var normals=new List<Vector3>();
             var uv=new List<Vector2>(); var colors=new List<Color>(); var triangles=new List<int>();
+            var outlineNormals=new List<Vector3>();
             var half=new Vector3(.48f,.5f,.07f);
             foreach(Vector3 normal in new[] {Vector3.forward,Vector3.back,Vector3.right,Vector3.left,Vector3.up,Vector3.down})
             {
@@ -82,6 +93,8 @@ namespace SlimaPuzzle.EditorTools
                 foreach(Vector2 corner in new[] {new Vector2(-1,-1),new Vector2(1,-1),new Vector2(1,1),new Vector2(-1,1)})
                 {
                     vertices.Add(Vector3.Scale(normal+horizontal*corner.x+vertical*corner.y,half)+Vector3.up*.5f);
+                    // Shared corner directions close the hard-edged panel's outline without smoothing its lighting.
+                    outlineNormals.Add((normal+horizontal*corner.x+vertical*corner.y).normalized);
                     normals.Add(normal); colors.Add(Color.white);
                     uv.Add(Mathf.Abs(normal.z)>.5f ? new Vector2((1-corner.x)/2,(corner.y+1)/2) : new Vector2(.08f,.08f)+corner*.015f);
                 }
@@ -89,7 +102,9 @@ namespace SlimaPuzzle.EditorTools
             }
             var mesh=new Mesh {name="SlidingDoorPanel"}; mesh.SetVertices(vertices); mesh.SetNormals(normals);
             mesh.SetUVs(0,uv); mesh.SetColors(colors); mesh.SetTriangles(triangles,0); mesh.RecalculateBounds();
+            mesh.SetUVs(3,outlineNormals);
             return mesh;
         }
+
     }
 }

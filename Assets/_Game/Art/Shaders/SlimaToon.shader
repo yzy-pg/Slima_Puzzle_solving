@@ -72,6 +72,7 @@ Shader "Slima/Toon (Cel + Pixel)"
         _OutlineColor ("描边｜颜色", Color) = (0, 0, 0, 1)
         _OutlineWidth ("描边｜粗细（屏幕像素，0 = 关掉这个物体的反转壳描边）", Range(0, 8)) = 2
         _OutlineNoise ("描边｜噪声（手绘感）", Range(0, 1)) = 0
+        [Toggle] _OutlineSmoothNormals ("描边｜使用 UV4 平滑法线", Float) = 0
     }
 
     SubShader
@@ -137,6 +138,7 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _OutlineColor;
                 half   _OutlineWidth;
                 half   _OutlineNoise;
+                half   _OutlineSmoothNormals;
             CBUFFER_END
 
             #include "SlimaBurn.hlsl"
@@ -145,6 +147,7 @@ Shader "Slima/Toon (Cel + Pixel)"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
+                float3 outlineNormalOS : TEXCOORD3;
             };
 
             struct Varyings
@@ -180,7 +183,8 @@ Shader "Slima/Toon (Cel + Pixel)"
                 float4 positionCS = positionInputs.positionCS;
 
                 // 沿法线在"屏幕空间"外扩：这样无论物体多远，描边在屏幕上都是同样粗细
-                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+                float3 outlineNormal = _OutlineSmoothNormals > .5 ? input.outlineNormalOS : input.normalOS;
+                float3 normalWS = TransformObjectToWorldNormal(outlineNormal);
                 float3 normalCS = TransformWorldToHClipDir(normalWS);
 
                 float2 dir = normalCS.xy;
@@ -277,6 +281,7 @@ Shader "Slima/Toon (Cel + Pixel)"
                 half4  _OutlineColor;
                 half   _OutlineWidth;
                 half   _OutlineNoise;
+                half   _OutlineSmoothNormals;
             CBUFFER_END
 
             TEXTURE2D(_BaseMap);

@@ -36,6 +36,7 @@ namespace BlockMap.Tests
                     Assert.That(light.transform.position.y, Is.InRange(1.12f, 1.3f), "Light must follow the actual pad surface.");
                     Assert.AreEqual(LightType.Point, light.type);
                     Assert.Greater(light.intensity, 0);
+                    Assert.AreNotEqual(LightShadows.None, light.shadows);
                 }
                 foreach (var effect in root.GetComponentsInChildren<BlockMap.Gameplay.ElementFloorRiseEffect>())
                 {

@@ -76,11 +76,11 @@ namespace SlimaPuzzle.EditorTools
                         Advance(1);
                         break;
                     case 1:
-                        Write(menu, "_page", Enum.Parse(Read(menu, "_page").GetType(), "Slots"));
+                        Call(menu, "OpenLevelSelection");
                         Advance(2);
                         break;
                     case 2:
-                        ScreenCapture.CaptureScreenshot(Path.GetFullPath("Logs/SlimaFrontEnd-slots.png"));
+                        ScreenCapture.CaptureScreenshot(Path.GetFullPath("Logs/SlimaFrontEnd-levels.png"));
                         Advance(3);
                         break;
                     case 3:
@@ -97,7 +97,7 @@ namespace SlimaPuzzle.EditorTools
                             "; slot=" + Read(menu, "_slot") + "; busy=" + root.Party.IsBusy);
                         var saved = SlimaSaveStore.Read(0, directory);
                         Check(saved.progress.actors[0].state.element == SlimeElement.Blue, "Snapshot lost actor state.");
-                        SlimaSaveStore.Write(1, new SlimaSave { scenePath = "Assets/Scenes/map03.unity" }, directory);
+                        SlimaSaveStore.Write(1, new SlimaSave { scenePath = SlimaFrontEnd.DefaultLevelScenes[2] }, directory);
                         Write(menu, "_pauseRequested", true);
                         Advance(5);
                         break;
@@ -127,16 +127,16 @@ namespace SlimaPuzzle.EditorTools
                         Check(root.Party.ActiveActor.Mover.Facing == 3, "Continue did not restore facing.");
                         Check(root.Party.ActiveActor.State.opticsMode == BlueOpticsMode.ReflectRight,
                             "Continue did not restore optical ability.");
-                        Check(SlimaSaveStore.Read(1, directory).scenePath == "Assets/Scenes/map03.unity",
+                        Check(SlimaSaveStore.Read(1, directory).scenePath == SlimaFrontEnd.DefaultLevelScenes[2],
                             "Continuing slot 1 changed slot 2.");
                         typeof(BlockMapGameRoot).GetField("_won", Private).SetValue(root, true);
                         Call(menu, "NextLevel");
                         Advance(9);
                         break;
                     case 9:
-                        Check(root != null && root.gameObject.scene.path == "Assets/Scenes/map02.unity",
-                            "Next level did not load map02.");
-                        Check(SlimaSaveStore.Read(0, directory).scenePath == "Assets/Scenes/map02.unity",
+                        Check(root != null && root.gameObject.scene.path == SlimaFrontEnd.DefaultLevelScenes[1],
+                            "Next level did not load the second chapter level.");
+                        Check(SlimaSaveStore.Read(0, directory).scenePath == SlimaFrontEnd.DefaultLevelScenes[1],
                             "Next level did not persist the scene.");
                         Call(menu, "ReturnToMenu", true);
                         Advance(10);
@@ -146,11 +146,11 @@ namespace SlimaPuzzle.EditorTools
                         Advance(11);
                         break;
                     case 11:
-                        Check(root != null && root.gameObject.scene.path == "Assets/Scenes/map01.unity",
+                        Check(root != null && root.gameObject.scene.path == SlimaFrontEnd.DefaultLevelScenes[0],
                             "Restart did not return to the first level.");
                         Check(root.Party.ActiveActor.State.element == SlimeElement.Neutral,
                             "Restart retained the previous actor state.");
-                        Check(SlimaSaveStore.Read(1, directory).scenePath == "Assets/Scenes/map03.unity",
+                        Check(SlimaSaveStore.Read(1, directory).scenePath == SlimaFrontEnd.DefaultLevelScenes[2],
                             "Restart overwrote another slot.");
                         Check(SlimaSaveStore.Read(2, directory) == null, "Unused slot is no longer empty.");
                         Debug.Log("[Slima] PLAY VALIDATION PASSED: menu, new game, pause, settings, save, continue, next level, reset, slot isolation.");

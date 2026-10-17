@@ -10,6 +10,8 @@ Shader "Slima/Outline Mask"
     Properties
     {
         _MaskColor ("遮罩颜色（由脚本设置）", Color) = (0, 0, 0, 1)
+        [HideInInspector] _MaskExpand ("Outline protection width", Float) = 0
+        [HideInInspector] _MaskCull ("Mask culling", Float) = 2
     }
 
     SubShader
@@ -31,7 +33,7 @@ Shader "Slima/Outline Mask"
             //   → 遮罩一个像素都画不上 → 之后所有模式都变成"纯色"。
             ZWrite Off
             ZTest Always
-            Cull Back
+            Cull [_MaskCull]
             ColorMask RGB
 
             HLSLPROGRAM
@@ -43,11 +45,14 @@ Shader "Slima/Outline Mask"
             CBUFFER_START(UnityPerMaterial)
                 half4 _MaskColor;
                 float _MaskFar;      // 相机远裁剪面（把深度归一化到 0..1 写进 G 通道）
+                float _MaskExpand;
             CBUFFER_END
 
             struct Attributes
             {
                 float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float3 outlineNormalOS : TEXCOORD3;
             };
 
             struct Varyings
@@ -61,6 +66,14 @@ Shader "Slima/Outline Mask"
                 Varyings output;
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.positionCS = TransformWorldToHClip(positionWS);
+                if (_MaskExpand > 0)
+                {
+                    // Match the door's screen-space shell, including its smooth corner normals.
+                    float3 normalOS = dot(input.outlineNormalOS,input.outlineNormalOS) > .001 ? input.outlineNormalOS : input.normalOS;
+                    float2 direction = TransformWorldToHClipDir(TransformObjectToWorldNormal(normalOS)).xy;
+                    direction /= max(length(direction),1e-5);
+                    output.positionCS.xy += direction * (_MaskExpand * 2.0 / _ScreenParams.y) * output.positionCS.w;
+                }
                 // 视线方向深度（正交/透视都正确），给"被遮挡就不画线"用
                 output.eyeDepth = -(mul(UNITY_MATRIX_V, float4(positionWS, 1.0)).z);
                 return output;

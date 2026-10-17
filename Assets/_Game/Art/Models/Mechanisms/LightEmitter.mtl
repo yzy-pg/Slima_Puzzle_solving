@@ -8,3 +8,7 @@ map_Kd ../../Textures/Mechanisms/LightEmitter_64.png
 newmtl Shell
 Kd 1 1 1
 map_Kd ../../Textures/Mechanisms/MechanismCasing_64.png
+
+newmtl TopIndicator
+Kd 1 1 1
+map_Kd ../../Textures/Mechanisms/LightEmitter_64.png

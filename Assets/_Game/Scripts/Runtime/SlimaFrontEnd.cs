@@ -11,16 +11,55 @@ namespace SlimaPuzzle
     public sealed class SlimaFrontEnd : MonoBehaviour
     {
         public const string MenuScene = "Assets/_Game/Scenes/MainMenu.unity";
-        public string[] levelScenes =
+        public const int LevelSelectorCount = 20;
+        public const int LevelPageCount = 5;
+        public const int LevelCapacity = LevelSelectorCount * LevelPageCount;
+        public static readonly string[] DefaultLevelScenes =
         {
-            "Assets/Scenes/map01.unity", "Assets/Scenes/map02.unity", "Assets/Scenes/map03.unity"
+            "Assets/Scenes/test-level 1-0.unity",
+            "Assets/Scenes/test-level 1-1.unity",
+            "Assets/Scenes/test-level 2-0.unity",
+            "Assets/Scenes/test-level 2-1.unity",
+            "Assets/Scenes/test-level 3-0.unity",
+            "Assets/Scenes/test-level 3-1.unity",
+            "Assets/Scenes/test-level 3-2.unity",
+            "Assets/Scenes/test-level 4-0.unity",
+            "Assets/Scenes/test-level 4-1.unity",
+            "Assets/Scenes/test-level 4-2.unity",
+            "Assets/Scenes/test-level 4-3.unity",
+            "Assets/Scenes/test-level 5-0.unity",
+            "Assets/Scenes/test-level 5-1.unity",
+            "Assets/Scenes/test-level 5-2.unity",
+            "Assets/Scenes/test-level 5-3.unity",
+            "Assets/Scenes/test-level 5-4.unity",
+            "", "", "", ""
         };
+        public string[] levelScenes = CreateLevelSlots();
+
+        static string[] CreateLevelSlots()
+        {
+            var scenes = new string[LevelCapacity];
+            Array.Copy(DefaultLevelScenes, scenes, DefaultLevelScenes.Length);
+            return scenes;
+        }
 
         [Header("Cover Illustration (1280 x 720)")]
         public Rect beakerRect = new Rect(735, 80, 456, 565);
         public Rect slimeRect = new Rect(884, 275, 230, 180);
 
-        enum Page { Home, Slots, Settings, Playing, Pause, ConfirmReset, ConfirmQuit }
+        [Header("Title (1280 x 720)")]
+        public Rect titleRect = new Rect(70, 58, 870, 280);
+        public int titleFontSize = 240;
+        public float titleLetterSpacing = 4f;
+        [Range(0, 12)] public int titleWeight = 6;
+        [Range(0, 20)] public int titleOutlineWidth = 10;
+        [Header("Slime Animation")]
+        public float slimeFloatAmplitude = 14f;
+        public float slimeFloatSpeed = 1.8f;
+        [Range(0f, 1f)] public float slimeGlow = 0.8f;
+        [Range(0, 32)] public int slimeParticleCount = 16;
+
+        enum Page { Home, Levels, Settings, Playing, Pause, ConfirmQuit, ConfirmLevel }
         static SlimaFrontEnd _instance;
         Page _page;
         Page _returnPage;
@@ -29,7 +68,9 @@ namespace SlimaPuzzle
         BlockMapGameRoot _level;
         SlimaSave _save;
         int _slot = -1;
-        int _resetSlot;
+        int _selectionSlot;
+        int _selectedLevel = -1;
+        int _levelPage;
         bool _loading;
         bool _pauseRequested;
         bool _dirty;
@@ -41,14 +82,13 @@ namespace SlimaPuzzle
         string _saveDirectory = null;
         Font _font, _boldFont, _boldItalicFont;
         GUIStyle _title, _titleShadow, _heading, _body, _small, _button, _homeButton, _slider, _sliderThumb;
-        Texture2D _coverArt, _buttonArt, _panelArt;
+        Texture2D _coverArt, _buttonArt, _panelArt, _slimeGlowArt;
         Sprite _beakerArt, _slimeArt;
-        Texture2D _slotEmptyArt, _slotSavedArt, _slotCompleteArt;
 
-        static readonly Color Ink = new Color(0.14f, 0.29f, 0.42f);
-        static readonly Color Paper = new Color(0.94f, 0.97f, 1f);
-        static readonly Color Blue = new Color(0.26f, 0.54f, 0.76f);
-        static readonly Color Muted = new Color(0.30f, 0.45f, 0.57f);
+        static readonly Color Ink = new Color(0.85f, 0.96f, 1f);
+        static readonly Color Paper = new Color(0.025f, 0.06f, 0.11f);
+        static readonly Color Blue = new Color(0.36f, 0.85f, 1f);
+        static readonly Color Muted = new Color(0.52f, 0.70f, 0.81f);
         // The generated button has transparent padding above and below its artwork.
         static readonly Rect ButtonUv = new Rect(0f, 160f / 724f, 1f, 432f / 724f);
 
@@ -56,6 +96,8 @@ namespace SlimaPuzzle
         {
             if (_instance != null) { Destroy(gameObject); return; }
             _instance = this;
+            if (levelScenes == null) levelScenes = CreateLevelSlots();
+            else if (levelScenes.Length < LevelCapacity) Array.Resize(ref levelScenes, LevelCapacity);
             DontDestroyOnLoad(gameObject);
             _volume = Mathf.Clamp01(PlayerPrefs.GetFloat("Slima.Volume", 0.8f));
             _fullscreen = PlayerPrefs.GetInt("Slima.Fullscreen", Screen.fullScreen ? 1 : 0) == 1;
@@ -137,6 +179,11 @@ namespace SlimaPuzzle
 
         void Update()
         {
+            if (!_loading && Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (_page == Page.Levels) { _message = ""; _page = Page.Home; return; }
+                if (_page == Page.ConfirmLevel) { _page = Page.Levels; return; }
+            }
             if (_loading || _level == null) return;
             if (Input.GetKeyDown(KeyCode.Escape))
             {
@@ -195,6 +242,11 @@ namespace SlimaPuzzle
             }
             catch (Exception error) when (IsSaveError(error))
             { _message = "无法创建存档：" + error.Message; return; }
+            LoadSlot(slot, save);
+        }
+
+        void LoadSlot(int slot, SlimaSave save)
+        {
             _slot = slot;
             _save = save;
             _message = "";
@@ -225,7 +277,7 @@ namespace SlimaPuzzle
                 SlimaSaveStore.Write(_slot, _save, _saveDirectory);
                 _dirty = false;
                 _nextSave = Time.unscaledTime + 1f;
-                if (notify) _message = $"已保存到存档 {_slot + 1}";
+                if (notify) _message = "进度已保存";
                 return true;
             }
             catch (Exception error) when (IsSaveError(error))
@@ -249,7 +301,15 @@ namespace SlimaPuzzle
             SceneManager.LoadSceneAsync(MenuScene);
         }
 
-        int NextLevelIndex() => _save == null ? -1 : Array.IndexOf(levelScenes, _save.scenePath) + 1;
+        int NextLevelIndex()
+        {
+            if (_save == null || levelScenes == null) return -1;
+            int current = Array.IndexOf(levelScenes, _save.scenePath);
+            if (current < 0) return -1;
+            for (int i = current + 1; i < Mathf.Min(levelScenes.Length, LevelCapacity); i++)
+                if (!string.IsNullOrEmpty(levelScenes[i])) return i;
+            return -1;
+        }
 
         void NextLevel()
         {
@@ -303,11 +363,13 @@ namespace SlimaPuzzle
             _slimeArt = Resources.Load<Sprite>("SlimaUI/cover-slime");
             _buttonArt = Art("button");
             _panelArt = Art("panel");
-            _slotEmptyArt = Art("slot-empty");
-            _slotSavedArt = Art("slot-saved");
-            _slotCompleteArt = Art("slot-complete");
-            _title = Style(132, Blue, TextAnchor.MiddleLeft, _boldItalicFont);
-            _titleShadow = Style(132, Ink, TextAnchor.MiddleLeft, _boldItalicFont);
+            _slimeGlowArt = Art("slime-glow");
+            _title = Style(titleFontSize, Ink, TextAnchor.MiddleLeft, _boldItalicFont);
+            _titleShadow = Style(titleFontSize, new Color(0.015f, 0.045f, 0.085f), TextAnchor.MiddleLeft, _boldItalicFont);
+            _title.hover.textColor = _title.active.textColor = _title.focused.textColor = _title.normal.textColor;
+            _titleShadow.hover.textColor = _titleShadow.active.textColor = _titleShadow.focused.textColor = _titleShadow.normal.textColor;
+            _title.padding = _titleShadow.padding = new RectOffset();
+            _title.clipping = _titleShadow.clipping = TextClipping.Overflow;
             _heading = Style(30, Ink, TextAnchor.MiddleLeft, _boldFont);
             _body = Style(22, Ink, TextAnchor.MiddleLeft);
             _small = Style(16, Muted, TextAnchor.MiddleLeft);
@@ -327,7 +389,7 @@ namespace SlimaPuzzle
             _sliderThumb.focused.background = _sliderThumb.normal.background;
         }
 
-        static Texture2D Art(string name) => Resources.Load<Texture2D>("SlimaUI/" + name);
+        static Texture2D Art(string name) => Resources.Load<Texture2D>("SlimaUI/Dark/" + name);
 
         GUIStyle Style(int size, Color color, TextAnchor alignment, Font face = null) => new GUIStyle(GUI.skin.label)
         { font = face != null ? face : _font, fontSize = size, fontStyle = FontStyle.Normal,
@@ -348,7 +410,7 @@ namespace SlimaPuzzle
             {
                 Image(new Rect(850, 14, 402, 88), _panelArt);
                 if (Button(new Rect(1090, 22, 150, 42), "暂停 / ESC", 18)) _pauseRequested = true;
-                Label(new Rect(860, 66, 380, 30), $"存档 {_slot + 1} · 自动保存 · F5 手动保存", _small);
+                Label(new Rect(860, 66, 380, 30), "自动保存 · F5 手动保存", _small);
                 if (_level != null && _level.Won)
                 {
                     bool hasNext = NextLevelIndex() > 0 && NextLevelIndex() < levelScenes.Length;
@@ -371,13 +433,13 @@ namespace SlimaPuzzle
                     switch (_page)
                     {
                         case Page.Home: DrawHome(); break;
-                        case Page.Slots: DrawSlots(); break;
+                        case Page.Levels: DrawLevels(); break;
                         case Page.Settings: DrawSettings(); break;
                         case Page.Pause: DrawPause(); break;
-                        case Page.ConfirmReset: DrawReset(); break;
                         case Page.ConfirmQuit: DrawQuit(); break;
+                        case Page.ConfirmLevel: DrawLevelConfirm(); break;
                     }
-                DrawMessage(646);
+                DrawMessage(_page == Page.Levels ? 174 : 646);
             }
             GUI.enabled = oldEnabled;
             GUI.matrix = oldMatrix;
@@ -390,53 +452,200 @@ namespace SlimaPuzzle
             Color previous = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, _page == Page.Home && !_loading ? 1f : 0.18f);
             Image(new Rect(0, 0, 1280, 720), _coverArt);
+            if (_page == Page.Home && !_loading) DrawTitle();
+            float opacity = GUI.color.a;
+            Rect floatingSlime = FloatingSlimeRect(Time.unscaledTime);
+            Rect aura = new Rect(floatingSlime.center.x - floatingSlime.width * 0.8f,
+                floatingSlime.center.y - floatingSlime.height * 0.8f,
+                floatingSlime.width * 1.6f, floatingSlime.height * 1.6f);
+            GUI.color = new Color(1f, 1f, 1f, opacity * slimeGlow * (0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 2.4f)));
+            Image(aura, _slimeGlowArt);
+            GUI.color = new Color(0.65f, 0.9f, 1f, opacity);
             Illustration(beakerRect, _beakerArt);
-            Illustration(slimeRect, _slimeArt);
+            DrawSlimeParticles(Time.unscaledTime, opacity);
+            GUI.color = new Color(1f, 1f, 1f, opacity);
+            Illustration(floatingSlime, _slimeArt);
             GUI.color = previous;
+        }
+
+        Rect FloatingSlimeRect(float time)
+        {
+            Rect rect = slimeRect;
+            // Quantize to the UI pixel grid and keep moving while gameplay is paused.
+            rect.y += Mathf.Round(Mathf.Sin(time * slimeFloatSpeed) * slimeFloatAmplitude);
+            return rect;
+        }
+
+        void DrawSlimeParticles(float time, float opacity)
+        {
+            for (int i = 0; i < slimeParticleCount; i++)
+            {
+                float phase = Mathf.Repeat(time * (0.11f + i % 3 * 0.018f) + i * 0.618034f, 1f);
+                float x = beakerRect.x + beakerRect.width * (0.28f + Mathf.Repeat(i * 0.381966f, 1f) * 0.48f);
+                x += Mathf.Sin(time * 0.8f + i * 2f) * 8f;
+                float y = beakerRect.y + beakerRect.height * (0.77f - phase * 0.59f);
+                x = Mathf.Round(x / 2f) * 2f;
+                y = Mathf.Round(y / 2f) * 2f;
+                float alpha = Mathf.Sin(phase * Mathf.PI) * opacity;
+                float size = i % 3 == 0 ? 4f : 2f;
+                Fill(new Rect(x - 3, y - 3, size + 6, size + 6), new Color(0.12f, 0.65f, 1f, alpha * 0.15f));
+                Fill(new Rect(x, y, size, size), new Color(0.55f, 0.94f, 1f, alpha * 0.9f));
+                if (i % 4 == 0)
+                {
+                    Fill(new Rect(x - 4, y + 1, size + 8, 2), new Color(0.5f, 0.89f, 1f, alpha * 0.7f));
+                    Fill(new Rect(x + 1, y - 4, 2, size + 8), new Color(0.5f, 0.89f, 1f, alpha * 0.7f));
+                }
+            }
+        }
+
+        void DrawTitle()
+        {
+            const string text = "SLIMA";
+            _title.fontSize = _titleShadow.fontSize = titleFontSize;
+            _boldItalicFont.RequestCharactersInTexture(text, titleFontSize, FontStyle.Normal);
+            float width = 0f;
+            foreach (char letter in text)
+            {
+                _boldItalicFont.GetCharacterInfo(letter, out CharacterInfo glyph, titleFontSize);
+                // Pack visible ink bounds; the italic font's side bearings leave large gaps.
+                width += glyph.maxX - glyph.minX + titleWeight * 2 + titleLetterSpacing;
+            }
+            width -= titleLetterSpacing;
+            Matrix4x4 previous = GUI.matrix;
+            // Fit the oversized lettering to the marked width without reducing its height.
+            GUI.matrix = previous * Matrix4x4.TRS(titleRect.position, Quaternion.identity,
+                new Vector3(titleRect.width / Mathf.Max(1f, width), 1f, 1f));
+            // Finish the whole outline before filling, so close letters keep their white strokes.
+            for (int pass = 0; pass < 2; pass++)
+            {
+                float x = titleWeight;
+                int radius = pass == 0 ? titleWeight + titleOutlineWidth : titleWeight;
+                GUIStyle style = pass == 0 ? _titleShadow : _title;
+                foreach (char letter in text)
+                {
+                    _boldItalicFont.GetCharacterInfo(letter, out CharacterInfo glyph, titleFontSize);
+                    Rect rect = new Rect(x - glyph.minX, 0, titleFontSize * 2, titleRect.height);
+                    string character = letter.ToString();
+                    if (radius == 0) Label(rect, character, style);
+                    else
+                        for (int dx = -1; dx <= 1; dx++)
+                            for (int dy = -1; dy <= 1; dy++)
+                                Label(new Rect(rect.x + dx * radius, dy * radius, rect.width, rect.height), character, style);
+                    x += glyph.maxX - glyph.minX + titleWeight * 2 + titleLetterSpacing;
+                }
+            }
+            GUI.matrix = previous;
         }
 
         void DrawHome()
         {
-            Label(new Rect(76, 94, 650, 190), "SLIMA", _titleShadow);
-            // Overlap on the pixel grid adds weight without changing the font family.
-            for (int x = 0; x <= 2; x++)
-                for (int y = 0; y <= 2; y++)
-                    Label(new Rect(70 + x, 88 + y, 650, 190), "SLIMA", _title);
             if (Button(new Rect(110, 382, 340, 76), "开始游戏", 36, _homeButton))
-            { RefreshSlots(); _message = ""; _page = Page.Slots; }
+                OpenLevelSelection();
             if (Button(new Rect(110, 486, 340, 76), "设置", 36, _homeButton)) OpenSettings(Page.Home);
             if (Button(new Rect(110, 590, 340, 76), "退出游戏", 36, _homeButton))
             { _returnPage = Page.Home; _page = Page.ConfirmQuit; }
         }
 
-        void DrawSlots()
+        void OpenLevelSelection()
         {
-            Label(new Rect(100, 142, 700, 54), "选择存档", _heading);
-            Label(new Rect(100, 200, 970, 38), "空存档开始新冒险，已有存档继续上次进度。", _small);
-            for (int i = 0; i < _slots.Length; i++)
+            RefreshSlots();
+            OpenLevels(0);
+        }
+
+        bool LevelAvailable(int index) => index >= 0 && index < LevelCapacity &&
+            levelScenes != null && index < levelScenes.Length && !string.IsNullOrEmpty(levelScenes[index]) &&
+            Application.CanStreamedLevelBeLoaded(levelScenes[index]);
+
+        void OpenLevels(int slot)
+        {
+            _selectionSlot = slot;
+            _selectedLevel = _slots[slot] == null ? -1 : Array.IndexOf(levelScenes, _slots[slot].scenePath);
+            if (!LevelAvailable(_selectedLevel))
             {
-                int slot = i;
-                float x = 100 + i * 365;
-                SlimaSave save = _slots[i];
-                Texture2D card = save == null ? _slotEmptyArt :
-                    save.progress != null && save.progress.won ? _slotCompleteArt : _slotSavedArt;
-                Image(new Rect(x, 264, 340, 314), card);
-                Label(new Rect(x + 24, 288, 220, 42), $"存档 {i + 1:00}", _heading);
-                string status = _slotErrors[i] ?? (save == null ? "空存档" :
-                    $"{LevelName(save.scenePath)} · {(save.progress != null && save.progress.won ? "已通关" : "冒险中")}");
-                Label(new Rect(x + 24, 354, 305, 40), status, _body);
-                string time = save == null ? "开启你的第一次冒险" :
-                    DateTime.Parse(save.savedUtc, null, System.Globalization.DateTimeStyles.RoundtripKind)
-                        .ToLocalTime().ToString("yyyy/MM/dd  HH:mm");
-                Label(new Rect(x + 24, 401, 300, 36), time, _small);
-                GUI.enabled = _slotErrors[i] == null;
-                if (Button(new Rect(x + 24, 464, 292, 54), save == null ? "新游戏" : "继续游戏")) StartSlot(slot);
-                GUI.enabled = true;
-                if (save != null || _slotErrors[i] != null)
-                    if (Button(new Rect(x + 24, 529, 292, 32), "重新开始", 16))
-                    { _resetSlot = slot; _message = ""; _page = Page.ConfirmReset; }
+                _selectedLevel = -1;
+                for (int i = 0; i < LevelCapacity; i++)
+                    if (LevelAvailable(i)) { _selectedLevel = i; break; }
             }
-            if (Button(new Rect(100, 600, 160, 44), "返回")) _page = Page.Home;
+            _levelPage = _selectedLevel < 0 ? 0 : _selectedLevel / LevelSelectorCount;
+            _message = "";
+            _page = Page.Levels;
+        }
+
+        void StartSelectedLevel(bool confirmed)
+        {
+            if (!LevelAvailable(_selectedLevel)) return;
+            SlimaSave previous = _slots[_selectionSlot];
+            string scenePath = levelScenes[_selectedLevel];
+            if (previous != null && previous.scenePath == scenePath)
+            { StartSlot(_selectionSlot); return; }
+            if ((previous != null || _slotErrors[_selectionSlot] != null) && !confirmed)
+            { _page = Page.ConfirmLevel; return; }
+            var save = new SlimaSave { scenePath = scenePath };
+            try { SlimaSaveStore.Write(_selectionSlot, save, _saveDirectory); }
+            catch (Exception error) when (IsSaveError(error))
+            { _message = "无法创建存档：" + error.Message; return; }
+            _slots[_selectionSlot] = save;
+            _slotErrors[_selectionSlot] = null;
+            LoadSlot(_selectionSlot, save);
+        }
+
+        void DrawLevels()
+        {
+            Label(new Rect(4, 12, 400, 50), "选择关卡", _heading);
+            // Keep the frame and body, leaving out the panel's old header and divider.
+            if (_panelArt != null)
+            {
+                GUI.DrawTextureWithTexCoords(new Rect(80, 80, 1120, 20), _panelArt, new Rect(0, 0.97f, 1, 0.03f));
+                GUI.DrawTextureWithTexCoords(new Rect(80, 100, 1120, 530), _panelArt, new Rect(0, 0.04f, 1, 0.78f));
+                GUI.DrawTextureWithTexCoords(new Rect(80, 630, 1120, 20), _panelArt, new Rect(0, 0, 1, 0.04f));
+            }
+            bool enabled = GUI.enabled;
+            for (int cell = 0; cell < LevelSelectorCount; cell++)
+            {
+                int index = _levelPage * LevelSelectorCount + cell;
+                Rect rect = new Rect(158 + cell % 5 * 216, 112 + cell / 5 * 112, 100, 100);
+                bool available = LevelAvailable(index);
+                GUI.enabled = enabled && available;
+                if (_selectedLevel == index)
+                    Fill(new Rect(rect.x - 4, rect.y - 4, rect.width + 8, rect.height + 8), new Color(Blue.r, Blue.g, Blue.b, 0.4f));
+                if (Button(rect, (index + 1).ToString(), 32, square: true)) _selectedLevel = index;
+            }
+            GUI.enabled = enabled;
+            bool continuing = LevelAvailable(_selectedLevel) && _slots[_selectionSlot] != null &&
+                _slots[_selectionSlot].scenePath == levelScenes[_selectedLevel];
+            Label(new Rect(110, 574, 710, 44), _selectedLevel < 0 ? "本页关卡待开放" :
+                $"已选 {_selectedLevel + 1} · {(continuing ? "保留进度并继续" : "从关卡起点开始")} · 自动保存", _small);
+            GUI.enabled = enabled && LevelAvailable(_selectedLevel);
+            if (Button(new Rect(870, 574, 300, 44), continuing ? "继续所选关卡" : "进入所选关卡")) StartSelectedLevel(false);
+            GUI.enabled = enabled;
+            if (Button(new Rect(20, 654, 110, 48), "返回")) { _message = ""; _page = Page.Home; }
+            GUI.enabled = enabled && _levelPage > 0;
+            if (Button(new Rect(475, 654, 82, 48), "<", 32)) SetLevelPage(_levelPage - 1);
+            GUI.enabled = enabled;
+            Label(new Rect(606, 656, 130, 44), $"{_levelPage + 1} / {LevelPageCount}", _body);
+            GUI.enabled = enabled && _levelPage < LevelPageCount - 1;
+            if (Button(new Rect(735, 654, 82, 48), ">", 32)) SetLevelPage(_levelPage + 1);
+            GUI.enabled = enabled;
+        }
+
+        void SetLevelPage(int page)
+        {
+            if (page < 0 || page >= LevelPageCount || page == _levelPage) return;
+            _levelPage = page;
+            _selectedLevel = -1;
+            int first = page * LevelSelectorCount;
+            for (int i = first; i < first + LevelSelectorCount; i++)
+                if (LevelAvailable(i)) { _selectedLevel = i; break; }
+            _message = "";
+        }
+
+        void DrawLevelConfirm()
+        {
+            Image(new Rect(340, 202, 600, 320), _panelArt);
+            Label(new Rect(390, 202, 490, 40), $"进入第 {_selectedLevel + 1:00} 关？", _heading);
+            Label(new Rect(390, 300, 490, 70), "当前进度将被替换。\n确认后从关卡起点开始。", _body);
+            if (Button(new Rect(390, 420, 240, 54), "取消")) _page = Page.Levels;
+            if (Button(new Rect(650, 420, 240, 54), "确认进入")) StartSelectedLevel(true);
         }
 
         string LevelName(string scenePath)
@@ -477,7 +686,7 @@ namespace SlimaPuzzle
         {
             Image(new Rect(390, 140, 500, 510), _panelArt);
             Label(new Rect(450, 164, 500, 54), "游戏已暂停", _heading);
-            Label(new Rect(450, 221, 500, 30), $"当前使用存档 {_slot + 1} · {LevelName(_save.scenePath)}", _small);
+            Label(new Rect(450, 221, 500, 30), $"{LevelName(_save.scenePath)} · 自动保存", _small);
             if (Button(new Rect(450, 286, 380, 52), "继续游戏")) Resume();
             if (Button(new Rect(450, 354, 380, 52), "保存进度")) SaveProgress(true);
             if (Button(new Rect(450, 422, 380, 52), "设置")) OpenSettings(Page.Pause);
@@ -486,25 +695,16 @@ namespace SlimaPuzzle
             { _returnPage = Page.Pause; _page = Page.ConfirmQuit; }
         }
 
-        void DrawReset()
-        {
-            Image(new Rect(340, 202, 600, 320), _panelArt);
-            Label(new Rect(390, 202, 490, 40), $"重新开始存档 {_resetSlot + 1}？", _heading);
-            Label(new Rect(390, 312, 700, 40), "这个存档的原有进度将被覆盖。", _body);
-            if (Button(new Rect(390, 420, 240, 54), "取消")) _page = Page.Slots;
-            if (Button(new Rect(650, 420, 240, 54), "确认重新开始")) StartSlot(_resetSlot, true);
-        }
-
         void DrawQuit()
         {
             Image(new Rect(340, 202, 600, 320), _panelArt);
             Label(new Rect(390, 202, 490, 40), "退出游戏？", _heading);
-            Label(new Rect(390, 312, 700, 40), _level == null ? "期待下一次冒险。" : "当前进度会保存到所选存档。", _body);
+            Label(new Rect(390, 312, 700, 40), _level == null ? "期待下一次冒险。" : "当前进度会自动保存。", _body);
             if (Button(new Rect(390, 420, 240, 54), "取消")) _page = _returnPage;
             if (Button(new Rect(650, 420, 240, 54), "确认退出")) Quit();
         }
 
-        bool Button(Rect rect, string text, int size = 24, GUIStyle style = null)
+        bool Button(Rect rect, string text, int size = 24, GUIStyle style = null, bool square = false)
         {
             style = style ?? _button;
             style.fontSize = size;
@@ -512,11 +712,36 @@ namespace SlimaPuzzle
             bool hovered = GUI.enabled && rect.Contains(Event.current.mousePosition);
             GUI.color = !GUI.enabled ? new Color(1f, 1f, 1f, 0.45f) :
                 hovered && GUIUtility.hotControl != 0 ? new Color(0.66f, 0.82f, 1f) :
-                hovered ? new Color(0.85f, 0.94f, 1f) : Color.white;
-            if (_buttonArt != null) GUI.DrawTextureWithTexCoords(rect, _buttonArt, ButtonUv);
+                hovered ? new Color(1.15f, 1.15f, 1.15f) : Color.white;
+            if (_buttonArt != null)
+            {
+                if (square) DrawSquareButtonArt(rect);
+                else GUI.DrawTextureWithTexCoords(rect, _buttonArt, ButtonUv);
+            }
             GUI.color = previous;
             bool pressed = GUI.Button(rect, text, style);
             return pressed;
+        }
+
+        void DrawSquareButtonArt(Rect rect)
+        {
+            // Nine-slice the existing artwork so its pixel border stays thin on square buttons.
+            const float edge = 8f, edgeU = 192f / 2172f, edgeV = 80f / 724f;
+            for (int row = 0; row < 3; row++)
+                for (int col = 0; col < 3; col++)
+                {
+                    float x = col == 0 ? rect.x : col == 1 ? rect.x + edge : rect.xMax - edge;
+                    float y = row == 0 ? rect.y : row == 1 ? rect.y + edge : rect.yMax - edge;
+                    float width = col == 1 ? rect.width - edge * 2 : edge;
+                    float height = row == 1 ? rect.height - edge * 2 : edge;
+                    float u = col == 0 ? 0f : col == 1 ? edgeU : 1f - edgeU;
+                    float v = row == 0 ? ButtonUv.yMax - edgeV : row == 1 ? ButtonUv.y + edgeV : ButtonUv.y;
+                    float uvHeight = row == 1 ? ButtonUv.height - edgeV * 2 : edgeV;
+                    // Sample a plain side strip, avoiding stretched rivets.
+                    if (row == 1 && col != 1) { v = 0.60f; uvHeight = 0.04f; }
+                    GUI.DrawTextureWithTexCoords(new Rect(x, y, width, height), _buttonArt,
+                        new Rect(u, v, col == 1 ? 1f - edgeU * 2 : edgeU, uvHeight));
+                }
         }
 
         static void Image(Rect rect, Texture2D texture)

@@ -2,7 +2,8 @@
     "name": "BlockMapEditor.Tests",
     "rootNamespace": "BlockMap.Gameplay.Tests",
     "references": [
-        "BlockMapEditor.Runtime"
+        "BlockMapEditor.Runtime",
+        "BlockMapEditor.Editor"
     ],
     "includePlatforms": [
         "Editor"

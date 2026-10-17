@@ -17,6 +17,7 @@ namespace BlockMap.Gameplay
         Color[] _linkColors = new Color[0];
         readonly System.Collections.Generic.List<Material> _doorMaterials = new System.Collections.Generic.List<Material>();
         Bounds _doorBounds;
+        [SerializeField, HideInInspector] int _capturedDirection = -1;
 
         public Vector3Int Cell { get; private set; }
         public GameplayBlockProfile Profile { get; private set; }
@@ -25,6 +26,7 @@ namespace BlockMap.Gameplay
         {
             Cell = cell;
             Profile = profile;
+            _capturedDirection = Mathf.RoundToInt(transform.eulerAngles.y / 90f) & 3;
             _baseColor = profile.Tint;
             _renderers = GetComponentsInChildren<Renderer>(true);
             if (GetComponentInChildren<GameplayMechanismArt>(true) != null)
@@ -40,13 +42,22 @@ namespace BlockMap.Gameplay
             _door = GetComponentInChildren<BlockMapDoor>(true);
             _control = GetComponentInChildren<GameplayControlArt>(true);
             _opticGlow = GetComponentInChildren<GameplayOpticGlow>(true);
-            if (profile.Kind == GameplayBlockKind.Door) InitializeDoorMaterials();
+            if (profile.Kind == GameplayBlockKind.Door) InitializeDoorMaterials(Application.isPlaying);
             ApplyColor(_baseColor);
             var gameRoot = GetComponentInParent<BlockMapGameRoot>();
             if (gameRoot != null)
                 foreach (Renderer item in _renderers) gameRoot.ApplyAtmosphereTo(item);
             // Create transparent halos after collecting the opaque artwork renderers.
             if (_opticGlow != null) _opticGlow.Initialize();
+        }
+
+        public void AnimatePush(Vector3Int cell, float duration)
+        {
+            Cell = cell;
+            name = $"Gameplay_{Profile.id}_{cell.x}_{cell.y}_{cell.z}";
+            var animation = GetComponent<GameplayPushAnimation>();
+            if (animation == null) animation = gameObject.AddComponent<GameplayPushAnimation>();
+            animation.MoveTo(new Vector3(cell.x + .5f, cell.y, cell.z + .5f), duration);
         }
 
         public void SetActivated(bool active)
@@ -57,6 +68,14 @@ namespace BlockMap.Gameplay
             if (_control != null) _control.SetActivated(active);
             if (_opticGlow != null) _opticGlow.SetActivated(active);
             ApplyColor(active ? Color.Lerp(_baseColor, Color.white, 0.45f) : _baseColor);
+        }
+
+        internal bool TryCaptureEditedDirection(out int direction)
+        {
+            direction = Mathf.RoundToInt(transform.eulerAngles.y / 90f) & 3;
+            if (direction == _capturedDirection) return false;
+            _capturedDirection = direction;
+            return true;
         }
 
         public void SetReceiverFaces(int worldFaces)
@@ -79,6 +98,8 @@ namespace BlockMap.Gameplay
                 if (item == null) continue;
                 Color materialColor = _materialColors == null ? color :
                     (_active && _control == null && _opticGlow == null ? Color.Lerp(_materialColors[i], Color.white, 0.25f) : _materialColors[i]);
+                if (_opticGlow != null && (item == _opticGlow.opticalSurface || item == _opticGlow.topIndicator))
+                    materialColor = _opticGlow.color;
                 item.GetPropertyBlock(block);
                 block.SetColor("_BaseColor", materialColor);
                 block.SetColor("_Color", materialColor);
@@ -107,7 +128,8 @@ namespace BlockMap.Gameplay
                     block.SetVector("_LinkRange", new Vector4(alongX ? bounds.min.x : bounds.min.z,
                         Mathf.Max(.001f, alongX ? bounds.size.x : bounds.size.z), 0, 0));
                 }
-                if (_emissionStrengths != null && (_opticGlow == null || item != _opticGlow.opticalSurface))
+                if (_emissionStrengths != null && (_opticGlow == null ||
+                    (item != _opticGlow.opticalSurface && item != _opticGlow.topIndicator)))
                     block.SetFloat("_EmissionStrength", _emissionStrengths[i] * (_active ? 2.5f : 1f));
                 item.SetPropertyBlock(block);
             }
@@ -131,7 +153,7 @@ namespace BlockMap.Gameplay
             ApplyColor(_baseColor);
         }
 
-        void InitializeDoorMaterials()
+        void InitializeDoorMaterials(bool playing)
         {
             bool first = true;
             foreach (var item in _renderers)
@@ -144,7 +166,8 @@ namespace BlockMap.Gameplay
                     var material = source.shader.name == "Slima/Toon (Cel + Pixel)" ? new Material(source) :
                         new Material(Shader.Find("Slima/Toon (Cel + Pixel)"));
                     if (source.mainTexture != null) material.mainTexture = source.mainTexture;
-                    material.SetFloat("_OutlineWidth", .6f);
+                    material.SetFloat("_OutlineWidth", playing ? 2f : .6f);
+                    if (playing) material.SetColor("_OutlineColor", new Color(1f,.72f,.06f,1f));
                     _doorMaterials.Add(material); materials[i] = material;
                 }
                 item.sharedMaterials = materials;

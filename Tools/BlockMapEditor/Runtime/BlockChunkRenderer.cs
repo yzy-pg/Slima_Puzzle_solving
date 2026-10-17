@@ -133,13 +133,14 @@ namespace BlockMap
             // 按方块的渲染方式挑 shader（都放在 Resources 里，保证打包不被剥离）
             // ★ 不透明地形优先用"受光"的卡通 shader：这样才能读环境光、并被实时灯（Lamp 的点光源）照亮。
             //   旧版一律用 BlockMap/BlockUnlit（不受光）→ 看起来像 2D 平涂，启动也读不到环境光。
+            // Transparent keeps its legacy shader ID so baked materials also gain Toon lighting.
             string shaderName = def.renderMode == BlockRenderMode.Transparent ? "BlockMap/BlockUnlitTransparent"
                               : def.renderMode == BlockRenderMode.Animated ? "BlockMap/BlockAnimated"
                               : "Slima/Toon (Cel + Pixel)";
             var shader = Shader.Find(shaderName);
             if (shader == null) shader = Resources.Load<Shader>(shaderName);
 
-            // 兜底：卡通 shader 不在（或该方块是动画/半透明）→ 回到不受光版本
+            // 主材质不可用时，使用包内兼容材质。
             if (shader == null)
             {
                 string fallback = def.renderMode == BlockRenderMode.Transparent ? "BlockMap/BlockUnlitTransparent"
@@ -159,7 +160,7 @@ namespace BlockMap
                 def.emissionMap != null ? def.emissionMap : Texture2D.blackTexture);
             if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", def.emissionColor);
             if (mat.HasProperty("_EmissionStrength")) mat.SetFloat("_EmissionStrength", def.emissionStrength);
-            if (def.IsLamp && mat.HasProperty("_NoiseWorldSize")) mat.SetFloat("_NoiseWorldSize", 0.025f);
+            if (def.IsLamp && mat.HasProperty("_NoiseWorldSize")) mat.SetFloat("_NoiseWorldSize", 0.04f);
             // 地形由独立的全屏遮罩描边；关闭反转壳和顶点吸附，光照方格由 Shader 单独采样。
             if (mat.HasProperty("_OutlineWidth")) mat.SetFloat("_OutlineWidth", 0f);
             if (mat.HasProperty("_PixelSnap")) mat.SetFloat("_PixelSnap", 0f);
@@ -177,14 +178,16 @@ namespace BlockMap
         /// 渲染判定专用："视觉上算不算实心"。
         /// 带模型的物件（门/箱子/家具…）与「交互/标记方块」**都不算**实心 —— 否则会把邻居的面剔掉、
         /// 也会让邻居的包边认定"这边有邻居"，结果门下方/周围的地板看起来是透明的空洞。
+        /// 透明邻居只剔除同种透明块之间的内部面，不能剔掉后方不透明地形的贴图面。
         /// 注意：只用于渲染；BlockWorld.IsSolid 仍然认为它有数据，所以射线照样能点到它。
         /// </summary>
-        bool VisuallySolid(Vector3Int p)
+        bool VisuallySolid(Vector3Int p, BlockDefinition source)
         {
             if (_world == null || !_world.IsSolid(p)) return false;
             var d = BlockLibrary.Get(_world.GetIndex(p));
             if (d == null) return false;
-            return !d.interactive && d.previewPrefab == null;
+            return !d.interactive && d.previewPrefab == null &&
+                (d.renderMode != BlockRenderMode.Transparent || d == source);
         }
         public void RebuildAll()
         {
@@ -237,7 +240,7 @@ namespace BlockMap
                 {
                     var (n, u, v) = Faces[f];
                     var nb = kv.Key + Vector3Int.RoundToInt(n);
-                    if (VisuallySolid(nb)) continue;                     // 邻居挡住的整面直接剔除
+                    if (VisuallySolid(nb, def)) continue;                // 透明邻居不能挡掉后方贴图
 
                     Rect uvRect = def.UseAutoTile
                         ? AutoTileAtlas.TileRect(TileIndexForFace(kv.Key, kv.Value, u, v), tileSize)

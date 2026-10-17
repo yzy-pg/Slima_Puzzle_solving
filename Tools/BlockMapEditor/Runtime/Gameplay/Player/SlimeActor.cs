@@ -15,7 +15,7 @@ namespace BlockMap.Gameplay
         [Min(0f)] public float glowRange = 4.5f;
         [Min(0f)] public float emissionStrength = 0.2f;
         [Range(0.002f, 0.5f), Tooltip("角色和点光源的世界像素格大小；越小，像素越细密。")]
-        public float glowPixelSize = 0.025f;
+        public float glowPixelSize = 0.04f;
         [Range(0.1f, 0.75f), Tooltip("相对脚下地面的光源高度（格）；跳跃和悬浮时最高保持在 0.75 格。")]
         public float glowHeight = 0.38f;
         [Range(0f, 0.5f)] public float glowBreathAmount = 0.12f;

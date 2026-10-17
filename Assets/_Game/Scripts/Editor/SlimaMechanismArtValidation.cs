@@ -40,7 +40,7 @@ namespace SlimaPuzzle.EditorTools
                     foreach (var uv in mesh.uv) Require(uv.x>=0 && uv.x<=1 && uv.y>=0 && uv.y<=1,"UV outside tile: " + id);
                 }
                 Require(bounds.min.y>=-.001f && bounds.max.y<=1.001f && bounds.size.x<=1.001f && bounds.size.z<=1.001f,"Model exceeds grid: " + id);
-                Require(prefab.transform.childCount==(id=="Splitter" ? 2 : 3),"Unexpected extra model parts: " + id);
+                Require(prefab.transform.childCount==(id=="Splitter" ? 2 : 4),"Unexpected extra model parts: " + id);
                 if (id=="Splitter")
                 {
                     Require((bounds.size-new Vector3(.94f,.11f,.94f)).sqrMagnitude<.000001f,"Splitter has more than its floor.");

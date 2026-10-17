@@ -98,6 +98,7 @@ namespace BlockMap
             var world = Object.FindObjectOfType<BlockWorld>();
             if (world == null) { EditorUtility.DisplayDialog("BlockMap", "当前场景里没有 BlockWorld。", "好"); return; }
 
+            world.RestoreIfNeeded();
             if (world.Count == 0)
             {
                 EditorUtility.DisplayDialog("BlockMap",

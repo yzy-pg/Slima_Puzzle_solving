@@ -44,13 +44,14 @@ namespace SlimaPuzzle.EditorTools
                 importer.SaveAndReimport();
                 var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(importer.assetPath);
                 if (texture.width != 64 || texture.height != 64) throw new Exception("Expected 64px texture: " + family);
-                var casing = new Geometry(); var optics = new Geometry(); var shell = new Geometry();
+                var casing = new Geometry(); var optics = new Geometry(); var shell = new Geometry(); var indicator = new Geometry();
                 if (family == "Splitter") BuildSplitter(casing);
-                else casing.OpticCube(optics,shell,family=="LightReceiver");
+                else casing.OpticCube(optics,shell,indicator,family=="LightReceiver");
                 Mesh casingMesh = SaveMesh(family + "_Casing", casing);
                 Mesh opticsMesh = family == "Splitter" ? null : SaveMesh(family + "_Optics", optics);
                 Mesh shellMesh = family == "Splitter" ? null : SaveMesh(family + "_Shell", shell);
-                ExportObj(family, casingMesh, opticsMesh, shellMesh);
+                Mesh indicatorMesh = family == "Splitter" ? null : SaveMesh(family + "_TopIndicator", indicator);
+                ExportObj(family, casingMesh, opticsMesh, shellMesh, indicatorMesh);
                 Material metal = SaveMaterial(family + "_Steel", texture, Color.white, false);
                 Material shellMaterial = null;
                 if (shellMesh != null)
@@ -71,6 +72,8 @@ namespace SlimaPuzzle.EditorTools
                     Color tint = profile.Kind == GameplayBlockKind.Splitter ? Color.white : BlockOpticsSystem.ToColor(profile.BeamColor);
                     Material lens = id == "Splitter" ? null : SaveMaterial(id + "_Optics", texture, tint, true);
                     if (lens != null) lens.SetFloat("_EmissionStrength",0f);
+                    Material top = id == "Splitter" ? null : SaveMaterial(id + "_TopIndicator", texture, tint, true);
+                    if (top != null) top.SetFloat("_EmissionStrength",0f);
                     var root = new GameObject(id);
                     try
                     {
@@ -78,6 +81,7 @@ namespace SlimaPuzzle.EditorTools
                         AddPart(root, "Casing", casingMesh, metal);
                         if (shellMesh != null) AddPart(root, "Shell", shellMesh, shellMaterial);
                         if (opticsMesh != null) AddPart(root, "Optics", opticsMesh, lens);
+                        if (indicatorMesh != null) AddPart(root, "TopIndicator", indicatorMesh, top);
                         if (id == "Splitter") AddSaw(root);
                         else
                         {
@@ -96,6 +100,7 @@ namespace SlimaPuzzle.EditorTools
                                 glow.lightIntensity = 1.6f;
                             }
                             glow.opticalSurface = root.transform.Find("Optics").GetComponent<Renderer>();
+                            glow.topIndicator = root.transform.Find("TopIndicator").GetComponent<Renderer>();
                             glow.lightLocalPosition = new Vector3(0,.5f,.55f);
                         }
                         PrefabUtility.SaveAsPrefabAsset(root, Prefabs + "/" + id + ".prefab");
@@ -195,7 +200,7 @@ namespace SlimaPuzzle.EditorTools
             for (int m = 0; m < meshes.Length; m++)
             {
                 Mesh mesh = meshes[m]; if (mesh == null) continue;
-                text.Append("o ").Append(mesh.name).Append("\nusemtl ").Append(m == 0 ? "Casing" : m == 1 ? "Optics" : "Shell").Append('\n');
+                text.Append("o ").Append(mesh.name).Append("\nusemtl ").Append(m == 0 ? "Casing" : m == 1 ? "Optics" : m == 2 ? "Shell" : "TopIndicator").Append('\n');
                 foreach (var p in mesh.vertices) text.AppendFormat(CultureInfo.InvariantCulture,"v {0} {1} {2}\n",p.x,p.y,p.z);
                 foreach (var uv in mesh.uv) text.AppendFormat(CultureInfo.InvariantCulture,"vt {0} {1}\n",uv.x,uv.y);
                 foreach (var n in mesh.normals) text.AppendFormat(CultureInfo.InvariantCulture,"vn {0} {1} {2}\n",n.x,n.y,n.z);
@@ -208,7 +213,7 @@ namespace SlimaPuzzle.EditorTools
             }
             File.WriteAllText(Models + "/" + family + ".obj",text.ToString());
             string map = "../../Textures/Mechanisms/" + family + "_64.png";
-            File.WriteAllText(Models + "/" + family + ".mtl","newmtl Casing\nKd 1 1 1\nmap_Kd " + map + "\n\nnewmtl Optics\nKd 1 1 1\nmap_Kd " + map + "\nnewmtl Shell\nKd 1 1 1\nmap_Kd ../../Textures/Mechanisms/MechanismCasing_64.png\n");
+            File.WriteAllText(Models + "/" + family + ".mtl","newmtl Casing\nKd 1 1 1\nmap_Kd " + map + "\n\nnewmtl Optics\nKd 1 1 1\nmap_Kd " + map + "\nnewmtl Shell\nKd 1 1 1\nmap_Kd ../../Textures/Mechanisms/MechanismCasing_64.png\n\nnewmtl TopIndicator\nKd 1 1 1\nmap_Kd " + map + "\n");
         }
 
         sealed class Geometry
@@ -233,7 +238,7 @@ namespace SlimaPuzzle.EditorTools
                 Face(v[0],v[4],v[7],v[3],uv); Face(v[5],v[1],v[2],v[6],uv);
                 Face(v[7],v[6],v[2],v[3],top ? Full : uv); Face(v[0],v[1],v[5],v[4],uv);
             }
-            public void OpticCube(Geometry optics, Geometry shell, bool receiver)
+            public void OpticCube(Geometry optics, Geometry shell, Geometry indicator, bool receiver)
             {
                 // Every surface is exactly on the boundary of a one-metre cube.
                 // Split the painted face between steel and glass, with no overlapping polygons.
@@ -249,15 +254,22 @@ namespace SlimaPuzzle.EditorTools
                     optics.SideRegion(-half,.5f-half,half,.5f+half,turn);
                 }
                 shell.Face(new Vector3(-.5f,0,-.5f),new Vector3(.5f,0,-.5f),new Vector3(.5f,0,.5f),new Vector3(-.5f,0,.5f),Full);
-                if (receiver) shell.TopRegion(-.5f,-.5f,.5f,.5f);
-                else
+                float topHalf = receiver ? .23f : .18f;
+                shell.TopRegion(-.5f,-.5f,.5f,-topHalf);
+                shell.TopRegion(-.5f,topHalf,.5f,.5f);
+                shell.TopRegion(-.5f,-topHalf,-topHalf,topHalf);
+                shell.TopRegion(topHalf,-topHalf,.5f,topHalf);
+                float glassHalf = receiver ? .15f : topHalf;
+                if (receiver)
                 {
-                    shell.TopRegion(-.5f,-.5f,.5f,-.13f);
-                    shell.TopRegion(-.5f,.13f,.5f,.5f);
-                    shell.TopRegion(-.5f,-.13f,-.13f,.13f);
-                    shell.TopRegion(.13f,-.13f,.5f,.13f);
-                    TopRegion(-.13f,-.13f,.13f,.13f,new Rect(.43f,.86f,.14f,.10f));
+                    // A neutral metal bezel surrounds the larger colored glass; only the glass emits.
+                    TopRegion(-topHalf,-topHalf,topHalf,-glassHalf,new Rect(.20f,.20f,.60f,.20f));
+                    TopRegion(-topHalf,glassHalf,topHalf,topHalf,new Rect(.20f,.60f,.60f,.20f));
+                    TopRegion(-topHalf,-glassHalf,-glassHalf,glassHalf,new Rect(.20f,.40f,.20f,.20f));
+                    TopRegion(glassHalf,-glassHalf,topHalf,glassHalf,new Rect(.60f,.40f,.20f,.20f));
                 }
+                indicator.TopRegion(-glassHalf,-glassHalf,glassHalf,glassHalf,
+                    receiver ? new Rect(.40f,.40f,.20f,.20f) : new Rect(.43f,.86f,.14f,.10f));
             }
             void SideRegion(float left,float bottom,float right,float top,Quaternion turn,Rect? rect=null)
             {

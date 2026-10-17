@@ -152,15 +152,23 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 light.name = "Light_RedLight_Lamp_0_0_0";
                 var lampFine = Capture("lamp-fine-pixels");
                 CheckBands(lampFine, true);
-                var fineCells = CheckWorldCells(lampFine, camera, quad.transform, .025f);
+                var fineCells = CheckWorldCells(lampFine, camera, quad.transform, .04f);
                 if (fineCells.Count <= worldCells.Count * 2)
                     throw new Exception("Lamp sampling did not increase the visible pixel count.");
+                foreach (string generatedName in new[] { "Light_Lab_Heater_01_0_0_0", "Light_Lab_Heater_02_0_0_0", "OpticalLight_0" })
+                {
+                    light.name = generatedName;
+                    var generated = Capture(generatedName + "-fine-pixels");
+                    for (int i = 0; i < generated.Length; i++)
+                        if (Mathf.Abs(generated[i].r - lampFine[i].r) > .02f)
+                            throw new Exception("Generated lights use different pixel distributions: " + generatedName);
+                }
                 camera.transform.position += new Vector3(.31f, -.17f, 0);
-                CheckWorldCells(Capture("lamp-fine-pixels-moved"), camera, quad.transform, .025f, fineCells);
+                CheckWorldCells(Capture("lamp-fine-pixels-moved"), camera, quad.transform, .04f, fineCells);
                 var actor = light.transform.parent = new GameObject("Sampling validation slime").transform;
                 actor.gameObject.AddComponent<BlockMap.Gameplay.SlimeActor>();
                 light.name = "Slime Glow";
-                CheckWorldCells(Capture("slime-fine-pixels"), camera, quad.transform, .025f, fineCells);
+                CheckWorldCells(Capture("slime-fine-pixels"), camera, quad.transform, .04f, fineCells);
                 light.transform.SetParent(null, true);
                 Object.DestroyImmediate(actor.gameObject);
                 light.name = "Lighting validation point light";

@@ -151,13 +151,13 @@ namespace SlimaPuzzle.Rendering.EditorTools
                 Check(door.IsOpen && Quaternion.Angle(door.hinge.localRotation, Quaternion.identity) < .01f,
                     "Open door did not use the corrected angle.");
                 Check(Vector3.Distance(door.hinge.position-pivot,doorView.transform.right*door.slideDistance) < .0001f &&
-                    !doorView.GetComponentInChildren<Renderer>().enabled,"Opened door did not slide right and hide.");
+                    !door.hinge.GetComponentInChildren<Renderer>(true).enabled,"Opened door did not slide right and hide.");
                 Check(root.GetComponentsInChildren<GameplayBlockView>().Length == expected, "Animation left a duplicate model.");
                 Capture(camera, "map03-open");
                 var properties = new MaterialPropertyBlock();
                 root.Party.ActiveActor.GetComponentInChildren<Renderer>().GetPropertyBlock(properties);
                 Check(properties.GetFloat("_SubsurfaceStrength") > 0, "Player did not enable its scattering material.");
-                Check(Mathf.Abs(properties.GetFloat("_NoiseWorldSize") - .025f) < .00001f,
+                Check(Mathf.Abs(properties.GetFloat("_NoiseWorldSize") - .04f) < .00001f,
                     "Player did not apply the finer sampling grid.");
                 Debug.Log("[Slima Visual Fix Validation] PLAY PASS: one live view per cell, authored door heading, sliding/hiding panel and player scattering; map03 screenshots saved.");
                 Finish(0);

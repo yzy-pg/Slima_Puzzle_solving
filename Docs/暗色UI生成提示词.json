@@ -1,0 +1,79 @@
+{
+  "mode": "Built-in imagegen edit",
+  "date": "2026-10-17",
+  "assets": [
+    {
+      "name": "cover-background",
+      "transparent": false,
+      "prompt": "Use case: lighting-weather. Edit target: attached existing game background. Convert ONLY its palette and lighting into a dark midnight-blue laboratory for a pixel-art game menu. Preserve exact composition: blank grid wall across left 60%, shelf at far right, bench at bottom right. Very dark navy wall #071326, subtle blue grid #122c44, dark slate bench, restrained icy cyan edge lighting on bench. Keep simple crisp stepped pixels, minimal detail. No text, no buttons, no beaker, no slime, no objects added. Opaque full background, same wide framing.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/cover-background.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/cover-background.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-c101f670-4cf2-4bf5-b229-c3a05c4f473f.png"
+    },
+    {
+      "name": "button",
+      "transparent": true,
+      "prompt": "Use case: style-transfer. Edit target: existing pixel-art game button. Produce its DARK BLUE theme version. Preserve the exact wide 3:1 canvas, button silhouette and original top/bottom transparent padding, screw positions, stepped corners. The button occupies x0..100%, y19..78% of canvas. Dark midnight navy OPAQUE center #142e49 with subtle slate-blue shading, bright icy cyan pixel border and thin white-blue top highlight, darker blue lower shadow. Center completely blank for runtime text. Only OUTSIDE the button is transparent. No letters, no icons, no extra shapes. Crisp simple pixel art, not blurry.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/button.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/button.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-9cfc10c7-f846-4e2a-9643-67e49fc978ff.png"
+    },
+    {
+      "name": "panel",
+      "transparent": false,
+      "prompt": "Use case: style-transfer. Edit target: existing rectangular game UI panel. Recolor as a DARK NAVY pixel laboratory panel. Preserve outline, stepped corners, header divider position at15% height, four top-right tiny square lights, top-left screw, dimensions3:2. Center and header are OPAQUE dark navy #0c2036 and #142d46, thin steel blue border with restrained icy cyan highlights. Empty center for light text. No text, no extra objects. No transparent holes. Simple crisp pixel art.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/panel.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/panel.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-ae418125-bd97-462f-a396-b6ef1642c86b.png"
+    },
+    {
+      "name": "slot-empty",
+      "transparent": false,
+      "prompt": "Use case: style-transfer. Edit target: existing square save-slot card. Convert to matching DARK NAVY blue pixel UI theme. Preserve exact stepped frame, header divider at22% height and its existing small top-right beaker/slime/check icon unchanged in shape. Opaque dark navy #0c2036 interior, slightly lighter #142d46 header, slim steel blue and icy cyan stepped border. Icon remains luminous blue-white. Entire large central area blank for light runtime text. No letters or new details. No transparent holes; opaque image. Crisp simple pixel art.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/slot-empty.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slot-empty.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-cef33fb4-9912-41ec-9424-093d32583514.png"
+    },
+    {
+      "name": "slot-saved",
+      "transparent": false,
+      "prompt": "Use case: style-transfer. Edit target: existing square save-slot card. Convert to matching DARK NAVY blue pixel UI theme. Preserve exact stepped frame, header divider at22% height and its existing small top-right beaker/slime/check icon unchanged in shape. Opaque dark navy #0c2036 interior, slightly lighter #142d46 header, slim steel blue and icy cyan stepped border. Icon remains luminous blue-white. Entire large central area blank for light runtime text. No letters or new details. No transparent holes; opaque image. Crisp simple pixel art.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/slot-saved.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slot-saved.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-0abe5d00-c8c1-46ce-a008-3abc59d43858.png"
+    },
+    {
+      "name": "slot-complete",
+      "transparent": false,
+      "prompt": "Use case: style-transfer. Edit target: existing square save-slot card. Convert to matching DARK NAVY blue pixel UI theme. Preserve exact stepped frame, header divider at22% height and its existing small top-right beaker/slime/check icon unchanged in shape. Opaque dark navy #0c2036 interior, slightly lighter #142d46 header, slim steel blue and icy cyan stepped border. Icon remains luminous blue-white. Entire large central area blank for light runtime text. No letters or new details. No transparent holes; opaque image. Crisp simple pixel art.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/slot-complete.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slot-complete.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-c91e78b2-69e3-43b5-8369-c3cb7fbc4bd6.png"
+    },
+    {
+      "name": "slider-track",
+      "transparent": false,
+      "prompt": "Use case: style-transfer. Edit target existing3:1 slider rail image. Convert to dark navy UI: all pale background becomes solid #0c2036, rail remains at exact vertical center and same geometry, thin steel blue outline with muted blue fill. Simple crisp pixel art. No text or extra elements. Opaque.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/slider-track.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slider-track.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-34f3a109-61a3-44d6-bb84-4762c6ae868a.png"
+    },
+    {
+      "name": "slider-thumb",
+      "transparent": true,
+      "prompt": "Use case: style-transfer. Edit target existing slider knob. Preserve its square canvas, silhouette, transparent outer padding, two vertical grip slots and stepped edges. Convert white face into dark slate blue #1c4563, icy cyan bright pixel rim, pale cyan two grip slots, navy lower shadow. Only outside knob transparent, face fully opaque. Simple crisp pixel art, no text.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/slider-thumb.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slider-thumb.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-1fd59cf5-e872-4f3c-a9bd-fa578b22a6da.png"
+    },
+    {
+      "name": "slime-glow",
+      "source": "cover-slime",
+      "transparent": true,
+      "prompt": "Use case: precise-object-edit. The input slime is a SHAPE REFERENCE ONLY. Output ONLY a cyan light aura sprite on a genuinely transparent background, NO slime, NO face, NO solid body, NO dark background. A wide rounded jelly-shaped glow, approximately80% width and65% height centered on same canvas. Luminous cyan #35caff strongest around center, outward semi-transparent blue falloff in large simple stepped pixel bands, outer pixels fade fully transparent. Low detail game light effect to layer BEHIND the original separate slime. Keep center translucent cyan too, not a hole. No objects, no text.",
+      "input": "Assets/_Game/UI/Resources/SlimaUI/cover-slime.png",
+      "output": "Assets/_Game/UI/Resources/SlimaUI/Dark/slime-glow.png",
+      "generated": "C:\\Users\\1\\.codex\\generated_images\\01a130d6-1403-7140-8fa9-6acf7d7e8ace\\exec-ba6b38c8-4b6d-483f-b0a3-29da6581709f.png"
+    }
+  ]
+}
